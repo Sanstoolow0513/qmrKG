@@ -8,6 +8,7 @@ wheels/
 
 # Virtual environments
 .venv
+.worktrees/
 
 # Data files (keep directory structure with .gitkeep)
 data/pdf/*.pdf
