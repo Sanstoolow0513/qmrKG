@@ -9,6 +9,10 @@ wheels/
 # Virtual environments
 .venv
 .worktrees/
+.pytest_local/
+.pytest-tmp/
+.tmp/
+pytest-cache-files-*/
 
 # Data files (keep directory structure with .gitkeep)
 data/pdf/*.pdf

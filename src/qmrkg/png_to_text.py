@@ -1,160 +1,318 @@
-"""PNG to Text using OCR (PaddleOCR)."""
+"""PNG to text extraction backed by SiliconFlow VLM OCR."""
 
+from __future__ import annotations
+
+import base64
 import logging
+import mimetypes
+import os
+import threading
+import time
+from collections import deque
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Union
-
-from PIL import Image
+from typing import Callable
 
 logger = logging.getLogger(__name__)
 
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - fallback for environments without optional deps installed
+
+    def load_dotenv(*_args, **_kwargs) -> bool:
+        return False
+
+
+DEFAULT_BASE_URL = "https://api.siliconflow.com/v1"
+DEFAULT_MODEL = "Qwen/Qwen2-VL-72B-Instruct"
+DEFAULT_PROMPT = (
+    "Transcribe all visible text from this page exactly as written. Preserve reading order and "
+    "line breaks where possible. Do not add commentary, summaries, or markdown fences."
+)
+DEFAULT_RPM = 60
+DEFAULT_MAX_CONCURRENCY = 4
+DEFAULT_TIMEOUT_SECONDS = 60.0
+DEFAULT_MAX_RETRIES = 3
+
+
+def _read_int(name: str, default: int) -> int:
+    value = os.getenv(name)
+    if value in (None, ""):
+        return default
+    parsed = int(value)
+    if parsed <= 0:
+        raise ValueError(f"{name} must be greater than 0")
+    return parsed
+
+
+def _read_float(name: str, default: float) -> float:
+    value = os.getenv(name)
+    if value in (None, ""):
+        return default
+    parsed = float(value)
+    if parsed <= 0:
+        raise ValueError(f"{name} must be greater than 0")
+    return parsed
+
+
+@dataclass(slots=True)
+class VLMSettings:
+    api_key: str
+    base_url: str = DEFAULT_BASE_URL
+    model: str = DEFAULT_MODEL
+    prompt: str = DEFAULT_PROMPT
+    rpm: int = DEFAULT_RPM
+    max_concurrency: int = DEFAULT_MAX_CONCURRENCY
+    timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
+    max_retries: int = DEFAULT_MAX_RETRIES
+
+    @classmethod
+    def from_env(cls) -> "VLMSettings":
+        load_dotenv()
+
+        api_key = os.getenv("SILICONFLOW_API_KEY", "").strip()
+        if not api_key:
+            raise ValueError("SILICONFLOW_API_KEY is required")
+
+        return cls(
+            api_key=api_key,
+            base_url=os.getenv("SILICONFLOW_BASE_URL", DEFAULT_BASE_URL).strip()
+            or DEFAULT_BASE_URL,
+            model=os.getenv("SILICONFLOW_VLM_MODEL", DEFAULT_MODEL).strip() or DEFAULT_MODEL,
+            prompt=os.getenv("SILICONFLOW_VLM_PROMPT", DEFAULT_PROMPT).strip() or DEFAULT_PROMPT,
+            rpm=_read_int("SILICONFLOW_RPM", DEFAULT_RPM),
+            max_concurrency=_read_int("SILICONFLOW_MAX_CONCURRENCY", DEFAULT_MAX_CONCURRENCY),
+            timeout_seconds=_read_float(
+                "SILICONFLOW_TIMEOUT_SECONDS",
+                DEFAULT_TIMEOUT_SECONDS,
+            ),
+            max_retries=_read_int("SILICONFLOW_MAX_RETRIES", DEFAULT_MAX_RETRIES),
+        )
+
+
+class RollingRateLimiter:
+    """Enforce a rolling requests-per-minute cap across worker threads."""
+
+    def __init__(
+        self,
+        rpm: int,
+        *,
+        time_fn: Callable[[], float] | None = None,
+        sleep_fn: Callable[[float], None] | None = None,
+    ):
+        if rpm <= 0:
+            raise ValueError("rpm must be greater than 0")
+        self.rpm = rpm
+        self._time_fn = time_fn or time.monotonic
+        self._sleep_fn = sleep_fn or time.sleep
+        self._lock = threading.Lock()
+        self._requests: deque[float] = deque()
+
+    def acquire(self) -> None:
+        while True:
+            wait_for = 0.0
+            with self._lock:
+                now = self._time_fn()
+                self._trim(now)
+                if len(self._requests) < self.rpm:
+                    self._requests.append(now)
+                    return
+                wait_for = max(0.0, 60.0 - (now - self._requests[0]))
+            if wait_for > 0:
+                self._sleep_fn(wait_for)
+
+    def _trim(self, now: float) -> None:
+        while self._requests and now - self._requests[0] >= 60.0:
+            self._requests.popleft()
+
 
 class OCRProcessor:
-    """Extract text from images using OCR."""
+    """Extract text from images using SiliconFlow's OpenAI-compatible VLM endpoint."""
 
     def __init__(
         self,
         use_gpu: bool = False,
-        lang: str = "ch",  # 'ch' for Chinese+English, 'en' for English only
+        lang: str = "ch",
         show_log: bool = False,
     ):
-        """
-        Initialize OCR processor.
-
-        Args:
-            use_gpu: Whether to use GPU for OCR (default False)
-            lang: Language code ('ch', 'en', etc.)
-            show_log: Show PaddleOCR internal logs
-        """
         self.use_gpu = use_gpu
         self.lang = lang
         self.show_log = show_log
-        self._ocr = None
+        self._settings: VLMSettings | None = None
+        self._client = None
+        self._rate_limiter: RollingRateLimiter | None = None
 
     @property
-    def ocr(self):
-        """Lazy initialization of OCR engine."""
-        if self._ocr is None:
-            try:
-                from paddleocr import PaddleOCR
+    def settings(self) -> VLMSettings:
+        if self._settings is None:
+            self._settings = VLMSettings.from_env()
+        return self._settings
 
-                logger.info(f"Initializing PaddleOCR (lang={self.lang}, gpu={self.use_gpu})")
-                self._ocr = PaddleOCR(
-                    use_angle_cls=True,
-                    lang=self.lang,
-                    use_gpu=self.use_gpu,
-                    show_log=self.show_log,
-                )
-            except ImportError:
-                raise ImportError("paddleocr not installed. Run: pip install paddleocr")
-        return self._ocr
+    @property
+    def client(self):
+        if self._client is None:
+            try:
+                from openai import OpenAI
+            except ImportError as exc:  # pragma: no cover - exercised only in live runtime setup
+                raise ImportError("openai not installed. Run: pip install openai") from exc
+            self._client = OpenAI(
+                api_key=self.settings.api_key,
+                base_url=self.settings.base_url,
+                timeout=self.settings.timeout_seconds,
+            )
+        return self._client
+
+    @property
+    def rate_limiter(self) -> RollingRateLimiter:
+        if self._rate_limiter is None:
+            self._rate_limiter = RollingRateLimiter(self.settings.rpm)
+        return self._rate_limiter
 
     def extract_text(
         self,
         image_path: Path,
         return_confidence: bool = False,
-    ) -> Union[str, tuple[str, float]]:
-        """
-        Extract text from a single image.
+    ) -> str | tuple[str, float]:
+        image_path = Path(image_path)
+        text = self._extract_page_text_with_retries(image_path)
+        if return_confidence:
+            return text, 1.0
+        return text
 
-        Args:
-            image_path: Path to image file
-            return_confidence: If True, return (text, avg_confidence)
+    def extract_from_images(
+        self,
+        image_paths: list[Path],
+        return_confidence: bool = False,
+    ) -> list[str] | list[tuple[str, float]]:
+        normalized_paths = [Path(image_path) for image_path in image_paths]
+        if not normalized_paths:
+            return []
 
-        Returns:
-            Extracted text string, or (text, confidence) if return_confidence=True
-        """
+        results: list[str | tuple[str, float] | None] = [None] * len(normalized_paths)
+        max_workers = min(len(normalized_paths), self.settings.max_concurrency)
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(self._extract_page_text_with_retries, image_path): index
+                for index, image_path in enumerate(normalized_paths)
+            }
+            for future in as_completed(futures):
+                index = futures[future]
+                image_path = normalized_paths[index]
+                try:
+                    text = future.result()
+                    results[index] = (text, 1.0) if return_confidence else text
+                except Exception as exc:
+                    logger.error("OCR failed for %s: %s", image_path, exc)
+                    results[index] = ("", 0.0) if return_confidence else ""
+
+        return list(results)
+
+    def process_and_save(
+        self,
+        image_paths: list[Path],
+        output_path: Path,
+        page_separator: str = "\n\n--- Page {page} ---\n\n",
+    ) -> Path:
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+
+        extracted_texts = self.extract_from_images(image_paths)
+        all_texts: list[str] = []
+        for page_number, text in enumerate(extracted_texts, 1):
+            if isinstance(text, str) and text.strip():
+                all_texts.append(f"{page_separator.format(page=page_number)}{text}")
+
+        output_path.write_text("".join(all_texts), encoding="utf-8")
+        logger.info("Saved OCR text to: %s", output_path)
+        return output_path
+
+    def _extract_page_text_with_retries(self, image_path: Path) -> str:
+        attempts = self.settings.max_retries + 1
+        for attempt in range(1, attempts + 1):
+            try:
+                return self._extract_page_text(image_path)
+            except Exception as exc:
+                if attempt >= attempts or not self._is_transient_error(exc):
+                    raise
+                backoff_seconds = min(2 ** (attempt - 1), 30)
+                logger.warning(
+                    "Transient OCR failure for %s on attempt %s/%s: %s",
+                    image_path,
+                    attempt,
+                    attempts,
+                    exc,
+                )
+                time.sleep(backoff_seconds)
+        raise RuntimeError("unreachable")
+
+    def _extract_page_text(self, image_path: Path) -> str:
         image_path = Path(image_path)
         if not image_path.exists():
             raise FileNotFoundError(f"Image not found: {image_path}")
 
-        logger.debug(f"OCR processing: {image_path}")
+        self.rate_limiter.acquire()
+        response = self.client.chat.completions.create(
+            model=self.settings.model,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": self.settings.prompt},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": self._build_image_data_url(image_path)},
+                        },
+                    ],
+                }
+            ],
+            timeout=self.settings.timeout_seconds,
+        )
+        return self._extract_message_text(response).strip()
 
-        # Run OCR
-        result = self.ocr.ocr(str(image_path), cls=True)
-
-        # Extract text from result
-        texts = []
-        confidences = []
-
-        if result and result[0]:
-            for line in result[0]:
-                if line:
-                    text = line[1][0]  # The recognized text
-                    confidence = line[1][1]  # Confidence score
-                    texts.append(text)
-                    confidences.append(confidence)
-
-        full_text = "\n".join(texts)
-        avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
-
-        logger.debug(f"Extracted {len(texts)} lines from {image_path.name}")
-
-        if return_confidence:
-            return full_text, avg_confidence
-        return full_text
-
-    def extract_from_images(
-        self,
-        image_paths: List[Path],
-        return_confidence: bool = False,
-    ) -> Union[List[str], List[tuple[str, float]]]:
-        """
-        Extract text from multiple images.
-
-        Args:
-            image_paths: List of image file paths
-            return_confidence: If True, return list of (text, confidence) tuples
-
-        Returns:
-            List of extracted texts
-        """
-        results = []
-        for img_path in image_paths:
-            try:
-                result = self.extract_text(img_path, return_confidence=return_confidence)
-                results.append(result)
-            except Exception as e:
-                logger.error(f"OCR failed for {img_path}: {e}")
-                if return_confidence:
-                    results.append(("", 0.0))
+    @staticmethod
+    def _extract_message_text(response) -> str:
+        choices = getattr(response, "choices", None) or []
+        if not choices:
+            return ""
+        message = getattr(choices[0], "message", None)
+        if message is None:
+            return ""
+        content = getattr(message, "content", "")
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            text_parts = []
+            for item in content:
+                if isinstance(item, dict):
+                    if item.get("type") == "text":
+                        text_parts.append(item.get("text", ""))
                 else:
-                    results.append("")
-        return results
+                    text = getattr(item, "text", None)
+                    if text:
+                        text_parts.append(text)
+            return "\n".join(part for part in text_parts if part)
+        return str(content or "")
 
-    def process_and_save(
-        self,
-        image_paths: List[Path],
-        output_path: Path,
-        page_separator: str = "\n\n--- Page {page} ---\n\n",
-    ) -> Path:
-        """
-        Extract text from images and save to file.
+    @staticmethod
+    def _build_image_data_url(image_path: Path) -> str:
+        mime_type = mimetypes.guess_type(image_path.name)[0] or "image/png"
+        encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
+        return f"data:{mime_type};base64,{encoded}"
 
-        Args:
-            image_paths: List of image paths (in order)
-            output_path: Path to save the text file
-            page_separator: Separator between pages, use {page} for page number
+    @staticmethod
+    def _is_transient_error(exc: Exception) -> bool:
+        if isinstance(exc, TimeoutError):
+            return True
 
-        Returns:
-            Path to saved text file
-        """
-        output_path = Path(output_path)
-        output_path.parent.mkdir(parents=True, exist_ok=True)
+        status_code = getattr(exc, "status_code", None)
+        if isinstance(status_code, int) and (status_code == 429 or status_code >= 500):
+            return True
 
-        all_texts = []
-        for i, img_path in enumerate(image_paths, 1):
-            try:
-                text = self.extract_text(img_path)
-                if isinstance(text, str) and text.strip():
-                    separator = page_separator.format(page=i)
-                    all_texts.append(f"{separator}{text}")
-            except Exception as e:
-                logger.error(f"Failed to process {img_path}: {e}")
+        response = getattr(exc, "response", None)
+        response_status = getattr(response, "status_code", None)
+        if isinstance(response_status, int) and (response_status == 429 or response_status >= 500):
+            return True
 
-        # Combine and save
-        full_content = "".join(all_texts)
-        output_path.write_text(full_content, encoding="utf-8")
-
-        logger.info(f"Saved OCR text to: {output_path}")
-        return output_path
+        return False
