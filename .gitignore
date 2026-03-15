@@ -13,6 +13,7 @@ wheels/
 .pytest-tmp/
 .tmp/
 pytest-cache-files-*/
+tests/_scratch/
 
 # Data files (keep directory structure with .gitkeep)
 data/pdf/*.pdf
