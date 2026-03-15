@@ -1,0 +1,35 @@
+[project]
+name = "qmrkg"
+version = "0.1.0"
+description = "PDF to Text pipeline for Knowledge Graph construction"
+readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "pymupdf>=1.23.0",      # PDF 处理
+    "paddlepaddle",         # OCR 引擎
+    "paddleocr>=2.7.0",     # OCR 识别
+    "pillow>=10.0.0",       # 图像处理
+    "tqdm>=4.66.0",         # 进度条
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "black>=24.0.0",
+    "ruff>=0.3.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ['py313']
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"

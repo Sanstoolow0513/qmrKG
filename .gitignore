@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Data files (keep directory structure with .gitkeep)
+data/pdf/*.pdf
+data/png/**/*.png
+data/markdown/*.txt
+data/chunks/*.json
+
+# Model files
+*.pdmodel
+*.pdiparams
+*.pdopt
+inference/
