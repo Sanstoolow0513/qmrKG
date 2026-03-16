@@ -303,9 +303,27 @@ class OCRProcessor:
 
     @staticmethod
     def _is_transient_error(exc: Exception) -> bool:
-        if isinstance(exc, TimeoutError):
-            return True
+        seen: set[int] = set()
+        current: BaseException | None = exc
+        while current is not None and id(current) not in seen:
+            seen.add(id(current))
 
+            if isinstance(current, (TimeoutError, ConnectionError)):
+                return True
+
+            exception_names = {cls.__name__ for cls in type(current).__mro__}
+            if {"APITimeoutError", "APIConnectionError"} & exception_names:
+                return True
+
+            if OCRProcessor._has_transient_status_code(current):
+                return True
+
+            current = current.__cause__ or current.__context__
+
+        return False
+
+    @staticmethod
+    def _has_transient_status_code(exc: BaseException) -> bool:
         status_code = getattr(exc, "status_code", None)
         if isinstance(status_code, int) and (status_code == 429 or status_code >= 500):
             return True

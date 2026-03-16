@@ -141,6 +141,39 @@ def test_extract_text_retries_transient_failures(scratch_dir, monkeypatch):
     assert attempts["count"] == 2
 
 
+@pytest.mark.parametrize("exception_type", ["APITimeoutError", "APIConnectionError"])
+@pytest.mark.parametrize("wrapped", [False, True])
+def test_extract_text_retries_openai_sdk_timeout_and_connection_failures(
+    scratch_dir, monkeypatch, exception_type, wrapped
+):
+    image_path = write_image(scratch_dir, "page.png")
+    attempts = {"count": 0}
+    sdk_exception = type(exception_type, (Exception,), {})
+
+    def handler(**_kwargs):
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            if wrapped:
+                try:
+                    raise sdk_exception("sdk timeout")
+                except sdk_exception as exc:
+                    raise RuntimeError("wrapped sdk timeout") from exc
+            raise sdk_exception("sdk timeout")
+        return FakeResponse("recovered text")
+
+    processor = build_processor(
+        monkeypatch,
+        handler,
+        SILICONFLOW_MAX_RETRIES=2,
+        SILICONFLOW_MAX_CONCURRENCY=1,
+    )
+
+    result = processor.extract_text(image_path)
+
+    assert result == "recovered text"
+    assert attempts["count"] == 2
+
+
 def test_extract_from_images_preserves_input_order(scratch_dir, monkeypatch):
     page1 = write_image(scratch_dir, "page1.png", b"page-1")
     page2 = write_image(scratch_dir, "page2.png", b"page-2")
