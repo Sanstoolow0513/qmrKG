@@ -1,4 +1,4 @@
-"""CLI entry point for QmrKG PDF pipeline."""
+"""CLI entry point for the QmrKG PDF pipeline."""
 
 import argparse
 import logging
@@ -36,10 +36,10 @@ Examples:
   # Don't save intermediate images
   python main.py --no-images
 
-  # Use GPU for OCR (faster but requires CUDA)
+  # Legacy compatibility flag (ignored by SiliconFlow OCR)
   python main.py --gpu
 
-  # English only OCR (faster)
+  # Legacy compatibility flag (ignored by SiliconFlow OCR)
   python main.py --lang en
         """,
     )
@@ -77,7 +77,7 @@ Examples:
         "--lang",
         choices=["ch", "en", "korean", "japan", "ch_tra"],
         default="ch",
-        help="OCR language (default: ch for Chinese+English)",
+        help="Legacy OCR language flag kept for compatibility; ignored by SiliconFlow OCR",
     )
     parser.add_argument(
         "--no-images",
@@ -87,7 +87,7 @@ Examples:
     parser.add_argument(
         "--gpu",
         action="store_true",
-        help="Use GPU for OCR (requires CUDA)",
+        help="Legacy GPU flag kept for compatibility; ignored by SiliconFlow OCR",
     )
     parser.add_argument(
         "--recursive",

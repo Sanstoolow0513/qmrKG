@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class PDFPipeline:
-    """Complete pipeline: PDF -> Images -> Text."""
+    """Complete pipeline: PDF -> images -> text."""
 
     def __init__(
         self,
@@ -32,8 +32,8 @@ class PDFPipeline:
             image_dir: Directory to save images (default: data/png/)
             text_dir: Directory to save text files (default: data/markdown/)
             dpi: DPI for PDF to image conversion
-            ocr_lang: OCR language ('ch' for Chinese+English, 'en' for English)
-            use_gpu: Use GPU for OCR
+            ocr_lang: Legacy OCR language flag kept for compatibility
+            use_gpu: Legacy GPU flag kept for compatibility
         """
         self.pdf_dir = Path(pdf_dir)
         self.image_dir = Path(image_dir) if image_dir else Path("data/png")
@@ -48,7 +48,7 @@ class PDFPipeline:
         pdf_path: Path,
         save_images: bool = True,
         save_text: bool = True,
-    ) -> tuple[List[Path], Path]:
+    ) -> tuple[List[Path], Path | None]:
         """
         Process a single PDF through the full pipeline.
 
@@ -58,7 +58,7 @@ class PDFPipeline:
             save_text: Whether to save extracted text
 
         Returns:
-            Tuple of (image_paths, text_path)
+            Tuple of (image_paths, text_path). `text_path` is `None` when `save_text=False`.
         """
         pdf_path = Path(pdf_path)
         logger.info(f"Processing: {pdf_path.name}")
@@ -71,13 +71,14 @@ class PDFPipeline:
             raise RuntimeError(f"No images generated from {pdf_path}")
 
         # Step 2: PNG -> Text
-        text_output_path = self.text_dir / f"{pdf_path.stem}.txt"
-        self.text_dir.mkdir(parents=True, exist_ok=True)
-
-        text_path = self.ocr_processor.process_and_save(
-            sorted(image_paths),
-            text_output_path,
-        )
+        text_path: Path | None = None
+        if save_text:
+            text_output_path = self.text_dir / f"{pdf_path.stem}.txt"
+            self.text_dir.mkdir(parents=True, exist_ok=True)
+            text_path = self.ocr_processor.process_and_save(
+                sorted(image_paths),
+                text_output_path,
+            )
 
         # Cleanup images if not saving
         if not save_images:
@@ -130,7 +131,7 @@ class PDFPipeline:
                     "status": "success",
                     "pages": len(image_paths),
                     "images": [str(p) for p in image_paths] if save_images else [],
-                    "text": str(text_path),
+                    "text": str(text_path) if text_path else None,
                 }
             except Exception as e:
                 logger.error(f"Failed to process {pdf_path.name}: {e}")

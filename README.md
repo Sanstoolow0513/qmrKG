@@ -1,6 +1,6 @@
 # QmrKG - PDF to Text Pipeline
 
-PDF → PNG → Text 转换流水线，用于知识图谱构建。
+PDF -> PNG -> Text 转换流水线，用于知识图谱构建。
 
 ## 📁 项目结构
 
@@ -32,13 +32,25 @@ uv pip install -e .
 pip install -e .
 ```
 
-**注意**: PaddleOCR 首次运行会自动下载模型文件 (~100MB)。
+### 2. 配置 SiliconFlow API
 
-### 2. 放置 PDF 文件
+复制 `.env.example` 为 `.env`，并至少填写 `SILICONFLOW_API_KEY`：
+
+```dotenv
+SILICONFLOW_API_KEY=your_api_key
+SILICONFLOW_BASE_URL=https://api.siliconflow.com/v1
+SILICONFLOW_VLM_MODEL=Qwen/Qwen2-VL-72B-Instruct
+SILICONFLOW_RPM=60
+SILICONFLOW_MAX_CONCURRENCY=4
+SILICONFLOW_TIMEOUT_SECONDS=60
+SILICONFLOW_MAX_RETRIES=3
+```
+
+### 3. 放置 PDF 文件
 
 将 PDF 文件放入 `data/pdf/` 目录。
 
-### 3. 运行流水线
+### 4. 运行流水线
 
 ```bash
 # 处理所有 PDF
@@ -50,10 +62,10 @@ python main.py --pdf data/pdf/example.pdf
 # 不保存中间图片
 python main.py --no-images
 
-# 使用 GPU 加速 OCR
+# 兼容保留参数，当前由 SiliconFlow OCR 忽略
 python main.py --gpu
 
-# 英文文档 (更快)
+# 兼容保留参数，当前由 SiliconFlow OCR 忽略
 python main.py --lang en
 ```
 
@@ -69,7 +81,7 @@ pipeline = PDFPipeline(
     image_dir="data/png",
     text_dir="data/markdown",
     dpi=200,
-    ocr_lang="ch",  # 中文+英文
+    ocr_lang="ch",  # 兼容保留参数
 )
 
 # 处理所有 PDF
@@ -98,18 +110,16 @@ text = ocr.extract_text("page_1.png")
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
 | `--dpi` | 图片分辨率 | 200 |
-| `--lang` | OCR 语言 (ch/en/korean/japan) | ch |
-| `--gpu` | 使用 GPU 加速 | False |
+| `--lang` | 兼容保留参数，当前被 SiliconFlow OCR 忽略 | ch |
+| `--gpu` | 兼容保留参数，当前被 SiliconFlow OCR 忽略 | False |
 | `--no-images` | 不保存中间图片 | False |
 | `--recursive` | 递归搜索子目录 | False |
 
 ## 🔧 依赖说明
 
 - **pymupdf**: PDF 渲染，无需额外安装 poppler
-- **paddleocr**: OCR 引擎，支持中英文
-  - 首次使用会自动下载模型
-  - CPU 模式较慢但无需 CUDA
-  - GPU 模式需要 paddlepaddle-gpu
+- **openai**: SiliconFlow OpenAI-compatible client
+- **python-dotenv**: 加载 `.env` 配置
 
 ## 📝 输出格式
 
@@ -125,14 +135,14 @@ text = ocr.extract_text("page_1.png")
 
 ## 🐛 常见问题
 
-**Q: 第一次运行很慢？**  
-A: PaddleOCR 需要下载模型文件 (~100MB)，请保持网络通畅。
+**Q: 为什么第一次调用 API 失败？**  
+A: 先确认 `.env` 中的 `SILICONFLOW_API_KEY` 正确，且当前网络可以访问 SiliconFlow API。
 
 **Q: 如何提高识别准确率？**  
-A: 提高 `--dpi` 参数 (300-400)，或使用更高质量的 PDF。
+A: 提高 `--dpi` 参数 (300-400)，或调整 `SILICONFLOW_VLM_PROMPT` 让模型更偏向逐字转录。
 
-**Q: 纯英文文档如何加速？**  
-A: 使用 `--lang en`，识别速度提升 2-3 倍。
+**Q: 如何控制调用速率？**  
+A: 通过 `.env` 中的 `SILICONFLOW_RPM` 和 `SILICONFLOW_MAX_CONCURRENCY` 调整并发与速率限制。
 
 ## 📄 License
 
