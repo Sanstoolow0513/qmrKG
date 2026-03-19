@@ -17,9 +17,18 @@ tests/_scratch/
 
 # Data files (keep directory structure with .gitkeep)
 data/pdf/*.pdf
+data/pdf/*.pdf:Zone.Identifier
 data/png/**/*.png
 data/markdown/*.txt
+data/markdown/**/*.md
 data/chunks/*.json
+
+# Config files with sensitive data
+.env
+config.yaml
+
+# Documentation/notes
+example_output.md
 
 # Model files
 *.pdmodel
