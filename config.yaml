@@ -1,0 +1,67 @@
+# QmrKG task configuration
+# Keep sensitive credentials such as PPIO_API_KEY in .env.
+
+ocr:
+  provider:
+    name: ppio
+    base_url: "https://api.ppio.com/openai"
+    model: "qwen/qwen3-vl-8b-instruct"
+
+  prompts:
+    default: |
+      Transcribe all visible text from this page exactly as written. Preserve reading order,
+      line breaks, and heading hierarchy (e.g., # ## ###). For icons, symbols, diagrams, or
+      non-text visual elements, describe them using fenced code blocks like ```icon: description```.
+      Do not add commentary or summaries outside the transcribed content.
+
+    detailed: |
+      Perform OCR on this image and extract all visible text content. Preserve the original
+      formatting, line breaks, reading order, and heading hierarchy (e.g., # ## ###) as accurately
+      as possible. For icons, symbols, diagrams, or non-text visual elements, describe them using
+      fenced code blocks like ```icon: description```. Include all text elements: headings, body
+      text, captions, footnotes, and any other visible text. Do not add commentary or summaries.
+
+    structured: |
+      Extract text from this document image. Identify and preserve the document structure
+      including headings (with # ## ###), paragraphs, lists, and tables. Format the output with
+      appropriate markdown syntax to represent the structure. For icons, symbols, diagrams, or
+      non-text visual elements, describe them using fenced code blocks like ```icon: description```.
+      Transcribe all visible text exactly as written without adding commentary.
+
+    with_headers: |
+      Transcribe all visible text from this page exactly as written. Preserve reading order,
+      line breaks, and especially HEADING STRUCTURE (marked with #, ##, ### or similar).
+      For icons, symbols, diagrams, or non-text visual elements, describe them using fenced
+      code blocks like ```icon: description```. Do not add commentary or summaries.
+
+    chinese: |
+      请精确转录图片中的所有可见文字。保持原有的阅读顺序、换行和标题层级
+      （如 # ## ###）。对于图标、符号、图表或其他非文本视觉元素，请使用代码块
+      格式描述，如 ```icon: 描述内容```。不要添加评论或总结。
+
+  request:
+    image_detail: "high"
+    timeout_seconds: 60.0
+    max_retries: 3
+
+  rate_limit:
+    rpm: 1000
+    max_concurrency: 20
+
+ner:
+  provider:
+    name: ""
+    base_url: ""
+    model: ""
+  prompts: {}
+  request: {}
+  rate_limit: {}
+
+re:
+  provider:
+    name: ""
+    base_url: ""
+    model: ""
+  prompts: {}
+  request: {}
+  rate_limit: {}

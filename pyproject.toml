@@ -9,7 +9,9 @@ dependencies = [
     "openai>=1.0.0",        # SiliconFlow OpenAI-compatible client
     "pillow>=10.0.0",       # 图像处理
     "python-dotenv>=1.0.0", # .env loading
+    "tiktoken>=0.7.0",      # Token counting for chunking
     "tqdm>=4.66.0",         # 进度条
+    "pyyaml>=6.0.0",        # YAML 配置解析
 ]
 
 [project.optional-dependencies]
@@ -33,3 +35,8 @@ target-version = ['py313']
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]

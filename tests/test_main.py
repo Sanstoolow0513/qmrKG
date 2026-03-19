@@ -1,3 +1,4 @@
+import logging
 import sys
 from pathlib import Path
 
@@ -46,3 +47,42 @@ def test_main_accepts_lang_and_gpu_flags(monkeypatch, capsys):
     assert StubPipeline.init_kwargs["ocr_lang"] == "en"
     assert StubPipeline.init_kwargs["use_gpu"] is True
     assert "Processed: sample.pdf" in captured.out
+
+
+def test_compact_formatter_shortens_level_and_module_names():
+    formatter = main_module.CompactFormatter()
+    record = logging.LogRecord(
+        name="qmrkg.pdf_to_png",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=1,
+        msg="Start sample.pdf dpi=200",
+        args=(),
+        exc_info=None,
+    )
+    record.created = 0
+
+    assert formatter.format(record).endswith("I pdf Start sample.pdf dpi=200")
+
+
+def test_tqdm_logging_handler_writes_single_line_messages(monkeypatch):
+    written = []
+    handler = main_module.TqdmLoggingHandler()
+    handler.setFormatter(main_module.CompactFormatter())
+    monkeypatch.setattr(main_module.tqdm, "write", written.append)
+
+    record = logging.LogRecord(
+        name="qmrkg.pipeline",
+        level=logging.WARNING,
+        pathname=__file__,
+        lineno=1,
+        msg="1/2 sample.pdf",
+        args=(),
+        exc_info=None,
+    )
+    record.created = 0
+
+    handler.emit(record)
+
+    assert len(written) == 1
+    assert written[0].endswith("W pipe 1/2 sample.pdf")

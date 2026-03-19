@@ -5,20 +5,62 @@ import logging
 import sys
 from pathlib import Path
 
+from tqdm import tqdm
+
 # Add src to path if running directly
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from qmrkg import PDFPipeline
 
 
+class CompactFormatter(logging.Formatter):
+    """Single-line formatter that plays well with tqdm output."""
+
+    LEVEL_ALIASES = {
+        "DEBUG": "D",
+        "INFO": "I",
+        "WARNING": "W",
+        "ERROR": "E",
+        "CRITICAL": "C",
+    }
+    LOGGER_ALIASES = {
+        "qmrkg.pipeline": "pipe",
+        "qmrkg.pdf_to_png": "pdf",
+        "qmrkg.png_to_text": "ocr",
+        "openai._base_client": "openai",
+    }
+
+    def format(self, record: logging.LogRecord) -> str:
+        timestamp = self.formatTime(record, "%H:%M:%S")
+        level = self.LEVEL_ALIASES.get(record.levelname, record.levelname[:1])
+        logger_name = self.LOGGER_ALIASES.get(record.name, record.name.rsplit(".", 1)[-1])
+        return f"{timestamp} {level} {logger_name} {record.getMessage()}"
+
+
+class TqdmLoggingHandler(logging.Handler):
+    """Write log lines through tqdm so progress bars stay aligned."""
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            tqdm.write(self.format(record))
+        except Exception:
+            self.handleError(record)
+
+
 def setup_logging(verbose: bool = False):
     """Configure logging."""
     level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%H:%M:%S",
-    )
+    root_logger = logging.getLogger()
+    root_logger.handlers.clear()
+    root_logger.setLevel(level)
+
+    handler = TqdmLoggingHandler()
+    handler.setLevel(level)
+    handler.setFormatter(CompactFormatter())
+    root_logger.addHandler(handler)
+
+    logging.getLogger("openai").setLevel(logging.INFO if verbose else logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.INFO if verbose else logging.WARNING)
 
 
 def main():
@@ -105,6 +147,28 @@ Examples:
         action="store_true",
         help="Show pipeline statistics and exit",
     )
+    parser.add_argument(
+        "--chunk",
+        type=Path,
+        help="Chunk a single markdown file to JSON",
+    )
+    parser.add_argument(
+        "--chunk-dir",
+        type=Path,
+        default=Path("data/chunks"),
+        help="Directory to save chunk JSON files (default: data/chunks)",
+    )
+    parser.add_argument(
+        "--chunk-all",
+        action="store_true",
+        help="Chunk all markdown files in text-dir after OCR",
+    )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=4000,
+        help="Maximum tokens per chunk (default: 4000)",
+    )
 
     args = parser.parse_args()
     setup_logging(args.verbose)
@@ -126,6 +190,20 @@ Examples:
         print(json.dumps(pipeline.get_stats(), indent=2, ensure_ascii=False))
         return
 
+    if args.chunk:
+        if not args.chunk.exists():
+            print(f"Error: Markdown file not found: {args.chunk}", file=sys.stderr)
+            sys.exit(1)
+
+        json_path = pipeline.chunk_markdown(
+            args.chunk,
+            chunk_dir=args.chunk_dir,
+            max_tokens=args.max_tokens,
+        )
+        print(f"✓ Chunked: {args.chunk.name}")
+        print(f"  JSON saved to: {json_path}")
+        return
+
     # Process single PDF or all
     if args.pdf:
         if not args.pdf.exists():
@@ -139,6 +217,14 @@ Examples:
         print(f"✓ Processed: {args.pdf.name}")
         print(f"  Pages: {len(image_paths)}")
         print(f"  Text saved to: {text_path}")
+
+        if args.chunk_all and text_path:
+            json_path = pipeline.chunk_markdown(
+                text_path,
+                chunk_dir=args.chunk_dir,
+                max_tokens=args.max_tokens,
+            )
+            print(f"  Chunks: {json_path}")
     else:
         results = pipeline.process_all(
             save_images=not args.no_images,
@@ -159,12 +245,29 @@ Examples:
             print(f"Failed: {failed}")
         print(f"{'=' * 50}")
 
+        chunked_count = 0
         for name, result in results.items():
             status_icon = "✓" if result["status"] == "success" else "✗"
             print(f"{status_icon} {name}")
             if result["status"] == "success":
                 print(f"    Pages: {result['pages']}")
                 print(f"    Text: {result['text']}")
+                if args.chunk_all and result.get("text"):
+                    text_path = Path(result["text"])
+                    if text_path.exists():
+                        try:
+                            json_path = pipeline.chunk_markdown(
+                                text_path,
+                                chunk_dir=args.chunk_dir,
+                                max_tokens=args.max_tokens,
+                            )
+                            print(f"    Chunks: {json_path}")
+                            chunked_count += 1
+                        except Exception as e:
+                            print(f"    Chunk error: {e}")
+
+        if args.chunk_all:
+            print(f"\nChunked {chunked_count}/{success} files to {args.chunk_dir}")
 
 
 if __name__ == "__main__":

@@ -6,6 +6,7 @@ from typing import List, Optional
 
 import fitz  # PyMuPDF
 from PIL import Image
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ class PDFConverter:
         if prefix is None:
             prefix = pdf_path.stem
 
-        logger.info(f"Converting PDF: {pdf_path} (dpi={self.dpi})")
+        logger.info("Start %s dpi=%s", pdf_path.name, self.dpi)
 
         # Open PDF
         doc = fitz.open(pdf_path)
@@ -75,7 +76,13 @@ class PDFConverter:
                 pages_to_convert = [p - 1 for p in page_numbers if 1 <= p <= len(doc)]
 
             # Convert each page
-            for page_num in pages_to_convert:
+            for page_num in tqdm(
+                pages_to_convert,
+                desc="PDF pages",
+                unit="page",
+                leave=False,
+                dynamic_ncols=True,
+            ):
                 page = doc[page_num]
 
                 # Render page to image
@@ -92,7 +99,7 @@ class PDFConverter:
         finally:
             doc.close()
 
-        logger.info(f"Converted {len(output_paths)} pages from {pdf_path.name}")
+        logger.info("Done %s pages %s", len(output_paths), pdf_path.name)
         return output_paths
 
     def convert_all(

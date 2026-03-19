@@ -6,6 +6,7 @@ from typing import List, Optional
 
 from tqdm import tqdm
 
+from .markdown_chunker import MarkdownChunker
 from .pdf_to_png import PDFConverter
 from .png_to_text import OCRProcessor
 
@@ -48,6 +49,7 @@ class PDFPipeline:
         pdf_path: Path,
         save_images: bool = True,
         save_text: bool = True,
+        pdf_progress: str | None = None,
     ) -> tuple[List[Path], Path | None]:
         """
         Process a single PDF through the full pipeline.
@@ -61,7 +63,8 @@ class PDFPipeline:
             Tuple of (image_paths, text_path). `text_path` is `None` when `save_text=False`.
         """
         pdf_path = Path(pdf_path)
-        logger.info(f"Processing: {pdf_path.name}")
+        progress_prefix = f"[{pdf_progress}] " if pdf_progress else ""
+        logger.info("%s%s", progress_prefix, pdf_path.name)
 
         # Step 1: PDF -> PNG
         self.pdf_converter.output_dir = self.image_dir / pdf_path.stem
@@ -73,11 +76,14 @@ class PDFPipeline:
         # Step 2: PNG -> Text
         text_path: Path | None = None
         if save_text:
-            text_output_path = self.text_dir / f"{pdf_path.stem}.txt"
+            text_output_path = self.text_dir / f"{pdf_path.stem}.md"
             self.text_dir.mkdir(parents=True, exist_ok=True)
+            sorted_paths = sorted(image_paths)
+            page_results = self.ocr_processor.extract_from_images(sorted_paths)
             text_path = self.ocr_processor.process_and_save(
-                sorted(image_paths),
+                page_results,
                 text_output_path,
+                pdf_source=pdf_path.name,
             )
 
         # Cleanup images if not saving
@@ -88,7 +94,7 @@ class PDFPipeline:
             img_dir = self.image_dir / pdf_path.stem
             if img_dir.exists() and not any(img_dir.iterdir()):
                 img_dir.rmdir()
-            logger.info(f"Cleaned up intermediate images for {pdf_path.name}")
+            logger.info("Cleaned %s", pdf_path.name)
 
         return image_paths, text_path
 
@@ -117,15 +123,21 @@ class PDFPipeline:
             logger.warning(f"No PDF files found in {self.pdf_dir}")
             return {}
 
-        logger.info(f"Found {len(pdf_files)} PDF(s) to process")
+        logger.info("Found %s PDF(s)", len(pdf_files))
 
         results = {}
-        for pdf_path in tqdm(pdf_files, desc="Processing PDFs"):
+        total_pdfs = len(pdf_files)
+        for idx, pdf_path in enumerate(
+            tqdm(pdf_files, desc="PDFs", unit="pdf", dynamic_ncols=True),
+            1,
+        ):
             try:
+                pdf_progress = f"{idx}/{total_pdfs}"
                 image_paths, text_path = self.process_pdf(
                     pdf_path,
                     save_images=save_images,
                     save_text=save_text,
+                    pdf_progress=pdf_progress,
                 )
                 results[pdf_path.name] = {
                     "status": "success",
@@ -134,7 +146,7 @@ class PDFPipeline:
                     "text": str(text_path) if text_path else None,
                 }
             except Exception as e:
-                logger.error(f"Failed to process {pdf_path.name}: {e}")
+                logger.error("Failed %s: %s", pdf_path.name, e)
                 results[pdf_path.name] = {
                     "status": "failed",
                     "error": str(e),
@@ -142,7 +154,7 @@ class PDFPipeline:
 
         # Summary
         success_count = sum(1 for r in results.values() if r["status"] == "success")
-        logger.info(f"Pipeline complete: {success_count}/{len(pdf_files)} succeeded")
+        logger.info("Complete %s/%s succeeded", success_count, len(pdf_files))
 
         return results
 
@@ -152,7 +164,7 @@ class PDFPipeline:
         image_count = (
             sum(1 for _ in self.image_dir.rglob("*.png")) if self.image_dir.exists() else 0
         )
-        text_count = len(list(self.text_dir.glob("*.txt"))) if self.text_dir.exists() else 0
+        text_count = len(list(self.text_dir.glob("*.md"))) if self.text_dir.exists() else 0
 
         return {
             "pdf_dir": str(self.pdf_dir),
@@ -162,3 +174,28 @@ class PDFPipeline:
             "text_dir": str(self.text_dir),
             "text_files": text_count,
         }
+
+    def chunk_markdown(
+        self,
+        markdown_path: Path,
+        output_path: Path | None = None,
+        chunk_dir: Path | None = None,
+        max_tokens: int = 4000,
+    ) -> Path:
+        """Chunk a markdown file into JSON format.
+
+        Args:
+            markdown_path: Path to markdown file
+            output_path: Optional explicit output path
+            chunk_dir: Optional directory for chunks (default: data/chunks)
+            max_tokens: Maximum tokens per chunk (default: 4000)
+
+        Returns:
+            Path to JSON output file
+        """
+        chunker = MarkdownChunker(max_tokens=max_tokens)
+        return chunker.process_and_save(
+            markdown_path=markdown_path,
+            output_path=output_path,
+            chunk_dir=chunk_dir,
+        )

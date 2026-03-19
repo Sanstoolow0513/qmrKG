@@ -25,7 +25,6 @@ data/chunks/*.json
 
 # Config files with sensitive data
 .env
-config.yaml
 
 # Documentation/notes
 example_output.md
