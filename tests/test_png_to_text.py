@@ -15,6 +15,7 @@ from qmrkg.png_to_text import OCRPageResult, OCRProcessor, RollingRateLimiter, V
 
 class FakeResponse:
     def __init__(self, text: str):
+        self.model = "fake-model"
         self.choices = [type("Choice", (), {"message": type("Message", (), {"content": text})()})()]
 
 
@@ -65,7 +66,7 @@ class FakeAPIStatusError(Exception):
 
 
 def build_processor(monkeypatch, handler, **settings_overrides):
-    monkeypatch.setenv("SILICONFLOW_API_KEY", "test-key")
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
     for key, value in settings_overrides.items():
         monkeypatch.setenv(key, str(value))
     processor = OCRProcessor(use_gpu=True, lang="en", show_log=True)
@@ -94,15 +95,16 @@ def write_config(tmp_path: Path, content: str) -> Path:
 
 
 def test_settings_require_api_key(monkeypatch):
+    monkeypatch.delenv("PPIO_API_KEY", raising=False)
     monkeypatch.delenv("SILICONFLOW_API_KEY", raising=False)
-    monkeypatch.setattr(png_to_text, "load_dotenv", lambda *args, **kwargs: False)
+    monkeypatch.setattr(png_to_text, "VLMSettings", VLMSettings)
 
-    with pytest.raises(ValueError, match="SILICONFLOW_API_KEY"):
+    with pytest.raises(ValueError, match="PPIO_API_KEY"):
         VLMSettings.from_env()
 
 
 def test_ocr_processor_accepts_legacy_constructor_args(monkeypatch):
-    monkeypatch.setenv("SILICONFLOW_API_KEY", "test-key")
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
 
     processor = OCRProcessor(use_gpu=True, lang="en", show_log=True)
 
@@ -112,26 +114,41 @@ def test_ocr_processor_accepts_legacy_constructor_args(monkeypatch):
 
 
 def test_settings_load_defaults(monkeypatch):
-    monkeypatch.setenv("SILICONFLOW_API_KEY", "test-key")
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
 
     settings = VLMSettings.from_env()
 
-    assert settings.base_url == "https://api.siliconflow.cn/v1"
-    assert settings.model == "Qwen/Qwen3-VL-8B-Instruct"
+    assert settings.base_url == "https://api.ppio.com/openai"
+    assert settings.model == "qwen/qwen3-vl-8b-instruct"
     assert settings.image_detail == "high"
+    assert settings.modality == "multimodal"
+    assert settings.thinking_enabled is False
+
+
+def test_settings_support_legacy_siliconflow_aliases(monkeypatch):
+    monkeypatch.delenv("PPIO_API_KEY", raising=False)
+    monkeypatch.setenv("SILICONFLOW_API_KEY", "legacy-test-key")
+    monkeypatch.setenv("SILICONFLOW_VLM_MODEL", "legacy-model")
+
+    settings = VLMSettings.from_env()
+
+    assert settings.api_key == "legacy-test-key"
+    assert settings.model == "legacy-model"
 
 
 def test_settings_load_task_scoped_ocr_config(scratch_dir, monkeypatch):
-    monkeypatch.setenv("SILICONFLOW_API_KEY", "test-key")
-    monkeypatch.setenv("SILICONFLOW_PROMPT_KEY", "structured")
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    monkeypatch.setenv("PPIO_PROMPT_KEY", "structured")
     config_path = write_config(
         scratch_dir,
         """
 ocr:
   provider:
-    name: siliconflow
-    base_url: https://example.invalid/v1
+    name: ppio
+    base_url: https://example.invalid/openai
     model: test-vlm
+    modality: multimodal
+    supports_thinking: true
   prompts:
     default: default prompt
     structured: structured prompt
@@ -139,25 +156,17 @@ ocr:
     image_detail: low
     timeout_seconds: 12.5
     max_retries: 7
+    thinking:
+      enabled: true
   rate_limit:
     rpm: 123
     max_concurrency: 9
-ner:
-  provider: {}
-  prompts: {}
-  request: {}
-  rate_limit: {}
-re:
-  provider: {}
-  prompts: {}
-  request: {}
-  rate_limit: {}
 """.strip(),
     )
 
     settings = VLMSettings.from_env(config_path)
 
-    assert settings.base_url == "https://example.invalid/v1"
+    assert settings.base_url == "https://example.invalid/openai"
     assert settings.model == "test-vlm"
     assert settings.prompt == "structured prompt"
     assert settings.image_detail == "low"
@@ -165,10 +174,12 @@ re:
     assert settings.max_retries == 7
     assert settings.rpm == 123
     assert settings.max_concurrency == 9
+    assert settings.thinking_enabled is True
+    assert settings.supports_thinking is True
 
 
 def test_settings_reject_legacy_openai_yaml_shape(scratch_dir, monkeypatch):
-    monkeypatch.setenv("SILICONFLOW_API_KEY", "test-key")
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
     config_path = write_config(
         scratch_dir,
         """
@@ -178,7 +189,36 @@ openai:
 """.strip(),
     )
 
-    with pytest.raises(ValueError, match="top-level 'ocr'"):
+    with pytest.raises(ValueError, match="legacy 'openai'"):
+        VLMSettings.from_env(config_path)
+
+
+def test_settings_reject_invalid_image_detail(monkeypatch):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    monkeypatch.setenv("PPIO_IMAGE_DETAIL", "ultra")
+
+    with pytest.raises(ValueError, match="PPIO_IMAGE_DETAIL"):
+        VLMSettings.from_env()
+
+
+def test_settings_reject_thinking_without_provider_support(scratch_dir, monkeypatch):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    config_path = write_config(
+        scratch_dir,
+        """
+ocr:
+  provider:
+    name: ppio
+    model: test-vlm
+    modality: multimodal
+    supports_thinking: false
+  request:
+    thinking:
+      enabled: true
+""".strip(),
+    )
+
+    with pytest.raises(ValueError, match="supports_thinking is false"):
         VLMSettings.from_env(config_path)
 
 
@@ -190,20 +230,13 @@ def test_extract_text_sends_openai_compatible_vision_request(scratch_dir, monkey
     text = processor.extract_text(image_path)
 
     assert text == "recognized text"
-    assert processor._client.calls[0]["model"] == "Qwen/Qwen3-VL-8B-Instruct"
+    assert processor._client.calls[0]["model"] == "qwen/qwen3-vl-8b-instruct"
     assert processor._client.calls[0]["messages"][0]["role"] == "user"
     image_part = processor._client.calls[0]["messages"][0]["content"][1]
     assert image_part["type"] == "image_url"
     assert image_part["image_url"]["url"].startswith("data:image/png;base64,")
     assert image_part["image_url"]["detail"] == "high"
-
-
-def test_settings_reject_invalid_image_detail(monkeypatch):
-    monkeypatch.setenv("SILICONFLOW_API_KEY", "test-key")
-    monkeypatch.setenv("SILICONFLOW_IMAGE_DETAIL", "ultra")
-
-    with pytest.raises(ValueError, match="SILICONFLOW_IMAGE_DETAIL"):
-        VLMSettings.from_env()
+    assert "reasoning_enabled" not in processor._client.calls[0]
 
 
 def test_extract_text_returns_compatibility_confidence(scratch_dir, monkeypatch):
@@ -228,8 +261,8 @@ def test_extract_text_retries_transient_failures(scratch_dir, monkeypatch):
     processor = build_processor(
         monkeypatch,
         handler,
-        SILICONFLOW_MAX_RETRIES=2,
-        SILICONFLOW_MAX_CONCURRENCY=1,
+        PPIO_MAX_RETRIES=2,
+        PPIO_MAX_CONCURRENCY=1,
     )
 
     result = processor.extract_text(image_path)
@@ -261,8 +294,8 @@ def test_extract_text_retries_openai_sdk_timeout_and_connection_failures(
     processor = build_processor(
         monkeypatch,
         handler,
-        SILICONFLOW_MAX_RETRIES=2,
-        SILICONFLOW_MAX_CONCURRENCY=1,
+        PPIO_MAX_RETRIES=2,
+        PPIO_MAX_CONCURRENCY=1,
     )
 
     result = processor.extract_text(image_path)
@@ -286,8 +319,8 @@ def test_extract_text_logs_api_error_details_on_retry(scratch_dir, monkeypatch, 
     processor = build_processor(
         monkeypatch,
         handler,
-        SILICONFLOW_MAX_RETRIES=2,
-        SILICONFLOW_MAX_CONCURRENCY=1,
+        PPIO_MAX_RETRIES=2,
+        PPIO_MAX_CONCURRENCY=1,
     )
 
     with caplog.at_level(logging.WARNING):
@@ -309,8 +342,8 @@ def test_extract_from_images_logs_api_error_details_on_final_failure(
         lambda **_kwargs: (_ for _ in ()).throw(
             FakeAPIStatusError("bad request", 400, '{"error":{"message":"invalid image"}}')
         ),
-        SILICONFLOW_MAX_RETRIES=1,
-        SILICONFLOW_MAX_CONCURRENCY=1,
+        PPIO_MAX_RETRIES=1,
+        PPIO_MAX_CONCURRENCY=1,
     )
 
     with caplog.at_level(logging.ERROR):
@@ -345,8 +378,8 @@ def test_extract_from_images_preserves_input_order(scratch_dir, monkeypatch):
     processor = build_processor(
         monkeypatch,
         handler,
-        SILICONFLOW_MAX_CONCURRENCY=3,
-        SILICONFLOW_RPM=60,
+        PPIO_MAX_CONCURRENCY=3,
+        PPIO_RPM=60,
     )
 
     results = processor.extract_from_images([page1, page2, page3])
@@ -373,8 +406,8 @@ def test_extract_from_images_retries_transient_failures(scratch_dir, monkeypatch
     processor = build_processor(
         monkeypatch,
         handler,
-        SILICONFLOW_MAX_RETRIES=2,
-        SILICONFLOW_MAX_CONCURRENCY=1,
+        PPIO_MAX_RETRIES=2,
+        PPIO_MAX_CONCURRENCY=1,
     )
 
     results = processor.extract_from_images([image_path])
@@ -420,7 +453,7 @@ def test_process_and_save_renders_page_results_with_metadata(scratch_dir, monkey
         OCRPageResult(
             image_path=page2,
             page_number=2,
-            text="   ",  # whitespace only
+            text="   ",
             processed_at=datetime.now(timezone.utc).isoformat(),
             duration_seconds=1.2,
             model="test-model",
@@ -467,12 +500,12 @@ def test_process_and_save_with_failed_pages(scratch_dir, monkeypatch):
     assert "failed_pages: 1" in content
 
 
-def test_env_example_lists_siliconflow_variables():
+def test_env_example_lists_ppio_variables():
     env_example = Path(__file__).resolve().parents[1] / ".env.example"
     content = env_example.read_text(encoding="utf-8")
 
-    assert "SILICONFLOW_API_KEY=" in content
-    assert "SILICONFLOW_BASE_URL=" in content
-    assert "SILICONFLOW_VLM_MODEL=" in content
-    assert "SILICONFLOW_IMAGE_DETAIL=" in content
-    assert "SILICONFLOW_RPM=" in content
+    assert "PPIO_API_KEY=" in content
+    assert "PPIO_BASE_URL=" in content
+    assert "PPIO_VLM_MODEL=" in content
+    assert "PPIO_IMAGE_DETAIL=" in content
+    assert "PPIO_RPM=" in content

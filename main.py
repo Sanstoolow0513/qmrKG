@@ -78,10 +78,10 @@ Examples:
   # Don't save intermediate images
   python main.py --no-images
 
-  # Legacy compatibility flag (ignored by SiliconFlow OCR)
+  # Legacy compatibility flag (ignored by PPIO OCR)
   python main.py --gpu
 
-  # Legacy compatibility flag (ignored by SiliconFlow OCR)
+  # Legacy compatibility flag (ignored by PPIO OCR)
   python main.py --lang en
         """,
     )
@@ -119,7 +119,7 @@ Examples:
         "--lang",
         choices=["ch", "en", "korean", "japan", "ch_tra"],
         default="ch",
-        help="Legacy OCR language flag kept for compatibility; ignored by SiliconFlow OCR",
+        help="Legacy OCR language flag kept for compatibility; ignored by PPIO OCR",
     )
     parser.add_argument(
         "--no-images",
@@ -129,7 +129,7 @@ Examples:
     parser.add_argument(
         "--gpu",
         action="store_true",
-        help="Legacy GPU flag kept for compatibility; ignored by SiliconFlow OCR",
+        help="Legacy GPU flag kept for compatibility; ignored by PPIO OCR",
     )
     parser.add_argument(
         "--recursive",

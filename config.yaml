@@ -4,64 +4,103 @@
 ocr:
   provider:
     name: ppio
-    base_url: "https://api.ppio.com/openai"
+    base_url: "https://api.ppinfra.com/openai"
     model: "qwen/qwen3-vl-8b-instruct"
+    modality: "multimodal"
+    supports_thinking: false
 
   prompts:
     default: |
-      Transcribe all visible text from this page exactly as written. Preserve reading order,
-      line breaks, and heading hierarchy (e.g., # ## ###). For icons, symbols, diagrams, or
-      non-text visual elements, describe them using fenced code blocks like ```icon: description```.
-      Do not add commentary or summaries outside the transcribed content.
+      你是一个 OCR 文字识别系统。
 
-    detailed: |
-      Perform OCR on this image and extract all visible text content. Preserve the original
-      formatting, line breaks, reading order, and heading hierarchy (e.g., # ## ###) as accurately
-      as possible. For icons, symbols, diagrams, or non-text visual elements, describe them using
-      fenced code blocks like ```icon: description```. Include all text elements: headings, body
-      text, captions, footnotes, and any other visible text. Do not add commentary or summaries.
+      输出要求：
+      - 输出必须是有效的 Markdown。
+      - 输出语言必须与图片语言一致（中文图片就输出中文）。
+      - 尽可能保留阅读顺序与换行。
+      - 不要翻译或改写文字：识别到什么就输出什么（保持原样）。
+      - 对“看起来像标题/章节名”的行，尽量输出 Markdown 标题（优先加 `#`，不要把标题当普通段落丢掉）。
 
-    structured: |
-      Extract text from this document image. Identify and preserve the document structure
-      including headings (with # ## ###), paragraphs, lists, and tables. Format the output with
-      appropriate markdown syntax to represent the structure. For icons, symbols, diagrams, or
-      non-text visual elements, describe them using fenced code blocks like ```icon: description```.
-      Transcribe all visible text exactly as written without adding commentary.
+      标题识别与格式（非常重要）：
+      - 当一行很可能是标题/章节名时，把它输出为 Markdown 标题：
+        使用 `#`、`##` 或 `###` 作为前缀。
+      - 标题行格式必须严格为：`# <标题内容>`（`## <...>`、`### <...>` 同理）。
+        `#` 后面必须紧跟一个空格；不要输出 `#` 后面没有空格的形式。
+      - 标题必须占据自己的行/行组：不要在句子中间插入 `#`。
+      - 标题层级选择规则（按证据强弱）：
+        - 不确定时：也要用 `#`（顶层），不要省略标题标记。
+        - 更像二级标题时：用 `##`（例如“第 X 节”、`X.Y`、以 `1.` 开头且后面跟较短标题）。
+        - 更像三级/更小单元时：用 `###`（例如“第 X 条”、“（一）（二）”、`2.1`、`1)`）。
 
-    with_headers: |
-      Transcribe all visible text from this page exactly as written. Preserve reading order,
-      line breaks, and especially HEADING STRUCTURE (marked with #, ##, ### or similar).
-      For icons, symbols, diagrams, or non-text visual elements, describe them using fenced
-      code blocks like ```icon: description```. Do not add commentary or summaries.
+      中文标题识别偏好（你的输入主要是中文）：
+      - 当行中包含常见中文结构关键词或典型编号样式时，把它当标题：
+        `第X章`、`第X节`、`第X条`、`第X款`、`第X项`、`章`、`节`、`条`、`款`、`小节`、`附录`、`附件`、
+        `前言`、`目录`、`参考文献`、`致谢`、`结论`。
+      - 或者当它符合编号模式时：`1. ...`、`1) ...`、`1）...`、`（一）...`、`（1）...`、`一、...`。
+      - 另外：如果该行在版面上很像标题（上下有明显留白、居中、加粗、字体更大），也应输出为标题。
+      - 如果该行看起来更像“标题而不是句子”（例如短、末尾不像句子那样带 `。` 等标点，或包含明确章节词），优先转换为标题。
 
-    chinese: |
-      请精确转录图片中的所有可见文字。保持原有的阅读顺序、换行和标题层级
-      （如 # ## ###）。对于图标、符号、图表或其他非文本视觉元素，请使用代码块
-      格式描述，如 ```icon: 描述内容```。不要添加评论或总结。
+      文字版 Few-shot（演示如何加标题标记）：
+      - 输入行：`第一章 绪论`
+        输出：`# 第一章 绪论`
+      - 输入行：`2.1 相关工作`
+        输出：`## 2.1 相关工作`
+      - 输入行：`第十条 义务`
+        输出：`### 第十条 义务`
+      - 输入行：`（一）定义`
+        输出：`### （一）定义`
+
+      对于图标、符号、图表或其他非文字视觉元素：
+      用围栏代码块描述，例如 ```icon: description```。
+
+      不要在转录内容之外添加任何评论或总结。
 
   request:
     image_detail: "high"
     timeout_seconds: 60.0
     max_retries: 3
+    thinking:
+      enabled: false
 
   rate_limit:
-    rpm: 1000
-    max_concurrency: 20
+    rpm: 100
+    max_concurrency: 10
 
 ner:
   provider:
-    name: ""
-    base_url: ""
-    model: ""
-  prompts: {}
-  request: {}
-  rate_limit: {}
+    name: ppio
+    base_url: "https://api.ppio.com/openai"
+    model: "deepseek/deepseek-v3.2"
+    modality: "text"
+    supports_thinking: false
+  prompts:
+    default: |
+      你是一个命名实体识别助手。
+      只根据输入文本完成识别，不要编造信息。
+  request:
+    timeout_seconds: 60.0
+    max_retries: 3
+    thinking:
+      enabled: false
+  rate_limit:
+    rpm: 50
+    max_concurrency: 8
 
 re:
   provider:
-    name: ""
-    base_url: ""
-    model: ""
-  prompts: {}
-  request: {}
-  rate_limit: {}
+    name: ppio
+    base_url: "https://api.ppio.com/openai"
+    model: "deepseek/deepseek-v3.2"
+    modality: "text"
+    supports_thinking: false
+  prompts:
+    default: |
+      你是一个关系抽取助手。
+      只根据输入文本抽取关系，不要编造信息。
+  request:
+    timeout_seconds: 60.0
+    max_retries: 3
+    thinking:
+      enabled: false
+  rate_limit:
+    rpm: 50
+    max_concurrency: 10

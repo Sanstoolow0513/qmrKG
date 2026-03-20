@@ -6,7 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13,<3.14"
 dependencies = [
     "pymupdf>=1.23.0",      # PDF 处理
-    "openai>=1.0.0",        # SiliconFlow OpenAI-compatible client
+    "openai>=1.0.0",        # PPIO OpenAI-compatible client
     "pillow>=10.0.0",       # 图像处理
     "python-dotenv>=1.0.0", # .env loading
     "tiktoken>=0.7.0",      # Token counting for chunking
@@ -20,6 +20,12 @@ dev = [
     "black>=24.0.0",
     "ruff>=0.3.0",
 ]
+
+[project.scripts]
+qmrkg = "qmrkg.cli_qmrkg:main"
+pdftopng = "qmrkg.cli_pdf_to_png:main"
+pngtotext = "qmrkg.cli_png_to_text:main"
+mdchunk = "qmrkg.cli_md_chunk:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]

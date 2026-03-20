@@ -1,9 +1,9 @@
-"""Example: How to use the PDF pipeline programmatically."""
+"""Example: How to use the PDF pipeline and task-scoped LLM processors."""
 
 import logging
 from pathlib import Path
 
-from qmrkg import PDFPipeline, PDFConverter, OCRProcessor
+from qmrkg import PDFPipeline, PDFConverter, OCRProcessor, TextTaskProcessor
 
 # Setup logging
 logging.basicConfig(
@@ -56,7 +56,8 @@ def example_step_by_step():
     # Step 2: PNG -> Text
     print("\nStep 2: OCR processing...")
     ocr = OCRProcessor(lang="ch")
-    text_path = ocr.process_and_save(image_paths, Path("data/markdown/output.txt"))
+    page_results = ocr.extract_from_images(image_paths)
+    text_path = ocr.process_and_save(page_results, Path("data/markdown/output.md"))
     print(f"Text saved to: {text_path}")
 
     # Or get text directly
@@ -79,6 +80,17 @@ def example_custom_processing():
         print(f"Text preview: {text[:200]}...")
 
 
+def example_text_task():
+    """Example 4: Task-scoped text model call."""
+    print("=" * 50)
+    print("Example 4: Text Task Processor")
+    print("=" * 50)
+
+    ner = TextTaskProcessor("ner")
+    response = ner.run_text("从这段文本中抽取关键实体：张三于2024年加入派欧云。")
+    print(response.text)
+
+
 if __name__ == "__main__":
     import sys
 
@@ -92,4 +104,5 @@ if __name__ == "__main__":
     print("1. Full pipeline: example_full_pipeline()")
     print("2. Step by step: example_step_by_step()")
     print("3. Custom: example_custom_processing()")
+    print("4. Text task: example_text_task()")
     print("\nOr use CLI: python main.py --help")
