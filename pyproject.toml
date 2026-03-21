@@ -12,6 +12,7 @@ dependencies = [
     "tiktoken>=0.7.0",      # Token counting for chunking
     "tqdm>=4.66.0",         # 进度条
     "pyyaml>=6.0.0",        # YAML 配置解析
+    "neo4j>=5.0.0",         # Neo4j 图数据库驱动
 ]
 
 [project.optional-dependencies]
@@ -26,6 +27,9 @@ qmrkg = "qmrkg.cli_qmrkg:main"
 pdftopng = "qmrkg.cli_pdf_to_png:main"
 pngtotext = "qmrkg.cli_png_to_text:main"
 mdchunk = "qmrkg.cli_md_chunk:main"
+kgextract = "qmrkg.cli_kg_extract:main"
+kgmerge = "qmrkg.cli_kg_merge:main"
+kgneo4j = "qmrkg.cli_kg_neo4j:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
