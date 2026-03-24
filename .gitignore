@@ -12,16 +12,17 @@ wheels/
 .pytest_local/
 .pytest-tmp/
 .tmp/
-pytest-cache-files-*/
+pytest-cache-files*/
 tests/_scratch/
 
-# Data files (keep directory structure with .gitkeep)
+# Data: ignore generated artifacts; keep empty dirs with .gitkeep
 data/pdf/*.pdf
 data/pdf/*.pdf:Zone.Identifier
 data/png/**/*.png
 data/markdown/*.txt
 data/markdown/**/*.md
-data/chunks/*.json
+data/chunks/**/*.json
+data/triples/**/*.json
 
 # Config files with sensitive data
 .env

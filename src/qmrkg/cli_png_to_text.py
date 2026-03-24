@@ -4,10 +4,24 @@ from __future__ import annotations
 
 import argparse
 import logging
+import re
 import sys
 from pathlib import Path
 
+from tqdm import tqdm
+
 from .png_to_text import OCRProcessor
+
+
+def _configure_logging(verbose: bool) -> None:
+    if verbose:
+        logging.basicConfig(level=logging.DEBUG)
+        logging.getLogger("openai").setLevel(logging.INFO)
+        logging.getLogger("httpx").setLevel(logging.INFO)
+    else:
+        logging.basicConfig(level=logging.WARNING)
+        logging.getLogger("openai").setLevel(logging.WARNING)
+        logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -56,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
 
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
+    _configure_logging(args.verbose)
     processor = OCRProcessor(
         use_gpu=args.gpu,
         lang=args.lang,
@@ -92,8 +106,16 @@ def main(argv: list[str] | None = None) -> int:
     args.text_dir.mkdir(parents=True, exist_ok=True)
     success = 0
     failed = 0
-    for image_path in image_paths:
-        output_path = args.text_dir / f"{image_path.stem}.md"
+    for image_path in tqdm(
+        image_paths,
+        desc="OCR",
+        unit="page",
+        total=len(image_paths),
+        dynamic_ncols=True,
+    ):
+        book_stem = re.sub(r"_page_\d+$", "", image_path.stem)
+        output_path = args.text_dir / book_stem / f"{image_path.stem}.md"
+        output_path.parent.mkdir(parents=True, exist_ok=True)
         try:
             page_results = processor.extract_from_images([image_path])
             processor.process_and_save(page_results, output_path, pdf_source=image_path.name)

@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 
 import main as main_module
+from qmrkg import tqdm_logging as tqdm_logging_mod
+from qmrkg.tqdm_logging import CompactFormatter, TqdmLoggingHandler
 
 
 class StubPipeline:
@@ -50,7 +52,7 @@ def test_main_accepts_lang_and_gpu_flags(monkeypatch, capsys):
 
 
 def test_compact_formatter_shortens_level_and_module_names():
-    formatter = main_module.CompactFormatter()
+    formatter = CompactFormatter()
     record = logging.LogRecord(
         name="qmrkg.pdf_to_png",
         level=logging.INFO,
@@ -67,9 +69,9 @@ def test_compact_formatter_shortens_level_and_module_names():
 
 def test_tqdm_logging_handler_writes_single_line_messages(monkeypatch):
     written = []
-    handler = main_module.TqdmLoggingHandler()
-    handler.setFormatter(main_module.CompactFormatter())
-    monkeypatch.setattr(main_module.tqdm, "write", written.append)
+    handler = TqdmLoggingHandler()
+    handler.setFormatter(CompactFormatter())
+    monkeypatch.setattr(tqdm_logging_mod.tqdm, "write", written.append)
 
     record = logging.LogRecord(
         name="qmrkg.pipeline",

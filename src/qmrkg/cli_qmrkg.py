@@ -8,8 +8,11 @@ import argparse
 COMMANDS: tuple[tuple[str, str], ...] = (
     ("qmrkg --list", "List all available qmrkg commands"),
     ("pdftopng", "Convert PDF files to PNG images"),
-    ("pngtotext", "Convert PNG files to markdown text"),
+    ("pngtotext", "Convert PNG files to markdown text (VLM OCR)"),
     ("mdchunk", "Chunk markdown files into JSON"),
+    ("kgextract", "Extract KG triples from markdown chunks"),
+    ("kgmerge", "Merge raw triple JSON into a deduplicated graph"),
+    ("kgneo4j", "Import merged triples into Neo4j"),
 )
 
 
@@ -32,8 +35,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.list:
         print("Available commands:")
+        width = max(len(cmd) for cmd, _ in COMMANDS)
         for command, desc in COMMANDS:
-            print(f"  - {command:<14} {desc}")
+            print(f"  - {command:<{width}}  {desc}")
         return 0
 
     parser.print_help()

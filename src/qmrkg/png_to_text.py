@@ -105,16 +105,20 @@ class OCRProcessor:
                 ): index
                 for index, image_path in enumerate(normalized_paths)
             }
-            from tqdm import tqdm as _tqdm
+            completed = as_completed(futures)
+            if len(futures) > 1:
+                from tqdm import tqdm as _tqdm
 
-            for future in _tqdm(
-                as_completed(futures),
-                total=len(futures),
-                desc="OCR",
-                unit="page",
-                leave=False,
-                dynamic_ncols=True,
-            ):
+                completed = _tqdm(
+                    completed,
+                    total=len(futures),
+                    desc="OCR",
+                    unit="page",
+                    leave=False,
+                    dynamic_ncols=True,
+                )
+
+            for future in completed:
                 index = futures[future]
                 try:
                     results_map[index] = future.result()
@@ -138,7 +142,7 @@ class OCRProcessor:
         output_path.parent.mkdir(parents=True, exist_ok=True)
         content = self._render_markdown(page_results, pdf_source=pdf_source)
         output_path.write_text(content, encoding="utf-8")
-        logger.info("Saved %s", output_path)
+        logger.debug("Saved %s", output_path)
         return output_path
 
     def _render_markdown(

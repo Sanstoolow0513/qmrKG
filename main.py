@@ -1,66 +1,14 @@
 """CLI entry point for the QmrKG PDF pipeline."""
 
 import argparse
-import logging
 import sys
 from pathlib import Path
-
-from tqdm import tqdm
 
 # Add src to path if running directly
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
 from qmrkg import PDFPipeline
-
-
-class CompactFormatter(logging.Formatter):
-    """Single-line formatter that plays well with tqdm output."""
-
-    LEVEL_ALIASES = {
-        "DEBUG": "D",
-        "INFO": "I",
-        "WARNING": "W",
-        "ERROR": "E",
-        "CRITICAL": "C",
-    }
-    LOGGER_ALIASES = {
-        "qmrkg.pipeline": "pipe",
-        "qmrkg.pdf_to_png": "pdf",
-        "qmrkg.png_to_text": "ocr",
-        "openai._base_client": "openai",
-    }
-
-    def format(self, record: logging.LogRecord) -> str:
-        timestamp = self.formatTime(record, "%H:%M:%S")
-        level = self.LEVEL_ALIASES.get(record.levelname, record.levelname[:1])
-        logger_name = self.LOGGER_ALIASES.get(record.name, record.name.rsplit(".", 1)[-1])
-        return f"{timestamp} {level} {logger_name} {record.getMessage()}"
-
-
-class TqdmLoggingHandler(logging.Handler):
-    """Write log lines through tqdm so progress bars stay aligned."""
-
-    def emit(self, record: logging.LogRecord) -> None:
-        try:
-            tqdm.write(self.format(record))
-        except Exception:
-            self.handleError(record)
-
-
-def setup_logging(verbose: bool = False):
-    """Configure logging."""
-    level = logging.DEBUG if verbose else logging.INFO
-    root_logger = logging.getLogger()
-    root_logger.handlers.clear()
-    root_logger.setLevel(level)
-
-    handler = TqdmLoggingHandler()
-    handler.setLevel(level)
-    handler.setFormatter(CompactFormatter())
-    root_logger.addHandler(handler)
-
-    logging.getLogger("openai").setLevel(logging.INFO if verbose else logging.WARNING)
-    logging.getLogger("httpx").setLevel(logging.INFO if verbose else logging.WARNING)
+from qmrkg.tqdm_logging import setup_logging
 
 
 def main():

@@ -7,13 +7,9 @@ import logging
 import re
 from pathlib import Path
 
-from .kg_schema import (
-    ENTITY_TYPES,
-    RELATION_TYPES,
-    ChunkExtractionResult,
-    Entity,
-    Triple,
-)
+from tqdm import tqdm
+
+from .kg_schema import ChunkExtractionResult, Entity, Triple
 from .llm_factory import LLMFactory, TaskLLMRunner
 
 logger = logging.getLogger(__name__)
@@ -96,6 +92,8 @@ class KGExtractor:
         chunks_path: Path,
         output_dir: Path,
         skip_existing: bool = True,
+        *,
+        progress_leave: bool = True,
     ) -> list[Path]:
         """Extract from all chunks in a JSON file, saving per-chunk results."""
         chunks_path = Path(chunks_path)
@@ -105,7 +103,15 @@ class KGExtractor:
         chunks = json.loads(chunks_path.read_text(encoding="utf-8"))
         result_paths: list[Path] = []
 
-        for chunk in chunks:
+        chunk_iter = tqdm(
+            chunks,
+            desc="kgextract",
+            unit="chunk",
+            total=len(chunks),
+            dynamic_ncols=True,
+            leave=progress_leave,
+        )
+        for chunk in chunk_iter:
             idx = chunk.get("chunk_index", 0)
             out_path = output_dir / f"{chunks_path.stem}_chunk_{idx:04d}.json"
 

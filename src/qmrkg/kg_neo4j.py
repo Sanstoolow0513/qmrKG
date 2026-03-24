@@ -7,6 +7,8 @@ import logging
 import os
 from pathlib import Path
 
+from tqdm import tqdm
+
 from .kg_schema import ENTITY_TYPE_LABELS, RELATION_TYPE_LABELS
 
 logger = logging.getLogger(__name__)
@@ -87,7 +89,13 @@ class KGNeo4jLoader:
     def _create_entities(self, entities: list[dict]) -> int:
         count = 0
         with self._driver.session() as session:
-            for entity in entities:
+            for entity in tqdm(
+                entities,
+                desc="kgneo4j entities",
+                unit="node",
+                total=len(entities),
+                dynamic_ncols=True,
+            ):
                 label = ENTITY_TYPE_LABELS.get(entity.get("type", ""))
                 if not label:
                     continue
@@ -104,7 +112,13 @@ class KGNeo4jLoader:
     def _create_relations(self, triples: list[dict]) -> int:
         count = 0
         with self._driver.session() as session:
-            for triple in triples:
+            for triple in tqdm(
+                triples,
+                desc="kgneo4j relations",
+                unit="rel",
+                total=len(triples),
+                dynamic_ncols=True,
+            ):
                 head_label = ENTITY_TYPE_LABELS.get(triple.get("head_type", ""))
                 tail_label = ENTITY_TYPE_LABELS.get(triple.get("tail_type", ""))
                 rel_type = RELATION_TYPE_LABELS.get(triple.get("relation", ""))

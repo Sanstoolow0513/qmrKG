@@ -8,7 +8,9 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from .kg_schema import ENTITY_TYPES, RELATION_TYPES, Entity, Triple
+from tqdm import tqdm
+
+from .kg_schema import Entity, Triple
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +80,13 @@ class KGMerger:
         all_entities: list[Entity] = []
         all_triples: list[Triple] = []
 
-        for f in raw_files:
+        for f in tqdm(
+            raw_files,
+            desc="kgmerge",
+            unit="file",
+            total=len(raw_files),
+            dynamic_ncols=True,
+        ):
             data = json.loads(f.read_text(encoding="utf-8"))
             for e in data.get("entities", []):
                 all_entities.append(

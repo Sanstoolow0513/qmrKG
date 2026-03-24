@@ -60,6 +60,9 @@ TOC_ELLIPSIS_PATTERN = re.compile(r"\s*\.{3,}\s*\d+")
 # HTML comment pattern for page markers
 PAGE_COMMENT_PATTERN = re.compile(r"<!--\s*Page\s*\d+\s*-->")
 
+# Fenced code block wrapping markdown content produced by VLM OCR
+MARKDOWN_FENCE_PATTERN = re.compile(r"```markdown\n(.*?)```", re.DOTALL)
+
 # Re-export for backward compatibility
 __all__ = [
     "MarkdownChunk",
@@ -71,7 +74,110 @@ __all__ = [
     "clean_markdown",
     "clean_markdown_file",
     "batch_clean_markdown_files",
+    "extract_page_content",
+    "merge_book_pages",
 ]
+
+
+def extract_page_content(text: str) -> str:
+    """Extract pure book content from a single per-page OCR markdown file.
+
+    Removes YAML frontmatter, ``## Page N`` markers, metadata lines, and
+    unwraps content that the VLM wrapped inside a triple-backtick markdown fence.
+    fenced code block.  Falls back to stripping metadata lines when no fence
+    is present.
+
+    Args:
+        text: Raw per-page markdown text as produced by ``pngtotext``.
+
+    Returns:
+        Pure book content as plain markdown text.
+    """
+    # Strip YAML frontmatter
+    text = re.sub(r"^---\n.*?\n---\n", "", text, flags=re.DOTALL, count=1)
+
+    # Prefer content inside ```markdown ... ``` fences (VLM output wrapping)
+    fences = MARKDOWN_FENCE_PATTERN.findall(text)
+    if fences:
+        return "\n\n".join(block.strip() for block in fences)
+
+    # No fence: strip ## Page N, metadata lines, and page decorations
+    lines = text.split("\n")
+    result: list[str] = []
+    skip_metadata = False
+    prev_empty = False
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Skip ## Page N header and trigger metadata skip
+        if re.match(r"^## Page \d+$", stripped):
+            skip_metadata = True
+            continue
+
+        # Skip page separator lines (--- between pages)
+        if stripped == "---":
+            continue
+
+        # While in metadata mode, consume metadata key-value lines
+        if skip_metadata and stripped:
+            if any(stripped.startswith(prefix) for prefix in METADATA_PREFIXES):
+                continue
+            skip_metadata = False
+
+        # Collapse consecutive blank lines
+        if not stripped:
+            if prev_empty:
+                continue
+            prev_empty = True
+        else:
+            prev_empty = False
+
+        result.append(line)
+
+    return "\n".join(result).strip()
+
+
+def merge_book_pages(
+    page_files: list[Path],
+    output_path: Path | None = None,
+) -> str:
+    """Merge multiple per-page OCR markdown files into a single clean book markdown.
+
+    The files are sorted by their ``_page_NNNN`` suffix so the merged result
+    preserves reading order.  Each page is cleaned via :func:`extract_page_content`
+    before concatenation.
+
+    Args:
+        page_files: Paths to per-page markdown files (any order).
+        output_path: If provided, write the merged text to this path.
+
+    Returns:
+        Merged pure-content markdown string.
+    """
+
+    def _page_sort_key(p: Path) -> int:
+        m = re.search(r"_page_(\d+)", p.stem)
+        return int(m.group(1)) if m else 0
+
+    sorted_files = sorted(page_files, key=_page_sort_key)
+
+    parts: list[str] = []
+    for page_file in sorted_files:
+        raw = Path(page_file).read_text(encoding="utf-8")
+        content = extract_page_content(raw)
+        if content:
+            parts.append(content)
+
+    merged = "\n\n".join(parts)
+
+    if output_path is not None:
+        output_path = Path(output_path)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(merged, encoding="utf-8")
+        logger.info("Merged %d pages -> %s", len(sorted_files), output_path)
+
+    return merged
 
 
 def clean_markdown(
@@ -464,6 +570,172 @@ class MarkdownChunker:
         """Chunk a markdown file."""
         text = Path(file_path).read_text(encoding="utf-8")
         return self.chunk_text(text, source_file=str(file_path))
+
+    # ------------------------------------------------------------------
+    # New linear heading-based chunk strategy
+    # ------------------------------------------------------------------
+
+    def _split_at_heading_level(
+        self, text: str, level: int
+    ) -> List[tuple[str, Optional[str]]]:
+        """Split *text* into sections at an exact heading level.
+
+        Returns a list of ``(section_text, title)`` tuples.  The section text
+        includes the heading line itself.  Any content before the first heading
+        of the requested level is returned as an untitled ``(content, None)``
+        entry.
+
+        Only headings of *exactly* ``level`` hashes are treated as split
+        points; deeper headings inside a section are left intact.
+        """
+        pattern = re.compile(rf"^({'#' * level}) (?!#)(.+)$", re.MULTILINE)
+        matches = list(pattern.finditer(text))
+
+        if not matches:
+            return [(text, None)] if text.strip() else []
+
+        sections: List[tuple[str, Optional[str]]] = []
+
+        # Content before the first heading at this level
+        if matches[0].start() > 0:
+            before = text[: matches[0].start()].strip()
+            if before:
+                sections.append((before, None))
+
+        for i, match in enumerate(matches):
+            title = match.group(2).strip()
+            end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+            section_text = text[match.start() : end].strip()
+            sections.append((section_text, title))
+
+        return sections
+
+    def _split_by_paragraphs(
+        self,
+        text: str,
+        titles: List[str],
+        source_file: Optional[str],
+    ) -> List[MarkdownChunk]:
+        """Split *text* into paragraph-bounded chunks respecting ``max_tokens``."""
+        paragraphs = text.split("\n\n")
+        chunks: List[MarkdownChunk] = []
+        current_parts: List[str] = []
+        current_tokens = 0
+
+        for para in paragraphs:
+            para = para.strip()
+            if not para:
+                continue
+            para_tokens = self.count_tokens(para)
+            if current_tokens + para_tokens > self.max_tokens and current_parts:
+                content = "\n\n".join(current_parts)
+                chunks.append(
+                    MarkdownChunk(
+                        titles=titles,
+                        content=content,
+                        token_count=self.count_tokens(content),
+                        source_file=source_file,
+                    )
+                )
+                current_parts = [para]
+                current_tokens = para_tokens
+            else:
+                current_parts.append(para)
+                current_tokens += para_tokens
+
+        if current_parts:
+            content = "\n\n".join(current_parts)
+            chunks.append(
+                MarkdownChunk(
+                    titles=titles,
+                    content=content,
+                    token_count=self.count_tokens(content),
+                    source_file=source_file,
+                )
+            )
+
+        return chunks
+
+    def _expand_section(
+        self,
+        text: str,
+        titles: List[str],
+        current_level: int,
+        source_file: Optional[str],
+    ) -> List[MarkdownChunk]:
+        """Recursively expand a section into token-bounded chunks.
+
+        Strategy:
+        1. If the section fits in ``max_tokens`` → emit as single chunk.
+        2. Otherwise try to split by the next heading level (up to H3).
+           If splitting produces more than one piece, recurse on each piece.
+        3. If no sub-headings exist or the level exceeds 3 → fall back to
+           paragraph splitting with a strict ``max_tokens`` window.
+        """
+        token_count = self.count_tokens(text)
+        if token_count <= self.max_tokens:
+            if not text.strip():
+                return []
+            return [
+                MarkdownChunk(
+                    titles=titles,
+                    content=text,
+                    token_count=token_count,
+                    source_file=source_file,
+                )
+            ]
+
+        next_level = current_level + 1
+        if next_level <= 3:
+            subsections = self._split_at_heading_level(text, next_level)
+            if len(subsections) > 1:
+                result: List[MarkdownChunk] = []
+                for sub_text, sub_title in subsections:
+                    sub_titles = titles + [sub_title] if sub_title else titles
+                    result.extend(
+                        self._expand_section(sub_text, sub_titles, next_level, source_file)
+                    )
+                return result
+
+        # No viable sub-headings or level > 3 → paragraph split
+        return self._split_by_paragraphs(text, titles, source_file)
+
+    def chunk_document(
+        self, text: str, source_file: Optional[str] = None
+    ) -> List[MarkdownChunk]:
+        """Chunk a merged book markdown using a linear top-down heading strategy.
+
+        The algorithm operates on the flat text (no tree is constructed):
+
+        1. Split by H1 (``#``) boundaries.
+        2. For each H1 section: if ≤ ``max_tokens`` → one chunk.
+        3. Otherwise split by H2 (``##``), and recursively by H3 (``###``).
+        4. If a section has no suitable sub-headings, fall back to paragraph
+           splitting with a strict ``max_tokens`` window.
+
+        Args:
+            text: Merged book markdown (pure content, no OCR metadata).
+            source_file: Optional source path stored in each chunk.
+
+        Returns:
+            Ordered list of :class:`MarkdownChunk` objects with ``chunk_index``
+            set sequentially.
+        """
+        h1_sections = self._split_at_heading_level(text, 1)
+
+        all_chunks: List[MarkdownChunk] = []
+        for section_text, section_title in h1_sections:
+            titles = [section_title] if section_title else []
+            all_chunks.extend(
+                self._expand_section(section_text, titles, 1, source_file)
+            )
+
+        for idx, chunk in enumerate(all_chunks):
+            chunk.chunk_index = idx
+
+        return all_chunks
+
+    # ------------------------------------------------------------------
 
     def chunks_to_json(self, chunks: List[MarkdownChunk]) -> str:
         """Convert chunks to JSON string."""

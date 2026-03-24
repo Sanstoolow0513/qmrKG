@@ -1,11 +1,13 @@
 """CLI for knowledge graph extraction from chunks."""
 
 import argparse
-import logging
 import sys
 from pathlib import Path
 
+from tqdm import tqdm
+
 from .kg_extractor import KGExtractor
+from .tqdm_logging import setup_logging
 
 
 def main():
@@ -30,11 +32,7 @@ def main():
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-        datefmt="%H:%M:%S",
-    )
+    setup_logging(args.verbose)
 
     skip = not args.no_skip
     extractor = KGExtractor()
@@ -49,8 +47,25 @@ def main():
             print(f"No JSON files found in {input_path}", file=sys.stderr)
             sys.exit(1)
         total = 0
-        for cf in chunk_files:
-            paths = extractor.extract_from_chunks_file(cf, args.output_dir, skip_existing=skip)
+        multi_file = len(chunk_files) > 1
+        file_iter = (
+            tqdm(
+                chunk_files,
+                desc="kgextract",
+                unit="file",
+                total=len(chunk_files),
+                dynamic_ncols=True,
+            )
+            if multi_file
+            else chunk_files
+        )
+        for cf in file_iter:
+            paths = extractor.extract_from_chunks_file(
+                cf,
+                args.output_dir,
+                skip_existing=skip,
+                progress_leave=not multi_file,
+            )
             total += len(paths)
         print(f"Extracted {total} chunk(s) from {len(chunk_files)} file(s)")
     else:

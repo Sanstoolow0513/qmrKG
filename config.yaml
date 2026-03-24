@@ -69,7 +69,7 @@ extract:
   provider:
     name: ppio
     base_url: "https://api.ppinfra.com/openai"
-    model: "deepseek/deepseek-v3-0324"
+    model: "deepseek/deepseek-v3.2"
     modality: "text"
     supports_thinking: false
   prompts:
@@ -112,5 +112,5 @@ extract:
     thinking:
       enabled: false
   rate_limit:
-    rpm: 30
+    rpm: 50
     max_concurrency: 4
