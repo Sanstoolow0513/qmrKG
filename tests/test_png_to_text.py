@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+import qmrkg.llm_config as llm_config
 import qmrkg.png_to_text as png_to_text
 from qmrkg.png_to_text import OCRPageResult, OCRProcessor, RollingRateLimiter, VLMSettings
 
@@ -94,9 +95,20 @@ def write_config(tmp_path: Path, content: str) -> Path:
     return config_path
 
 
-def test_settings_require_api_key(monkeypatch):
+# Minimal ocr task config: avoids loading repo config.yaml / cwd .env side effects in settings tests.
+_MINIMAL_OCR_CONFIG = """
+ocr:
+  provider:
+    model: qwen/qwen3-vl-8b-instruct
+"""
+
+
+def test_settings_require_api_key(scratch_dir, monkeypatch):
+    monkeypatch.chdir(scratch_dir)
     monkeypatch.delenv("PPIO_API_KEY", raising=False)
     monkeypatch.delenv("SILICONFLOW_API_KEY", raising=False)
+    # find_dotenv walks up from cwd; repo-root .env would repopulate keys after delenv.
+    monkeypatch.setattr(llm_config, "load_dotenv", lambda *a, **k: False)
     monkeypatch.setattr(png_to_text, "VLMSettings", VLMSettings)
 
     with pytest.raises(ValueError, match="PPIO_API_KEY"):
@@ -113,10 +125,12 @@ def test_ocr_processor_accepts_legacy_constructor_args(monkeypatch):
     assert processor.show_log is True
 
 
-def test_settings_load_defaults(monkeypatch):
+def test_settings_load_defaults(scratch_dir, monkeypatch):
+    monkeypatch.chdir(scratch_dir)
     monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    write_config(scratch_dir, _MINIMAL_OCR_CONFIG)
 
-    settings = VLMSettings.from_env()
+    settings = VLMSettings.from_env(config_path=scratch_dir / "config.yaml")
 
     assert settings.base_url == "https://api.ppio.com/openai"
     assert settings.model == "qwen/qwen3-vl-8b-instruct"
@@ -125,12 +139,15 @@ def test_settings_load_defaults(monkeypatch):
     assert settings.thinking_enabled is False
 
 
-def test_settings_support_legacy_siliconflow_aliases(monkeypatch):
+def test_settings_support_legacy_siliconflow_aliases(scratch_dir, monkeypatch):
+    monkeypatch.chdir(scratch_dir)
     monkeypatch.delenv("PPIO_API_KEY", raising=False)
+    monkeypatch.setattr(llm_config, "load_dotenv", lambda *a, **k: False)
     monkeypatch.setenv("SILICONFLOW_API_KEY", "legacy-test-key")
     monkeypatch.setenv("SILICONFLOW_VLM_MODEL", "legacy-model")
+    write_config(scratch_dir, _MINIMAL_OCR_CONFIG)
 
-    settings = VLMSettings.from_env()
+    settings = VLMSettings.from_env(config_path=scratch_dir / "config.yaml")
 
     assert settings.api_key == "legacy-test-key"
     assert settings.model == "legacy-model"

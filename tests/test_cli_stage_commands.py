@@ -174,3 +174,7 @@ def test_qmrkg_list_shows_available_commands(capsys):
     assert "pdftopng" in out
     assert "pngtotext" in out
     assert "mdchunk" in out
+    assert "kgextract" in out
+    assert "kgmerge" in out
+    assert "kgneo4j" in out
+    assert "qmrkg-harness" in out

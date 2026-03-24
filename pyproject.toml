@@ -30,6 +30,7 @@ mdchunk = "qmrkg.cli_md_chunk:main"
 kgextract = "qmrkg.cli_kg_extract:main"
 kgmerge = "qmrkg.cli_kg_merge:main"
 kgneo4j = "qmrkg.cli_kg_neo4j:main"
+qmrkg-harness = "qmrkg.cli_agent_harness:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
