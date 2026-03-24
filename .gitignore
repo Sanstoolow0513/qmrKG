@@ -8,7 +8,9 @@ wheels/
 
 # Virtual environments
 .venv
-.worktrees/
+# Local git worktrees (keep empty .worktrees/ in clone via .gitkeep)
+.worktrees/*
+!.worktrees/.gitkeep
 .pytest_local/
 .pytest-tmp/
 .tmp/
