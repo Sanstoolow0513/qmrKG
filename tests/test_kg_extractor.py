@@ -1,3 +1,5 @@
+import json
+
 from qmrkg.kg_extractor import EXTRACT_PROMPT, KGExtractor
 from qmrkg.llm_types import LLMResponse
 from qmrkg.ner_prompts import ZERO_SHOT_EXTRACTION_PROMPT
@@ -124,3 +126,36 @@ def test_extract_from_chunk_legacy_uses_original_prompt():
     chunk = {"chunk_index": 0, "source_file": "x.md", "titles": [], "content": "test"}
     ex.extract_from_chunk(chunk)
     assert captured["system_prompt"] == EXTRACT_PROMPT
+
+
+def test_extract_from_chunks_file_writes_extraction_meta(tmp_path):
+    chunks_path = tmp_path / "sample.json"
+    chunks_path.write_text(
+        json.dumps(
+            [
+                {
+                    "chunk_index": 0,
+                    "source_file": "a.md",
+                    "titles": [],
+                    "content": "TCP 协议。",
+                }
+            ],
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    class FakeRunner:
+        def run_text(self, prompt: str, *, system_prompt: str | None = None):
+            return LLMResponse(
+                text='{"entities": [{"name": "TCP", "type": "protocol", "description": ""}], '
+                '"triples": []}',
+                processed_at="",
+                duration_seconds=0.0,
+            )
+
+    out_dir = tmp_path / "raw"
+    ex = KGExtractor(runner=FakeRunner(), prompt_kind="few_shot")
+    ex.extract_from_chunks_file(chunks_path, out_dir, skip_existing=False)
+    saved = json.loads((out_dir / "sample_chunk_0000.json").read_text(encoding="utf-8"))
+    assert saved["extraction_meta"]["prompt_kind"] == "few_shot"

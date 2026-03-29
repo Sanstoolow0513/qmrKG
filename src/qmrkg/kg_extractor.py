@@ -134,7 +134,7 @@ class KGExtractor:
 
             try:
                 result = self.extract_from_chunk(chunk)
-                self._save_result(result, out_path)
+                self._save_result(result, out_path, prompt_kind=self._prompt_kind)
                 result_paths.append(out_path)
                 logger.info(
                     "Extracted chunk %d: %d entities, %d triples",
@@ -192,11 +192,17 @@ class KGExtractor:
         return triples
 
     @staticmethod
-    def _save_result(result: ChunkExtractionResult, path: Path) -> None:
+    def _save_result(
+        result: ChunkExtractionResult,
+        path: Path,
+        *,
+        prompt_kind: str,
+    ) -> None:
         data = {
             "chunk_index": result.chunk_index,
             "source_file": result.source_file,
             "titles": result.titles,
+            "extraction_meta": {"prompt_kind": prompt_kind},
             "entities": [
                 {"name": e.name, "type": e.type, "description": e.description}
                 for e in result.entities

@@ -22,8 +22,12 @@ def main():
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("data/triples/raw"),
-        help="Output directory for raw triples (default: data/triples/raw)",
+        default=None,
+        help=(
+            "Output directory for raw triples. "
+            "When omitted, uses data/triples/raw/<prompt-kind> so zero_shot / few_shot / "
+            "legacy runs do not overwrite each other."
+        ),
     )
     parser.add_argument(
         "--no-skip",
@@ -41,13 +45,19 @@ def main():
 
     setup_logging(args.verbose)
 
+    output_dir = (
+        args.output_dir
+        if args.output_dir is not None
+        else Path("data/triples/raw") / args.prompt_kind
+    )
+
     skip = not args.no_skip
     extractor = KGExtractor(prompt_kind=args.prompt_kind)
 
     input_path = args.input
     if input_path.is_file():
-        paths = extractor.extract_from_chunks_file(input_path, args.output_dir, skip_existing=skip)
-        print(f"Extracted {len(paths)} chunk(s) from {input_path.name}")
+        paths = extractor.extract_from_chunks_file(input_path, output_dir, skip_existing=skip)
+        print(f"Extracted {len(paths)} chunk(s) from {input_path.name} -> {output_dir}")
     elif input_path.is_dir():
         chunk_files = sorted(input_path.glob("*.json"))
         if not chunk_files:
@@ -69,12 +79,12 @@ def main():
         for cf in file_iter:
             paths = extractor.extract_from_chunks_file(
                 cf,
-                args.output_dir,
+                output_dir,
                 skip_existing=skip,
                 progress_leave=not multi_file,
             )
             total += len(paths)
-        print(f"Extracted {total} chunk(s) from {len(chunk_files)} file(s)")
+        print(f"Extracted {total} chunk(s) from {len(chunk_files)} file(s) -> {output_dir}")
     else:
         print(f"Input not found: {input_path}", file=sys.stderr)
         sys.exit(1)

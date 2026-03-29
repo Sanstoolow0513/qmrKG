@@ -13,7 +13,11 @@ def main():
         "--input-dir",
         type=Path,
         default=Path("data/triples/raw"),
-        help="Directory containing raw triple JSON files (default: data/triples/raw)",
+        help=(
+            "Directory of per-chunk raw JSON (*.json). "
+            "kgextract defaults to data/triples/raw/<prompt-kind>/ — pass that subfolder, "
+            "e.g. data/triples/raw/few_shot (default here is the legacy flat path)."
+        ),
     )
     parser.add_argument(
         "--output",
