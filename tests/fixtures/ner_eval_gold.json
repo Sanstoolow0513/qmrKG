@@ -1,0 +1,56 @@
+{
+  "description": "课程领域 NER 微型金标准：in_domain_cn 为计算机网络课内表述；cross_course 为相邻计算机类主题，用于观察跨子领域泛化。评估指标对 (name, type) 做集合级 P/R/F1。",
+  "samples": [
+    {
+      "id": "cn_tcp_udp",
+      "split": "in_domain_cn",
+      "text": "TCP 提供可靠传输与流量控制；UDP 无连接，常用于流媒体。二者均属运输层协议。",
+      "gold_entities": [
+        {"name": "TCP", "type": "protocol"},
+        {"name": "UDP", "type": "protocol"},
+        {"name": "流量控制", "type": "concept"},
+        {"name": "流媒体", "type": "concept"}
+      ]
+    },
+    {
+      "id": "cn_routing",
+      "split": "in_domain_cn",
+      "text": "距离向量算法通过 Bellman-Ford 方程迭代更新路由表；收敛速度受路由环路影响。",
+      "gold_entities": [
+        {"name": "距离向量算法", "type": "mechanism"},
+        {"name": "路由表", "type": "concept"},
+        {"name": "路由环路", "type": "concept"}
+      ]
+    },
+    {
+      "id": "cn_metric",
+      "split": "in_domain_cn",
+      "text": "瓶颈链路的带宽为 1 Gbps，测得的 RTT 约为 20 ms，据此估算最大吞吐量。",
+      "gold_entities": [
+        {"name": "带宽", "type": "metric"},
+        {"name": "RTT", "type": "metric"},
+        {"name": "吞吐量", "type": "metric"}
+      ]
+    },
+    {
+      "id": "x_os_page",
+      "split": "cross_course",
+      "text": "请求分页将进程地址空间划分为页；缺页异常触发时由操作系统从磁盘装入页框。",
+      "gold_entities": [
+        {"name": "请求分页", "type": "mechanism"},
+        {"name": "缺页异常", "type": "mechanism"},
+        {"name": "页框", "type": "concept"}
+      ]
+    },
+    {
+      "id": "x_arch_cache",
+      "split": "cross_course",
+      "text": "L1 数据缓存的命中延迟远低于主存访问；Cache 一致性协议保证多核写可见性。",
+      "gold_entities": [
+        {"name": "L1 数据缓存", "type": "concept"},
+        {"name": "主存", "type": "concept"},
+        {"name": "Cache 一致性协议", "type": "mechanism"}
+      ]
+    }
+  ]
+}

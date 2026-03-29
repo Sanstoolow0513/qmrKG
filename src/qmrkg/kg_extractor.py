@@ -11,6 +11,7 @@ from tqdm import tqdm
 
 from .kg_schema import ChunkExtractionResult, Entity, Triple
 from .llm_factory import LLMFactory, TaskLLMRunner
+from .ner_prompts import ExtractionPromptKind, get_extraction_system_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +56,19 @@ EXTRACT_PROMPT = """\
 class KGExtractor:
     """Extract entities and relations from markdown chunks via LLM."""
 
-    def __init__(self, runner: TaskLLMRunner | None = None, config_path: Path | None = None):
+    def __init__(
+        self,
+        runner: TaskLLMRunner | None = None,
+        config_path: Path | None = None,
+        *,
+        prompt_kind: str = ExtractionPromptKind.LEGACY.value,
+    ):
         if runner is not None:
             self._runner = runner
         else:
             factory = LLMFactory(config_path)
             self._runner = factory.create(EXTRACT_TASK_NAME)
+        self._prompt_kind = prompt_kind
 
     def extract_from_chunk(self, chunk: dict) -> ChunkExtractionResult:
         """Extract entities and relations from a single chunk dict."""
@@ -74,7 +82,11 @@ class KGExtractor:
                 triples=[],
             )
 
-        response = self._runner.run_text(content, system_prompt=EXTRACT_PROMPT)
+        system_prompt = get_extraction_system_prompt(
+            self._prompt_kind,
+            legacy_prompt=EXTRACT_PROMPT,
+        )
+        response = self._runner.run_text(content, system_prompt=system_prompt)
         raw = self._parse_json_response(response.text)
         entities = self._parse_entities(raw.get("entities", []))
         triples = self._parse_triples(raw.get("triples", []))

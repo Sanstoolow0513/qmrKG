@@ -7,6 +7,7 @@ from pathlib import Path
 from tqdm import tqdm
 
 from .kg_extractor import KGExtractor
+from .ner_prompts import ExtractionPromptKind
 from .tqdm_logging import setup_logging
 
 
@@ -30,12 +31,18 @@ def main():
         help="Re-extract all chunks even if output exists",
     )
     parser.add_argument("-v", "--verbose", action="store_true")
+    parser.add_argument(
+        "--prompt-kind",
+        choices=[k.value for k in ExtractionPromptKind],
+        default=ExtractionPromptKind.LEGACY.value,
+        help="System prompt strategy: legacy (original), zero_shot, few_shot",
+    )
     args = parser.parse_args()
 
     setup_logging(args.verbose)
 
     skip = not args.no_skip
-    extractor = KGExtractor()
+    extractor = KGExtractor(prompt_kind=args.prompt_kind)
 
     input_path = args.input
     if input_path.is_file():

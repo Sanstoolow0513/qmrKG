@@ -1,4 +1,6 @@
-from qmrkg.kg_extractor import KGExtractor
+from qmrkg.kg_extractor import EXTRACT_PROMPT, KGExtractor
+from qmrkg.llm_types import LLMResponse
+from qmrkg.ner_prompts import ZERO_SHOT_EXTRACTION_PROMPT
 
 
 def test_parse_json_response_plain():
@@ -86,3 +88,39 @@ def test_parse_triples_normalizes_relation_case():
     triples = KGExtractor._parse_triples(raw)
     assert len(triples) == 1
     assert triples[0].relation == "compared_with"
+
+
+def test_extract_from_chunk_zero_shot_uses_expected_system_prompt():
+    captured: dict[str, str | None] = {}
+
+    class FakeRunner:
+        def run_text(self, prompt: str, *, system_prompt: str | None = None):
+            captured["system_prompt"] = system_prompt
+            return LLMResponse(
+                text='{"entities": [], "triples": []}',
+                processed_at="",
+                duration_seconds=0.0,
+            )
+
+    ex = KGExtractor(runner=FakeRunner(), prompt_kind="zero_shot")
+    chunk = {"chunk_index": 0, "source_file": "x.md", "titles": [], "content": "TCP 与 UDP。"}
+    ex.extract_from_chunk(chunk)
+    assert captured["system_prompt"] == ZERO_SHOT_EXTRACTION_PROMPT
+
+
+def test_extract_from_chunk_legacy_uses_original_prompt():
+    captured: dict[str, str | None] = {}
+
+    class FakeRunner:
+        def run_text(self, prompt: str, *, system_prompt: str | None = None):
+            captured["system_prompt"] = system_prompt
+            return LLMResponse(
+                text='{"entities": [], "triples": []}',
+                processed_at="",
+                duration_seconds=0.0,
+            )
+
+    ex = KGExtractor(runner=FakeRunner(), prompt_kind="legacy")
+    chunk = {"chunk_index": 0, "source_file": "x.md", "titles": [], "content": "test"}
+    ex.extract_from_chunk(chunk)
+    assert captured["system_prompt"] == EXTRACT_PROMPT
