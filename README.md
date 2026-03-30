@@ -7,14 +7,22 @@ PDF -> PNG -> Text 转换流水线，并提供面向 `ocr`、`ner`、`re` 等任
 ```
 qmrkg/
 ├── src/qmrkg/              # 主包
-│   ├── __init__.py
 │   ├── pdf_to_png.py       # PDF 转图片
-│   ├── png_to_text.py      # OCR 文字识别
-│   └── pipeline.py         # 完整流水线
+│   ├── png_to_text.py      # OCR / VLM 文字识别
+│   ├── markdown_chunker.py # Markdown 分块
+│   ├── kg_extractor.py   # 大模型实体与关系抽取
+│   ├── kg_merger.py        # 三元组合并与去重
+│   ├── kg_neo4j.py         # Neo4j 导入
+│   ├── ner_prompts.py      # 零样本 / 少样本抽取提示（实验用）
+│   └── ...
 ├── data/
-│   ├── pdf/                # 输入 PDF 文件
-│   ├── png/                # 中间图片文件
-│   └── markdown/           # 输出文本文件
+│   ├── pdf/                # 输入 PDF
+│   ├── png/                # 中间图片
+│   ├── markdown/           # OCR 输出 Markdown
+│   ├── chunks/             # mdchunk 输出的 JSON 分块（kgextract 输入）
+│   └── triples/
+│       ├── raw/            # 每 chunk 一条 JSON；默认按提示策略分子目录（见下文）
+│       └── merged/         # kgmerge 输出的合并图 JSON
 ├── main.py                 # CLI 入口
 ├── examples.py             # 使用示例
 └── pyproject.toml          # 项目配置
@@ -84,7 +92,59 @@ uv run pngtotext --image data/png/example_page_0001.png --output data/markdown/e
 uv run mdchunk --markdown data/markdown/example.md --chunk-dir data/chunks
 ```
 
-说明：`pdftopng`、`pngtotext`、`mdchunk` 都通过 `pyproject.toml` 的 `project.scripts` 映射到 `src/qmrkg` 下对应阶段模块，不需要手写临时 Python 执行脚本。
+### 6. 知识图谱：抽取 → 合并 → Neo4j
+
+LLM 抽取使用 `config.yaml` 中 **`extract`** 任务（与 `ocr` 并列）的模型与速率限制；提示词由 CLI **`--prompt-kind`** 选择（见下）。
+
+**从分块 JSON 抽取实体与关系（`kgextract`）**
+
+```bash
+# 处理 data/chunks 下所有 *.json（默认提示策略 legacy，与历史行为一致）
+uv run kgextract --input data/chunks -v
+
+# 零样本 / 少样本提示（用于对比实验）；不写 --output-dir 时结果分目录存放，避免互相覆盖
+uv run kgextract --input data/chunks --prompt-kind zero_shot -v
+uv run kgextract --input data/chunks --prompt-kind few_shot -v
+
+# 强制重跑已存在的 chunk 结果
+uv run kgextract --input data/chunks --prompt-kind few_shot --no-skip -v
+
+# 自定义输出目录（三种策略可写到同一目录，需自行避免文件名冲突）
+uv run kgextract --input data/chunks --prompt-kind few_shot --output-dir data/triples/raw -v
+```
+
+默认输出路径（未指定 `--output-dir` 时）：
+
+| `--prompt-kind` | 原始三元组目录 |
+|-----------------|----------------|
+| `legacy`        | `data/triples/raw/legacy/` |
+| `zero_shot`     | `data/triples/raw/zero_shot/` |
+| `few_shot`      | `data/triples/raw/few_shot/` |
+
+每条 chunk 结果 JSON 中含 `extraction_meta.prompt_kind`，便于追溯实验配置。
+
+**合并去重（`kgmerge`）**
+
+`kgmerge` 只读取**指定目录下的一层** `*.json`，因此需与上表目录一致。为与 `kgextract` 对齐，可使用 **`--prompt-kind`** 自动选择输入 / 输出文件：
+
+```bash
+# 读取 data/triples/raw/zero_shot/，写入 data/triples/merged/merged_triples_zero_shot.json
+uv run kgmerge --prompt-kind zero_shot -v
+
+# 读取 data/triples/raw/few_shot/，写入 merged_triples_few_shot.json
+uv run kgmerge --prompt-kind few_shot -v
+```
+
+仍使用「扁平」`data/triples/raw/*.json` 时，不传 `--prompt-kind` 即可（输入默认 `data/triples/raw`，输出默认 `data/triples/merged/merged_triples.json`）。也可用 `--input-dir`、`--output` 完全手动指定。
+
+**导入 Neo4j（`kgneo4j`）**
+
+```bash
+uv run kgneo4j --import data/triples/merged/merged_triples_zero_shot.json -v
+# 或合并文件名与 --output 一致即可
+```
+
+说明：`pdftopng`、`pngtotext`、`mdchunk`、`kgextract`、`kgmerge`、`kgneo4j` 均通过 `pyproject.toml` 的 `project.scripts` 注册，可直接 `uv run <命令>`。
 
 ## ⚙️ Task Configuration (`config.yaml`)
 
