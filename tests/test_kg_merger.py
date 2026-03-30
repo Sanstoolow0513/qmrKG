@@ -1,4 +1,7 @@
-from qmrkg.kg_merger import normalize_entity_name, KGMerger
+from pathlib import Path
+
+from qmrkg.cli_kg_merge import resolve_kgmerge_paths
+from qmrkg.kg_merger import KGMerger, normalize_entity_name
 from qmrkg.kg_schema import Entity, Triple
 
 
@@ -138,3 +141,27 @@ def test_compute_stats():
     assert stats["entities_by_type"]["concept"] == 1
     assert stats["triples_by_relation"]["compared_with"] == 1
     assert stats["triples_by_relation"]["contains"] == 1
+
+
+def test_resolve_kgmerge_paths_prompt_kind_zero_shot():
+    inp, out = resolve_kgmerge_paths(None, None, "zero_shot")
+    assert inp == Path("data/triples/raw/zero_shot")
+    assert out == Path("data/triples/merged/merged_triples_zero_shot.json")
+
+
+def test_resolve_kgmerge_paths_legacy_defaults():
+    inp, out = resolve_kgmerge_paths(None, None, None)
+    assert inp == Path("data/triples/raw")
+    assert out == Path("data/triples/merged/merged_triples.json")
+
+
+def test_resolve_kgmerge_paths_explicit_input_with_prompt_kind_output():
+    inp, out = resolve_kgmerge_paths(Path("/tmp/custom_raw"), None, "few_shot")
+    assert inp == Path("/tmp/custom_raw")
+    assert out == Path("data/triples/merged/merged_triples_few_shot.json")
+
+
+def test_resolve_kgmerge_paths_explicit_output_only():
+    inp, out = resolve_kgmerge_paths(None, Path("out/merged.json"), None)
+    assert inp == Path("data/triples/raw")
+    assert out == Path("out/merged.json")

@@ -15,7 +15,10 @@ def main():
         "--import",
         dest="import_file",
         type=Path,
-        help="Path to merged triples JSON file to import",
+        help=(
+            "Path to merged triples JSON (e.g. data/triples/merged/merged_triples.json "
+            "or merged_triples_zero_shot.json when using kgmerge --prompt-kind zero_shot)"
+        ),
     )
     parser.add_argument("--uri", type=str, help="Neo4j URI (default: env NEO4J_URI)")
     parser.add_argument("--user", type=str, help="Neo4j user (default: env NEO4J_USER)")
