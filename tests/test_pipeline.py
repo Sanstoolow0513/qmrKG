@@ -24,7 +24,7 @@ def test_process_pdf_skips_text_output_when_save_text_is_false(monkeypatch):
     monkeypatch.setattr(
         pipeline.ocr_processor,
         "extract_from_images",
-        lambda image_paths: [
+        lambda image_paths, **kwargs: [
             OCRPageResult(
                 image_path=Path("page-1.png"),
                 page_number=1,

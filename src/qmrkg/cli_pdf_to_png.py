@@ -23,7 +23,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "--image-dir",
         type=Path,
         default=Path("data/png"),
-        help="Directory to save generated PNG files (default: data/png)",
+        help="Root directory for PNG output; each PDF is written under a subfolder named "
+        "after the file stem (default: data/png)",
     )
     parser.add_argument("--dpi", type=int, default=200, help="Output DPI (default: 200)")
     parser.add_argument(
@@ -50,7 +51,10 @@ def main(argv: list[str] | None = None) -> int:
         output_paths = converter.convert(args.pdf)
         print(f"Processed: {args.pdf.name}")
         print(f"Pages: {len(output_paths)}")
-        print(f"Image dir: {args.image_dir}")
+        if output_paths:
+            print(f"Output folder: {output_paths[0].parent}")
+        else:
+            print(f"Image root: {args.image_dir}")
         return 0
 
     if not args.pdf_dir.exists():
@@ -68,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Success: {success}")
     if failed:
         print(f"Failed: {failed}")
-    print(f"Image dir: {args.image_dir}")
+    print(f"Image root: {args.image_dir}")
     return 0
 
 

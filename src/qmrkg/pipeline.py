@@ -24,6 +24,7 @@ class PDFPipeline:
         dpi: int = 200,
         ocr_lang: str = "ch",
         use_gpu: bool = False,
+        skip_existing_page_md: bool = True,
     ):
         """
         Initialize PDF processing pipeline.
@@ -35,10 +36,12 @@ class PDFPipeline:
             dpi: DPI for PDF to image conversion
             ocr_lang: Legacy OCR language flag kept for compatibility
             use_gpu: Legacy GPU flag kept for compatibility
+            skip_existing_page_md: Skip OCR when per-page markdown under text_dir is non-empty
         """
         self.pdf_dir = Path(pdf_dir)
         self.image_dir = Path(image_dir) if image_dir else Path("data/png")
         self.text_dir = Path(text_dir) if text_dir else Path("data/markdown")
+        self.skip_existing_page_md = skip_existing_page_md
 
         # Initialize converters
         self.pdf_converter = PDFConverter(dpi=dpi, output_dir=self.image_dir)
@@ -50,6 +53,7 @@ class PDFPipeline:
         save_images: bool = True,
         save_text: bool = True,
         pdf_progress: str | None = None,
+        skip_existing_page_md: bool | None = None,
     ) -> tuple[List[Path], Path | None]:
         """
         Process a single PDF through the full pipeline.
@@ -58,16 +62,19 @@ class PDFPipeline:
             pdf_path: Path to PDF file
             save_images: Whether to keep intermediate images
             save_text: Whether to save extracted text
+            skip_existing_page_md: Override pipeline default; when True, skip OCR if page .md exists
 
         Returns:
             Tuple of (image_paths, text_path). `text_path` is `None` when `save_text=False`.
         """
         pdf_path = Path(pdf_path)
+        skip_md = (
+            self.skip_existing_page_md if skip_existing_page_md is None else skip_existing_page_md
+        )
         progress_prefix = f"[{pdf_progress}] " if pdf_progress else ""
         logger.info("%s%s", progress_prefix, pdf_path.name)
 
-        # Step 1: PDF -> PNG
-        self.pdf_converter.output_dir = self.image_dir / pdf_path.stem
+        # Step 1: PDF -> PNG (per-book subfolder under image_dir is handled by PDFConverter)
         image_paths = self.pdf_converter.convert(pdf_path)
 
         if not image_paths:
@@ -79,12 +86,24 @@ class PDFPipeline:
             text_output_path = self.text_dir / f"{pdf_path.stem}.md"
             self.text_dir.mkdir(parents=True, exist_ok=True)
             sorted_paths = sorted(image_paths)
-            page_results = self.ocr_processor.extract_from_images(sorted_paths)
+            page_results = self.ocr_processor.extract_from_images(
+                sorted_paths,
+                text_dir=self.text_dir,
+                skip_existing_page_md=skip_md,
+            )
             text_path = self.ocr_processor.process_and_save(
                 page_results,
                 text_output_path,
                 pdf_source=pdf_path.name,
             )
+            page_dir = self.text_dir / pdf_path.stem
+            page_dir.mkdir(parents=True, exist_ok=True)
+            for result in page_results:
+                self.ocr_processor.process_and_save(
+                    [result],
+                    page_dir / f"{result.image_path.stem}.md",
+                    pdf_source=result.image_path.name,
+                )
 
         # Cleanup images if not saving
         if not save_images:
@@ -103,6 +122,7 @@ class PDFPipeline:
         save_images: bool = True,
         save_text: bool = True,
         recursive: bool = False,
+        skip_existing_page_md: bool | None = None,
     ) -> dict[str, dict]:
         """
         Process all PDFs in the pdf_dir.
@@ -111,6 +131,7 @@ class PDFPipeline:
             save_images: Keep intermediate images
             save_text: Save extracted text files
             recursive: Search subdirectories for PDFs
+            skip_existing_page_md: Override pipeline default for per-page OCR skip
 
         Returns:
             Dict mapping PDF filename to processing results
@@ -138,6 +159,7 @@ class PDFPipeline:
                     save_images=save_images,
                     save_text=save_text,
                     pdf_progress=pdf_progress,
+                    skip_existing_page_md=skip_existing_page_md,
                 )
                 results[pdf_path.name] = {
                     "status": "success",

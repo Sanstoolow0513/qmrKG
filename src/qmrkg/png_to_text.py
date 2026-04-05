@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -14,6 +15,13 @@ from .llm_types import LLMResponse
 from .rate_limit import RollingRateLimiter
 
 logger = logging.getLogger(__name__)
+
+_BOOK_STEM_FROM_PAGE = re.compile(r"_page_\d+$")
+
+
+def book_stem_from_image_stem(stem: str) -> str:
+    """Strip trailing `_page_NNNN` from a PNG stem (same rule as cli_png_to_text)."""
+    return _BOOK_STEM_FROM_PAGE.sub("", stem)
 
 
 @dataclass(slots=True)
@@ -80,6 +88,63 @@ class OCRProcessor:
     def rate_limiter(self) -> RollingRateLimiter:
         return self.runner.rate_limiter
 
+    def page_markdown_path(self, image_path: Path, text_dir: Path) -> Path:
+        """Per-page markdown path: ``text_dir / {book_stem} / {image_stem}.md``."""
+        image_path = Path(image_path)
+        text_dir = Path(text_dir)
+        book = book_stem_from_image_stem(image_path.stem)
+        return text_dir / book / f"{image_path.stem}.md"
+
+    def check_page_md_done(self, image_path: Path, text_dir: Path) -> bool:
+        """Return True if the page's markdown exists and has non-whitespace content."""
+        md_path = self.page_markdown_path(image_path, text_dir)
+        if not md_path.is_file():
+            return False
+        try:
+            return bool(md_path.read_text(encoding="utf-8").strip())
+        except OSError:
+            return False
+
+    @staticmethod
+    def _extract_body_from_saved_page_markdown(content: str) -> str:
+        """Recover OCR body text from a single-page markdown file written by this module."""
+        body = content
+        stripped = content.lstrip()
+        if stripped.startswith("---"):
+            parts = content.split("---", 2)
+            if len(parts) >= 3:
+                body = parts[2]
+        lines = body.lstrip("\n").splitlines()
+        i = 0
+        while i < len(lines) and not lines[i].strip().startswith("## Page"):
+            i += 1
+        if i >= len(lines):
+            return body.strip()
+        i += 1
+        while i < len(lines) and (not lines[i].strip() or lines[i].strip().startswith("**")):
+            i += 1
+        return "\n".join(lines[i:]).strip()
+
+    def _page_result_from_cached_md(
+        self, image_path: Path, text_dir: Path, page_number: int
+    ) -> OCRPageResult:
+        from datetime import datetime, timezone
+
+        md_path = self.page_markdown_path(image_path, text_dir)
+        content = md_path.read_text(encoding="utf-8")
+        body = self._extract_body_from_saved_page_markdown(content)
+        if not body:
+            body = content.strip()
+        mtime = datetime.fromtimestamp(md_path.stat().st_mtime, tz=timezone.utc).isoformat()
+        return OCRPageResult(
+            image_path=Path(image_path),
+            page_number=page_number,
+            text=body,
+            processed_at=mtime,
+            duration_seconds=0.0,
+            status="success",
+        )
+
     def extract_text(
         self,
         image_path: Path,
@@ -90,45 +155,67 @@ class OCRProcessor:
             return result.text, result.confidence or 1.0
         return result.text
 
-    def extract_from_images(self, image_paths: list[Path]) -> list[OCRPageResult]:
+    def extract_from_images(
+        self,
+        image_paths: list[Path],
+        *,
+        text_dir: Path | None = None,
+        skip_existing_page_md: bool = False,
+        show_progress: bool = True,
+    ) -> list[OCRPageResult]:
         normalized_paths = [Path(image_path) for image_path in image_paths]
         if not normalized_paths:
             return []
 
         results_map: dict[int, OCRPageResult] = {}
-        max_workers = min(len(normalized_paths), self.settings.max_concurrency)
+        pending: list[tuple[int, Path]] = []
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {
-                executor.submit(
-                    self._extract_page_result_with_retries, image_path, index + 1
-                ): index
-                for index, image_path in enumerate(normalized_paths)
-            }
-            completed = as_completed(futures)
-            if len(futures) > 1:
-                from tqdm import tqdm as _tqdm
-
-                completed = _tqdm(
-                    completed,
-                    total=len(futures),
-                    desc="OCR",
-                    unit="page",
-                    leave=False,
-                    dynamic_ncols=True,
+        for index, image_path in enumerate(normalized_paths):
+            if (
+                skip_existing_page_md
+                and text_dir is not None
+                and self.check_page_md_done(image_path, text_dir)
+            ):
+                logger.info("Skip OCR (existing page markdown): %s", image_path.name)
+                results_map[index] = self._page_result_from_cached_md(
+                    image_path, text_dir, index + 1
                 )
+            else:
+                pending.append((index, image_path))
 
-            for future in completed:
-                index = futures[future]
-                try:
-                    results_map[index] = future.result()
-                except Exception as exc:
-                    logger.error("OCR failed for %s: %s", normalized_paths[index], exc)
-                    results_map[index] = self._build_failed_page_result(
-                        normalized_paths[index],
-                        page_number=index + 1,
-                        error_message=str(exc),
+        if pending:
+            max_workers = max(1, min(len(pending), self.settings.max_concurrency))
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(
+                        self._extract_page_result_with_retries, image_path, index + 1
+                    ): index
+                    for index, image_path in pending
+                }
+                completed = as_completed(futures)
+                if show_progress:
+                    from tqdm import tqdm as _tqdm
+
+                    completed = _tqdm(
+                        completed,
+                        total=len(futures),
+                        desc="OCR",
+                        unit="page",
+                        leave=False,
+                        dynamic_ncols=True,
                     )
+
+                for future in completed:
+                    index = futures[future]
+                    try:
+                        results_map[index] = future.result()
+                    except Exception as exc:
+                        logger.error("OCR failed for %s: %s", normalized_paths[index], exc)
+                        results_map[index] = self._build_failed_page_result(
+                            normalized_paths[index],
+                            page_number=index + 1,
+                            error_message=str(exc),
+                        )
 
         return [results_map[i] for i in range(len(normalized_paths))]
 

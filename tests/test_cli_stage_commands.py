@@ -79,7 +79,7 @@ def test_pngtotext_single_image(monkeypatch, capsys):
                 "config_path": config_path,
             }
 
-        def extract_from_images(self, image_paths):
+        def extract_from_images(self, image_paths, **kwargs):
             calls["extract_from_images"] = [Path(p) for p in image_paths]
             return [
                 OCRPageResult(
@@ -170,8 +170,10 @@ def test_pngtotext_dir_outputs_to_book_subdir(monkeypatch, capsys, tmp_path):
 
     image_dir = tmp_path / "png"
     image_dir.mkdir()
-    # Image filename with _page_ suffix so the book stem can be stripped
-    image_path = image_dir / "mybook_page_0001.png"
+    # Matches pdftopng layout: one folder per book under the image root
+    book_png_dir = image_dir / "mybook"
+    book_png_dir.mkdir()
+    image_path = book_png_dir / "mybook_page_0001.png"
     image_path.write_bytes(b"fakepng")
 
     text_dir = tmp_path / "markdown"
@@ -181,15 +183,19 @@ def test_pngtotext_dir_outputs_to_book_subdir(monkeypatch, capsys, tmp_path):
         def __init__(self, **_kwargs):
             pass
 
-        def extract_from_images(self, image_paths):
+        def check_page_md_done(self, image_path, text_dir):
+            return False
+
+        def extract_from_images(self, image_paths, **kwargs):
             return [
                 OCRPageResult(
-                    image_path=image_paths[0],
-                    page_number=1,
+                    image_path=image_paths[i],
+                    page_number=i + 1,
                     text="content",
                     processed_at="2026-01-01T00:00:00+00:00",
                     duration_seconds=0.1,
                 )
+                for i in range(len(image_paths))
             ]
 
         def process_and_save(self, page_results, output_path, pdf_source=None):
@@ -210,6 +216,143 @@ def test_pngtotext_dir_outputs_to_book_subdir(monkeypatch, capsys, tmp_path):
     # Parent directory should be the book stem (no _page_NNNN suffix)
     assert output.parent.name == "mybook"
     assert output.name == "mybook_page_0001.md"
+
+
+def test_group_pngs_by_book_subfolder_and_flat(tmp_path):
+    """Subfolder name is the book key; root-level PNGs use stem without _page_NNNN."""
+    import qmrkg.cli_png_to_text as cli_png_to_text
+
+    image_dir = tmp_path / "png"
+    image_dir.mkdir()
+    (image_dir / "alpha").mkdir()
+    p_sub = image_dir / "alpha" / "alpha_page_0001.png"
+    p_sub.write_bytes(b"x")
+    p_root = image_dir / "beta_page_0001.png"
+    p_root.write_bytes(b"x")
+    paths = sorted(image_dir.rglob("*.png"))
+    grouped = cli_png_to_text._group_pngs_by_book(image_dir, paths)
+    assert set(grouped.keys()) == {"alpha", "beta"}
+    assert [p.name for p in grouped["alpha"]] == ["alpha_page_0001.png"]
+    assert [p.name for p in grouped["beta"]] == ["beta_page_0001.png"]
+
+
+def test_truncate_tqdm_label():
+    import qmrkg.cli_png_to_text as cli_png_to_text
+
+    assert cli_png_to_text._truncate_tqdm_label("short") == "short"
+    long_name = "a" * 60
+    out = cli_png_to_text._truncate_tqdm_label(long_name, max_chars=10)
+    assert len(out) == 10
+    assert out.endswith("…")
+
+
+def test_pngtotext_dir_two_books_two_pages(monkeypatch, capsys, tmp_path):
+    """Directory mode processes each book group; two PNGs yield two saves."""
+    import qmrkg.cli_png_to_text as cli_png_to_text
+    from qmrkg.png_to_text import OCRPageResult
+
+    image_dir = tmp_path / "png"
+    image_dir.mkdir()
+    for name in ("book_a", "book_b"):
+        d = image_dir / name
+        d.mkdir()
+        (d / f"{name}_page_0001.png").write_bytes(b"fakepng")
+
+    text_dir = tmp_path / "markdown"
+    save_calls: list[Path] = []
+
+    class StubProcessor:
+        def __init__(self, **_kwargs):
+            pass
+
+        def check_page_md_done(self, image_path, text_dir):
+            return False
+
+        def extract_from_images(self, image_paths, **kwargs):
+            return [
+                OCRPageResult(
+                    image_path=image_paths[i],
+                    page_number=i + 1,
+                    text="x",
+                    processed_at="2026-01-01T00:00:00+00:00",
+                    duration_seconds=0.1,
+                )
+                for i in range(len(image_paths))
+            ]
+
+        def process_and_save(self, page_results, output_path, pdf_source=None):
+            save_calls.append(Path(output_path))
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(output_path).write_text("# x", encoding="utf-8")
+            return Path(output_path)
+
+    monkeypatch.setattr(cli_png_to_text, "OCRProcessor", StubProcessor)
+
+    exit_code = cli_png_to_text.main(
+        ["--image-dir", str(image_dir), "--text-dir", str(text_dir)]
+    )
+
+    assert exit_code == 0
+    assert len(save_calls) == 2
+    assert {p.parent.name for p in save_calls} == {"book_a", "book_b"}
+
+
+def test_pngtotext_dir_one_book_batch_extract(monkeypatch, tmp_path):
+    """Directory mode calls extract_from_images once per book with all page paths."""
+    import qmrkg.cli_png_to_text as cli_png_to_text
+    from qmrkg.png_to_text import OCRPageResult
+
+    image_dir = tmp_path / "png"
+    image_dir.mkdir()
+    book_dir = image_dir / "novel"
+    book_dir.mkdir()
+    p1 = book_dir / "novel_page_0001.png"
+    p2 = book_dir / "novel_page_0002.png"
+    p1.write_bytes(b"a")
+    p2.write_bytes(b"b")
+
+    text_dir = tmp_path / "markdown"
+    extract_calls: list[list[Path]] = []
+
+    class StubProcessor:
+        def __init__(self, **_kwargs):
+            pass
+
+        def check_page_md_done(self, image_path, text_dir):
+            return False
+
+        def extract_from_images(self, image_paths, **kwargs):
+            extract_calls.append([Path(p) for p in image_paths])
+            assert kwargs.get("show_progress") is True
+            assert kwargs.get("text_dir") == text_dir
+            assert kwargs.get("skip_existing_page_md") is True
+            return [
+                OCRPageResult(
+                    image_path=image_paths[i],
+                    page_number=i + 1,
+                    text="x",
+                    processed_at="2026-01-01T00:00:00+00:00",
+                    duration_seconds=0.1,
+                )
+                for i in range(len(image_paths))
+            ]
+
+        def process_and_save(self, page_results, output_path, pdf_source=None):
+            Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+            Path(output_path).write_text("# x", encoding="utf-8")
+            return Path(output_path)
+
+    monkeypatch.setattr(cli_png_to_text, "OCRProcessor", StubProcessor)
+
+    exit_code = cli_png_to_text.main(
+        ["--image-dir", str(image_dir), "--text-dir", str(text_dir)]
+    )
+
+    assert exit_code == 0
+    assert len(extract_calls) == 1
+    assert {p.name for p in extract_calls[0]} == {"novel_page_0001.png", "novel_page_0002.png"}
+    assert (text_dir / "novel" / "novel_page_0001.md").is_file()
+    assert (text_dir / "novel" / "novel_page_0002.md").is_file()
 
 
 def test_mdchunk_merge_mode(monkeypatch, capsys, tmp_path):

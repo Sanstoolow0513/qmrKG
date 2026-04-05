@@ -54,6 +54,8 @@ def test_pdf_converter_uses_tqdm_for_page_progress(tmp_path, monkeypatch):
     output_paths = converter.convert(pdf_path)
 
     assert len(output_paths) == 2
+    book_dir = tmp_path / "png" / "sample"
+    assert all(p.parent == book_dir for p in output_paths)
     assert progress_calls == [
         {
             "desc": "PDF pages",

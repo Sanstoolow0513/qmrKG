@@ -10,7 +10,13 @@ from pathlib import Path
 import pytest
 
 import qmrkg.png_to_text as png_to_text
-from qmrkg.png_to_text import OCRPageResult, OCRProcessor, RollingRateLimiter, VLMSettings
+from qmrkg.png_to_text import (
+    OCRPageResult,
+    OCRProcessor,
+    RollingRateLimiter,
+    VLMSettings,
+    book_stem_from_image_stem,
+)
 
 
 class FakeResponse:
@@ -498,6 +504,62 @@ def test_process_and_save_with_failed_pages(scratch_dir, monkeypatch):
     assert "**Status:** failed" in content
     assert "API timeout" in content
     assert "failed_pages: 1" in content
+
+
+def test_book_stem_from_image_stem_strips_page_suffix():
+    assert book_stem_from_image_stem("mydoc_page_0001") == "mydoc"
+    assert book_stem_from_image_stem("single") == "single"
+
+
+def test_check_page_md_done_requires_nonempty_body(scratch_dir, monkeypatch):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    processor = OCRProcessor()
+    img = scratch_dir / "book_page_0001.png"
+    img.write_bytes(b"x")
+    text_dir = scratch_dir / "md"
+    md_path = text_dir / "book" / "book_page_0001.md"
+    md_path.parent.mkdir(parents=True)
+
+    assert processor.check_page_md_done(img, text_dir) is False
+
+    md_path.write_text("   \n\t  ", encoding="utf-8")
+    assert processor.check_page_md_done(img, text_dir) is False
+
+    md_path.write_text("hello", encoding="utf-8")
+    assert processor.check_page_md_done(img, text_dir) is True
+
+
+def test_extract_from_images_skips_nonempty_page_md(scratch_dir, monkeypatch):
+    calls = []
+
+    def handler(**_kwargs):
+        calls.append(1)
+        return FakeResponse("from-api")
+
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    processor = build_processor(monkeypatch, handler)
+    img1 = write_image(scratch_dir, "book_page_0001.png")
+    img2 = write_image(scratch_dir, "book_page_0002.png")
+    text_dir = scratch_dir / "out"
+    done_md = text_dir / "book" / "book_page_0001.md"
+    done_md.parent.mkdir(parents=True)
+    done_md.write_text(
+        "---\nsource: x\npages: 1\nsuccessful_pages: 1\nfailed_pages: 0\n"
+        "ocr_model: m\nprocessed_at: t\n---\n\n## Page 1\n\ncached body\n",
+        encoding="utf-8",
+    )
+
+    results = processor.extract_from_images(
+        [img1, img2],
+        text_dir=text_dir,
+        skip_existing_page_md=True,
+    )
+
+    assert len(results) == 2
+    assert results[0].text == "cached body"
+    assert results[0].duration_seconds == 0.0
+    assert results[1].text == "from-api"
+    assert calls == [1]
 
 
 def test_env_example_lists_ppio_variables():

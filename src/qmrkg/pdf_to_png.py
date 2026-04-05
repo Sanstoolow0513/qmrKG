@@ -11,6 +11,12 @@ from tqdm import tqdm
 logger = logging.getLogger(__name__)
 
 
+def _safe_book_folder_name(stem: str) -> str:
+    """Filesystem-safe name for a per-PDF output directory under a shared image root."""
+    name = stem.replace("/", "_").replace("\\", "_").strip()
+    return name or "document"
+
+
 class PDFConverter:
     """Convert PDF files to PNG images."""
 
@@ -54,8 +60,11 @@ class PDFConverter:
         if not pdf_path.exists():
             raise FileNotFoundError(f"PDF not found: {pdf_path}")
 
-        # Determine output directory
-        out_dir = self.output_dir or pdf_path.parent
+        # Determine output directory: with a configured root, one subfolder per book (PDF stem)
+        if self.output_dir is not None:
+            out_dir = Path(self.output_dir) / _safe_book_folder_name(pdf_path.stem)
+        else:
+            out_dir = pdf_path.parent
         out_dir.mkdir(parents=True, exist_ok=True)
 
         # Generate output prefix

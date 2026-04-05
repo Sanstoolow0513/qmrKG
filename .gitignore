@@ -9,31 +9,30 @@ wheels/
 # Virtual environments
 .venv
 # Local git worktrees (keep empty .worktrees/ in clone via .gitkeep)
-.worktrees/*
+.worktrees/
 !.worktrees/.gitkeep
 .pytest_local/
 .pytest-tmp/
+.pytest_cache/
 .tmp/
 pytest-cache-files*/
 tests/_scratch/
 
 # Data: ignore generated artifacts; keep empty dirs with .gitkeep
-data/pdf/*.pdf
-data/pdf/*.pdf:Zone.Identifier
-data/png/**/*.png
-data/markdown/*.txt
-data/markdown/**/*.md
-data/chunks/**/*.json
-data/triples/**/*.json
+data/
 
 # Config files with sensitive data
 .env
-
-# Documentation/notes
-example_output.md
 
 # Model files
 *.pdmodel
 *.pdiparams
 *.pdopt
 inference/
+
+# workspaces
+.cursor/
+.vscode/
+
+# .DS_Store
+.DS_Store

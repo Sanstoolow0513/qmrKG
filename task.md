@@ -1,4 +1,3 @@
-
 # QMR的毕业设计
 
 ## 题目介绍
@@ -22,5 +21,4 @@
 - [1] GPT-NER: Named Entity Recognition via Large Language Models
 - [2] Enriching RDF data with LLM based named entity recognition and linking on embedded natural language annotations
 - [3] LLM-DA: Data Augmentation via Large Language Models for Few-Shot Named Entity Recognition
-
 
