@@ -1,27 +1,137 @@
-# Repository Guidelines
+# QmrKG Project Knowledge Base
 
-## Project Structure & Module Organization
-Core code lives under `src/qmrkg/`. Keep PDF rendering in `pdf_to_png.py`, OCR logic in `png_to_text.py`, and orchestration in `pipeline.py`. `main.py` is the CLI entry point, and `examples.py` shows direct API usage. Runtime data stays under `data/`: place inputs in `data/pdf/`, intermediate images in `data/png/`, and OCR output in `data/markdown/`.
+**Generated:** 2026-04-05  
+**Commit:** 9aa151b  
+**Branch:** master  
 
-## Build, Test, and Development Commands
-Use Python 3.13 with `uv` when possible.
+## OVERVIEW
 
-- `uv pip install -e .` installs the package for local CLI and module development.
-- `uv pip install -e ".[dev]"` adds `pytest`, `black`, and `ruff`.
-- `python main.py` processes all PDFs in `data/pdf/`.
-- `python main.py --pdf data/pdf/example.pdf --lang en` runs a single-file pipeline with explicit OCR settings.
-- `python main.py --stats` prints counts for PDFs, generated images, and text outputs.
-- `pytest` runs tests once a `tests/` suite exists.
-- `ruff check .` and `black .` handle linting and formatting.
+PDF-to-Knowledge Graph pipeline using Python 3.13. Converts PDF documents through OCR to markdown, then extracts knowledge graph triples using LLMs (PPIO API). Supports OCR, NER, and RE tasks with a task-scoped LLM factory pattern.
 
-## Coding Style & Naming Conventions
-Follow Black and Ruff defaults configured in `pyproject.toml`: 4-space indentation, 100-character line limit, and Python 3.13 syntax. Use `snake_case` for modules, functions, variables, and CLI flags; use `PascalCase` for classes such as `PDFPipeline` and `OCRProcessor`. Prefer type hints and `pathlib.Path` for filesystem work. Keep modules focused on one stage of the pipeline.
+## STRUCTURE
 
-## Testing Guidelines
-Add tests under `tests/` with filenames like `test_pipeline.py` and test names like `test_process_pdf_returns_text_path`. Cover CLI argument handling, per-stage helpers, and failure cases such as missing files or OCR import errors. For OCR-heavy code, prefer fixtures or mocks over real model downloads so `pytest` stays fast and deterministic.
+```
+.
+├── src/qmrkg/          # Main source package (21 modules)
+├── tests/              # Test suite (11 test files)
+├── data/               # Runtime data (pdf, png, markdown, chunks, triples)
+├── docs/               # Documentation and specs
+├── config.yaml         # Task-specific LLM configuration
+├── examples.py         # Usage examples
+└── pyproject.toml      # Project configuration
+```
 
-## Commit & Pull Request Guidelines
-Current history uses Conventional Commits (`feat: implement PDF to PNG to Text pipeline for KG construction`), so keep using prefixes like `feat:`, `fix:`, and `docs:`. PRs should include a short summary, the commands used for verification, and sample output or screenshots when CLI behavior changes. Link related issues and call out any dependency, model-download, or GPU assumptions.
+## WHERE TO LOOK
 
-## Security & Configuration Tips
-Do not commit PDFs with sensitive content or large generated artifacts from `data/png/` and `data/markdown/`. PaddleOCR may download models on first run, so note network requirements in reviews. Keep local paths configurable through CLI flags instead of hardcoding machine-specific directories.
+| Task | Location | Notes |
+|------|----------|-------|
+| PDF processing | `src/qmrkg/pdf_to_png.py` | PDF to PNG conversion |
+| OCR/VLM | `src/qmrkg/png_to_text.py` | Image to markdown via LLM |
+| Chunking | `src/qmrkg/markdown_chunker.py` | Markdown to JSON chunks |
+| KG extraction | `src/qmrkg/kg_extractor.py` | Entity/relation extraction |
+| KG merging | `src/qmrkg/kg_merger.py` | Triple consolidation |
+| Neo4j import | `src/qmrkg/kg_neo4j.py` | Graph database loader |
+| LLM factory | `src/qmrkg/llm_factory.py` | Task-scoped processor creation |
+| CLI entry | `src/qmrkg/cli_*.py` | 7 stage-specific CLI commands |
+| Pipeline orchestration | `src/qmrkg/pipeline.py` | Full PDF-to-text pipeline |
+| Config loading | `src/qmrkg/llm_config.py` | YAML + env var resolution |
+| Tests | `tests/test_*.py` | pytest-based test suite |
+
+## CODE MAP
+
+| Symbol | Type | Location | Role |
+|--------|------|----------|------|
+| PDFPipeline | class | pipeline.py | Main orchestration |
+| PDFConverter | class | pdf_to_png.py | PDF rendering |
+| OCRProcessor | class | png_to_text.py | VLM-based OCR |
+| TextTaskProcessor | class | llm_factory.py | Text LLM wrapper |
+| MultimodalTaskProcessor | class | llm_factory.py | VLM wrapper |
+| KGExtractor | class | kg_extractor.py | Entity/relation extraction |
+| KGMerger | class | kg_merger.py | Triple deduplication |
+| KGNeo4jLoader | class | kg_neo4j.py | Neo4j bulk import |
+| MarkdownChunker | class | markdown_chunker.py | Semantic chunking |
+| LLMConfig | class | llm_config.py | Configuration management |
+
+## CONVENTIONS
+
+### Code Style
+- **Line length:** 100 chars (not 88) - configured in pyproject.toml
+- **Python version:** 3.13 only (`>=3.13,<3.14`)
+- **Formatter:** Black with py313 target
+- **Linter:** Ruff with py313 target
+- **Naming:** snake_case for modules/functions, PascalCase for classes
+- **Type hints:** Required throughout
+- **Path handling:** Use `pathlib.Path` (not os.path)
+
+### Project Structure
+- **src-layout:** Code lives in `src/qmrkg/`, not at root
+- **CLI pattern:** Each stage has dedicated `cli_*.py` module
+- **Task factory:** All LLM interactions go through `llm_factory.py`
+- **Config-driven:** Task behavior controlled via `config.yaml` sections
+
+### Task Configuration (config.yaml)
+Tasks use scoped sections: `ocr:`, `ner:`, `re:`, `extract:`
+Each task specifies:
+- `provider`: name, base_url, model, modality
+- `prompts`: task-specific prompt templates
+- `request`: timeout, retries, thinking flags
+- `rate_limit`: rpm, max_concurrency
+
+## ANTI-PATTERNS
+
+### Rejected Configurations
+- **Legacy `openai:` section** → Use task-scoped sections (`ocr:`, `extract:`)
+- **SILICONFLOW_* env vars** → Use `PPIO_*` equivalents
+- **Invalid image_detail** → Must be "low", "high", or "auto"
+- **Images to text-only tasks** → Text tasks reject image input
+
+### Testing
+- Don't use real API calls in tests → Use FakeClient/FakeResponse mocks
+- Don't skip tmp_path cleanup → Tests use pytest fixtures properly
+
+## CLI COMMANDS
+
+```bash
+# Installation
+uv pip install -e ".[dev]"
+
+# Full pipeline
+uv run python main.py --pdf data/pdf/example.pdf
+
+# Stage commands
+uv run qmrkg --list                    # List commands
+uv run pdftopng --pdf <path>           # PDF → PNG
+uv run pngtotext --image <path>        # PNG → Markdown
+uv run mdchunk --markdown <path>       # Markdown → Chunks
+uv run kgextract --input data/chunks   # Extract triples
+uv run kgmerge                         # Merge triples
+uv run kgneo4j --import <path>         # Load to Neo4j
+
+# Testing
+pytest tests/ -v
+
+# Linting
+ruff check .
+black --check .
+```
+
+## NOTES
+
+### Data Flow
+```
+PDF → (pdftopng) → PNG → (pngtotext) → Markdown → (mdchunk) → JSON chunks → (kgextract) → Triples → (kgmerge) → Merged → (kgneo4j) → Neo4j
+```
+
+### Rate Limiting
+All LLM calls respect per-task rate limits from `config.yaml`. Uses semaphore-based concurrency control in `llm_factory.py`.
+
+### Chinese Content
+OCR prompts optimized for Chinese text with specific heading detection rules (第X章, 第X节, etc.).
+
+### Environment Variables
+Sensitive config in `.env` (PPIO_API_KEY). Non-sensitive overrides via `PPIO_*` env vars matching config.yaml paths.
+
+### CI/CD
+- Uses GitHub Actions for opencode AI assistant only
+- No automated test/build workflows (run locally)
+- Conventional Commits preferred (`feat:`, `fix:`, `docs:`)

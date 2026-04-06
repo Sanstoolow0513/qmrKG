@@ -45,8 +45,12 @@ def test_pdftopng_directory_mode_passes_recursive(monkeypatch):
         def __init__(self, dpi=200, fmt="png", output_dir=None):
             calls["init"] = {"dpi": dpi, "fmt": fmt, "output_dir": output_dir}
 
-        def convert_all(self, pdf_dir, recursive=False):
-            calls["convert_all"] = {"pdf_dir": Path(pdf_dir), "recursive": recursive}
+        def convert_all(self, pdf_dir, recursive=False, ppt_converter=None):
+            calls["convert_all"] = {
+                "pdf_dir": Path(pdf_dir),
+                "recursive": recursive,
+                "ppt_converter": ppt_converter,
+            }
             return {"a.pdf": [Path("a_page_0001.png")]}
 
     monkeypatch.setattr(cli_pdf_to_png, "PDFConverter", StubConverter)
@@ -56,6 +60,31 @@ def test_pdftopng_directory_mode_passes_recursive(monkeypatch):
     assert exit_code == 0
     assert calls["convert_all"]["pdf_dir"] == temp_dir
     assert calls["convert_all"]["recursive"] is True
+    assert calls["convert_all"]["ppt_converter"] is not None
+
+
+def test_pdftopng_single_pptx(monkeypatch, capsys, tmp_path):
+    import qmrkg.cli_pdf_to_png as cli_pdf_to_png
+
+    pptx = tmp_path / "deck.pptx"
+    pptx.write_bytes(b"x")
+    fake_png = tmp_path / "deck_page_0001.png"
+    calls = {}
+
+    def fake_convert(path, _pdf_c, _ppt_c):
+        calls["path"] = Path(path)
+        return [fake_png]
+
+    monkeypatch.setattr(cli_pdf_to_png, "convert_document_to_pngs", fake_convert)
+    monkeypatch.setattr(cli_pdf_to_png, "PDFConverter", lambda **kwargs: object())
+    monkeypatch.setattr(cli_pdf_to_png, "PPTConverter", lambda **kwargs: object())
+
+    exit_code = cli_pdf_to_png.main(["--pdf", str(pptx)])
+
+    out = capsys.readouterr().out
+    assert exit_code == 0
+    assert calls["path"] == pptx
+    assert "Processed: deck.pptx" in out
 
 
 def test_pngtotext_single_image(monkeypatch, capsys):

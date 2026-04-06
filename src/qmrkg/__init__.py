@@ -10,7 +10,7 @@ from .llm_factory import MultimodalTaskProcessor, TextTaskProcessor
 from .llm_types import LLMContentPart, LLMMessage, LLMResponse
 from .markdown_chunker import MarkdownChunk, MarkdownChunker
 from .pipeline import PDFPipeline
-from .pdf_to_png import PDFConverter
+from .pdf_to_png import PDFConverter, PPTConverter
 from .png_to_text import OCRPageResult, OCRProcessor
 
 __all__ = [
@@ -27,6 +27,7 @@ __all__ = [
     "MultimodalTaskProcessor",
     "PDFPipeline",
     "PDFConverter",
+    "PPTConverter",
     "OCRProcessor",
     "OCRPageResult",
     "TextTaskProcessor",

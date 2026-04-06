@@ -7,7 +7,13 @@ from typing import List, Optional
 from tqdm import tqdm
 
 from .markdown_chunker import MarkdownChunker
-from .pdf_to_png import PDFConverter
+from .pdf_to_png import (
+    PDFConverter,
+    PPTConverter,
+    _safe_book_folder_name,
+    convert_document_to_pngs,
+    iter_input_documents,
+)
 from .png_to_text import OCRProcessor
 
 logger = logging.getLogger(__name__)
@@ -25,6 +31,8 @@ class PDFPipeline:
         ocr_lang: str = "ch",
         use_gpu: bool = False,
         skip_existing_page_md: bool = True,
+        libreoffice_cmd: str = "libreoffice",
+        ppt_convert_timeout: int = 300,
     ):
         """
         Initialize PDF processing pipeline.
@@ -37,6 +45,8 @@ class PDFPipeline:
             ocr_lang: Legacy OCR language flag kept for compatibility
             use_gpu: Legacy GPU flag kept for compatibility
             skip_existing_page_md: Skip OCR when per-page markdown under text_dir is non-empty
+            libreoffice_cmd: Executable for LibreOffice (PPT/PPTX -> PDF)
+            ppt_convert_timeout: Subprocess timeout in seconds for LibreOffice conversion
         """
         self.pdf_dir = Path(pdf_dir)
         self.image_dir = Path(image_dir) if image_dir else Path("data/png")
@@ -45,6 +55,10 @@ class PDFPipeline:
 
         # Initialize converters
         self.pdf_converter = PDFConverter(dpi=dpi, output_dir=self.image_dir)
+        self._ppt_converter = PPTConverter(
+            libreoffice_cmd=libreoffice_cmd,
+            timeout_sec=ppt_convert_timeout,
+        )
         self.ocr_processor = OCRProcessor(lang=ocr_lang, use_gpu=use_gpu)
 
     def process_pdf(
@@ -56,10 +70,10 @@ class PDFPipeline:
         skip_existing_page_md: bool | None = None,
     ) -> tuple[List[Path], Path | None]:
         """
-        Process a single PDF through the full pipeline.
+        Process a single document through the full pipeline (.pdf, .ppt, .pptx).
 
         Args:
-            pdf_path: Path to PDF file
+            pdf_path: Path to a PDF or PowerPoint file
             save_images: Whether to keep intermediate images
             save_text: Whether to save extracted text
             skip_existing_page_md: Override pipeline default; when True, skip OCR if page .md exists
@@ -67,23 +81,27 @@ class PDFPipeline:
         Returns:
             Tuple of (image_paths, text_path). `text_path` is `None` when `save_text=False`.
         """
-        pdf_path = Path(pdf_path)
+        original = Path(pdf_path)
         skip_md = (
             self.skip_existing_page_md if skip_existing_page_md is None else skip_existing_page_md
         )
         progress_prefix = f"[{pdf_progress}] " if pdf_progress else ""
-        logger.info("%s%s", progress_prefix, pdf_path.name)
+        logger.info("%s%s", progress_prefix, original.name)
 
-        # Step 1: PDF -> PNG (per-book subfolder under image_dir is handled by PDFConverter)
-        image_paths = self.pdf_converter.convert(pdf_path)
+        # Step 1: PPT/PPTX -> PDF (temp) -> PNG, or PDF -> PNG
+        image_paths = convert_document_to_pngs(
+            original,
+            self.pdf_converter,
+            self._ppt_converter,
+        )
 
         if not image_paths:
-            raise RuntimeError(f"No images generated from {pdf_path}")
+            raise RuntimeError(f"No images generated from {original}")
 
         # Step 2: PNG -> Text
         text_path: Path | None = None
         if save_text:
-            text_output_path = self.text_dir / f"{pdf_path.stem}.md"
+            text_output_path = self.text_dir / f"{original.stem}.md"
             self.text_dir.mkdir(parents=True, exist_ok=True)
             sorted_paths = sorted(image_paths)
             page_results = self.ocr_processor.extract_from_images(
@@ -94,9 +112,9 @@ class PDFPipeline:
             text_path = self.ocr_processor.process_and_save(
                 page_results,
                 text_output_path,
-                pdf_source=pdf_path.name,
+                pdf_source=original.name,
             )
-            page_dir = self.text_dir / pdf_path.stem
+            page_dir = self.text_dir / original.stem
             page_dir.mkdir(parents=True, exist_ok=True)
             for result in page_results:
                 self.ocr_processor.process_and_save(
@@ -109,11 +127,11 @@ class PDFPipeline:
         if not save_images:
             for img_path in image_paths:
                 img_path.unlink()
-            # Remove empty image directory
-            img_dir = self.image_dir / pdf_path.stem
+            # Remove empty image directory (matches PDFConverter subfolder naming)
+            img_dir = self.image_dir / _safe_book_folder_name(original.stem)
             if img_dir.exists() and not any(img_dir.iterdir()):
                 img_dir.rmdir()
-            logger.info("Cleaned %s", pdf_path.name)
+            logger.info("Cleaned %s", original.name)
 
         return image_paths, text_path
 
@@ -125,31 +143,29 @@ class PDFPipeline:
         skip_existing_page_md: bool | None = None,
     ) -> dict[str, dict]:
         """
-        Process all PDFs in the pdf_dir.
+        Process all supported documents in the pdf_dir (.pdf, .ppt, .pptx).
 
         Args:
             save_images: Keep intermediate images
             save_text: Save extracted text files
-            recursive: Search subdirectories for PDFs
+            recursive: Search subdirectories for inputs
             skip_existing_page_md: Override pipeline default for per-page OCR skip
 
         Returns:
-            Dict mapping PDF filename to processing results
+            Dict mapping filename to processing results
         """
-        # Find all PDFs
-        pattern = "**/*.pdf" if recursive else "*.pdf"
-        pdf_files = sorted(self.pdf_dir.glob(pattern))
+        pdf_files = iter_input_documents(self.pdf_dir, recursive=recursive)
 
         if not pdf_files:
-            logger.warning(f"No PDF files found in {self.pdf_dir}")
+            logger.warning("No PDF or presentation files found in %s", self.pdf_dir)
             return {}
 
-        logger.info("Found %s PDF(s)", len(pdf_files))
+        logger.info("Found %s document(s)", len(pdf_files))
 
         results = {}
         total_pdfs = len(pdf_files)
         for idx, pdf_path in enumerate(
-            tqdm(pdf_files, desc="PDFs", unit="pdf", dynamic_ncols=True),
+            tqdm(pdf_files, desc="Documents", unit="doc", dynamic_ncols=True),
             1,
         ):
             try:
@@ -181,8 +197,14 @@ class PDFPipeline:
         return results
 
     def get_stats(self) -> dict:
-        """Get pipeline statistics."""
-        pdf_count = len(list(self.pdf_dir.glob("*.pdf")))
+        """Get pipeline statistics.
+
+        ``pdf_files`` counts top-level ``.pdf``, ``.ppt``, and ``.pptx`` files under ``pdf_dir``.
+        """
+        exts = {".pdf", ".ppt", ".pptx"}
+        pdf_count = sum(
+            1 for p in self.pdf_dir.iterdir() if p.is_file() and p.suffix.lower() in exts
+        )
         image_count = (
             sum(1 for _ in self.image_dir.rglob("*.png")) if self.image_dir.exists() else 0
         )
