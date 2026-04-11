@@ -116,7 +116,7 @@ class KGExtractor:
             out_path = output_dir / f"{chunks_path.stem}_chunk_{idx:04d}.json"
 
             if skip_existing and out_path.exists():
-                logger.info("Skipping existing %s", out_path.name)
+                tqdm.write(f"{out_path.name} skip for existing output")
                 result_paths.append(out_path)
                 continue
 

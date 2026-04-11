@@ -34,6 +34,11 @@ inference/
 .cursor/
 .vscode/
 
+# agentic cli
+CLAUDE.md
+GEMINI.md
+QWEN.md
+
 # .DS_Store
 .DS_Store
 
@@ -50,3 +55,6 @@ frontend/yarn-error.log*
 frontend/pnpm-debug.log*
 frontend/coverage/
 frontend/.nyc_output/
+
+# pnpm
+.pnpm-store

@@ -5,15 +5,29 @@ const NEO4J_URI = process.env.NEO4J_URI || 'bolt://localhost:7687';
 const NEO4J_USER = process.env.NEO4J_USER || 'neo4j';
 const NEO4J_PASSWORD = process.env.NEO4J_PASSWORD || 'password';
 
-const DEFAULT_NODE_LIMIT = 500;
-const DEFAULT_REL_LIMIT = 1500;
+/**
+ * 未设置 env 时的默认抽样规模（连贯子图：先 Top-K 节点，再只取这些节点之间的边）。
+ * 全量加载：设置 NEO4J_GRAPH_NODE_LIMIT=0 且 NEO4J_GRAPH_REL_LIMIT=0。
+ */
+const DEFAULT_NODE_LIMIT = 1000;
+const DEFAULT_REL_LIMIT = 4000;
 
-function parseLimit(value: string | undefined, fallback: number): number {
+/**
+ * 解析节点/关系条数上限。正整数为上限；0 或负数表示不限制。
+ * 未设置环境变量时使用 defaultLimit。
+ */
+function parseLimit(value: string | undefined, defaultLimit: number | null): number | null {
   if (value === undefined || value === '') {
-    return fallback;
+    return defaultLimit;
   }
   const n = parseInt(value, 10);
-  return Number.isFinite(n) && n > 0 ? n : fallback;
+  if (!Number.isFinite(n)) {
+    return defaultLimit;
+  }
+  if (n <= 0) {
+    return null;
+  }
+  return n;
 }
 
 const driver = neo4j.driver(
@@ -39,8 +53,43 @@ export async function GET() {
       totalRels = cr.records[0]?.get('c')?.toNumber?.() ?? Number(cr.records[0]?.get('c'));
     }
 
-    const nodesResult = await session.run(`MATCH (n) RETURN n LIMIT $limit`, { limit: neo4j.int(nodeLimit) });
-    const linksResult = await session.run(`MATCH ()-[r]->() RETURN r LIMIT $limit`, { limit: neo4j.int(relLimit) });
+    const nodesQuery =
+      nodeLimit === null
+        ? `MATCH (n) RETURN n ORDER BY n.frequency DESC`
+        : `MATCH (n) RETURN n ORDER BY n.frequency DESC LIMIT $nodeLimit`;
+
+    const nodesResult = await session.run(
+      nodesQuery,
+      nodeLimit === null ? {} : { nodeLimit: neo4j.int(nodeLimit) },
+    );
+
+    const linksResult = await (async () => {
+      if (nodeLimit === null) {
+        const linksQuery =
+          relLimit === null
+            ? `MATCH ()-[r]->() RETURN r ORDER BY r.frequency DESC`
+            : `MATCH ()-[r]->() RETURN r ORDER BY r.frequency DESC LIMIT $relLimit`;
+        return session.run(
+          linksQuery,
+          relLimit === null ? {} : { relLimit: neo4j.int(relLimit) },
+        );
+      }
+      const inducedBase = `
+        MATCH (n)
+        WITH n ORDER BY n.frequency DESC LIMIT $nodeLimit
+        WITH collect(n) AS nodeList
+        MATCH (a)-[r]->(b)
+        WHERE a IN nodeList AND b IN nodeList
+        RETURN r ORDER BY r.frequency DESC`;
+      const inducedQuery =
+        relLimit === null ? inducedBase : `${inducedBase}\n        LIMIT $relLimit`;
+      return session.run(
+        inducedQuery,
+        relLimit === null
+          ? { nodeLimit: neo4j.int(nodeLimit) }
+          : { nodeLimit: neo4j.int(nodeLimit), relLimit: neo4j.int(relLimit) },
+      );
+    })();
 
     const nodesMap = new Map<number, { id: number; label: string; [key: string]: unknown }>();
     const rawLinks: Array<{
@@ -78,13 +127,27 @@ export async function GET() {
     const droppedLinks = rawLinks.length - links.length;
 
     const nodes = Array.from(nodesMap.values());
-    const truncated = nodes.length >= nodeLimit || rawLinks.length >= relLimit;
+    const truncated =
+      (nodeLimit !== null && nodes.length >= nodeLimit) ||
+      (relLimit !== null && rawLinks.length >= relLimit);
+
+    const maxNodeFrequency = nodes.reduce((max, n) => {
+      const f = typeof n.frequency === 'number' ? n.frequency : 0;
+      return Math.max(max, f);
+    }, 0);
+    const maxLinkFrequency = links.reduce((max, l) => {
+      const f = typeof l.frequency === 'number' ? l.frequency : 0;
+      return Math.max(max, f);
+    }, 0);
 
     return NextResponse.json({
       nodes,
       links,
       truncated,
-      limits: { nodes: nodeLimit, rels: relLimit },
+      limits:
+        nodeLimit === null && relLimit === null
+          ? undefined
+          : { nodes: nodeLimit, rels: relLimit },
       ...(includeTotals && totalNodes !== undefined && totalRels !== undefined
         ? { totals: { nodes: totalNodes, rels: totalRels } }
         : {}),
@@ -93,6 +156,8 @@ export async function GET() {
         linksReturned: links.length,
         linksRaw: rawLinks.length,
         linksDroppedMissingEndpoint: droppedLinks,
+        maxNodeFrequency,
+        maxLinkFrequency,
       },
     });
   } catch (error: unknown) {

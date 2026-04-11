@@ -11,7 +11,7 @@ export const RELATION_COLORS: Record<string, string> = {
   CONTAINS: '#64748b',
   DEPENDS_ON: '#0ea5e9',
   COMPARED_WITH: '#f97316',
-  APPLIED_TO: '#ec4899',
+  APPLIED_TO: '#e11d48',
 };
 
 const DEFAULT_NODE = '#6b7280';
