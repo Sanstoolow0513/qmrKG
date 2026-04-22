@@ -6,6 +6,7 @@ import json
 import logging
 import re
 from pathlib import Path
+from typing import Any
 
 from tqdm import tqdm
 
@@ -51,16 +52,56 @@ EXTRACT_PROMPT = """\
 4. 如果文本中没有可抽取的实体或关系，返回空列表\
 """
 
+_MODE_TO_PROMPT_KEY: dict[str, str] = {
+    "default": "default",
+    "zero_shot": "zero_shot",
+    "zero-shot": "zero_shot",
+    "few_shot": "few_shot",
+    "few-shot": "few_shot",
+}
+
+
+def _load_extract_prompts(config_path: Path) -> dict[str, Any]:
+    try:
+        import yaml
+    except ImportError:  # pragma: no cover
+        return {}
+    try:
+        data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    except Exception as exc:  # pragma: no cover
+        logger.warning("Failed to read extract prompts from %s: %s", config_path, exc)
+        return {}
+    extract_cfg = data.get("extract")
+    if not isinstance(extract_cfg, dict):
+        return {}
+    prompts = extract_cfg.get("prompts")
+    return prompts if isinstance(prompts, dict) else {}
+
+
+def _mode_to_prompt_key(mode: str | None) -> str:
+    if not mode or not str(mode).strip():
+        return "default"
+    key = str(mode).strip().lower()
+    return _MODE_TO_PROMPT_KEY.get(key, "default")
+
 
 class KGExtractor:
     """Extract entities and relations from markdown chunks via LLM."""
 
-    def __init__(self, runner: TaskLLMRunner | None = None, config_path: Path | None = None):
+    def __init__(
+        self,
+        runner: TaskLLMRunner | None = None,
+        config_path: Path | None = None,
+        mode: str | None = None,
+    ):
+        self._config_path = Path(config_path) if config_path is not None else None
+        self._mode = mode
         if runner is not None:
             self._runner = runner
         else:
             factory = LLMFactory(config_path)
             self._runner = factory.create(EXTRACT_TASK_NAME)
+        self._system_prompt = self._resolve_system_prompt()
 
     def extract_from_chunk(self, chunk: dict) -> ChunkExtractionResult:
         """Extract entities and relations from a single chunk dict."""
@@ -74,7 +115,7 @@ class KGExtractor:
                 triples=[],
             )
 
-        response = self._runner.run_text(content, system_prompt=EXTRACT_PROMPT)
+        response = self._runner.run_text(content, system_prompt=self._system_prompt)
         raw = self._parse_json_response(response.text)
         entities = self._parse_entities(raw.get("entities", []))
         triples = self._parse_triples(raw.get("triples", []))
@@ -134,6 +175,20 @@ class KGExtractor:
                 logger.error("Failed chunk %d: %s", idx, e)
 
         return result_paths
+
+    def resolve_prompt(self) -> str:
+        """System prompt used for extraction (config + mode, or built-in default)."""
+        return self._system_prompt
+
+    def _resolve_system_prompt(self) -> str:
+        if self._config_path is None:
+            return EXTRACT_PROMPT
+        prompts = _load_extract_prompts(self._config_path)
+        key = _mode_to_prompt_key(self._mode)
+        text = prompts.get(key) or prompts.get("default")
+        if isinstance(text, str) and text.strip():
+            return text.strip()
+        return EXTRACT_PROMPT
 
     @staticmethod
     def _parse_json_response(text: str) -> dict:

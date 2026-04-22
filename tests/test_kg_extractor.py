@@ -1,4 +1,39 @@
+from pathlib import Path
+
 from qmrkg.kg_extractor import KGExtractor
+
+
+def test_resolve_prompt_prefers_mode_specific_prompt(tmp_path, monkeypatch):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    few = "FEW_PROMPT"
+    config_path: Path = tmp_path / "config.yaml"
+    config_path.write_text(
+        f"""
+extract:
+  provider:
+    name: ppio
+    base_url: https://api.ppio.com/openai
+    model: deepseek/deepseek-v3.2
+    modality: text
+    supports_thinking: false
+  prompts:
+    default: "DEFAULT_SYSTEM"
+    zero_shot: "ZERO_SYSTEM"
+    few_shot: |
+      {few}
+  request:
+    timeout_seconds: 60.0
+    max_retries: 1
+    thinking:
+      enabled: false
+  rate_limit:
+    rpm: 50
+    max_concurrency: 4
+""".strip(),
+        encoding="utf-8",
+    )
+    ex = KGExtractor(config_path=config_path, mode="few-shot")
+    assert ex.resolve_prompt() == few
 
 
 def test_parse_json_response_plain():
