@@ -165,7 +165,12 @@ extract:
       }
 
       ## 新任务
-      对接下来用户消息中的**教材文本**执行同样的实体与关系抽取。实体/关系类型与 default 中定义一致，输出格式相同（仅 JSON）。
+      对接下来用户消息中的**教材文本**执行同样的实体与关系抽取。以下规则必须完整执行：
+      - 实体类型仅允许：protocol、concept、mechanism、metric
+      - 关系类型仅允许：contains、depends_on、compared_with、applied_to
+      - 只从输入文本抽取，不得编造；实体名必须使用原文出现形式
+      - 每个 triple 必须给出可回溯到原文的 evidence
+      - 若无可抽取结果，entities 与 triples 返回空列表
 
       严格输出 JSON，不要输出任何其他内容：
       {

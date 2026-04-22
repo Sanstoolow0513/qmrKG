@@ -61,21 +61,36 @@ _MODE_TO_PROMPT_KEY: dict[str, str] = {
 }
 
 
-def _load_extract_prompts(config_path: Path) -> dict[str, Any]:
+def _discover_extract_config_paths(config_path: Path | None) -> list[Path]:
+    if config_path is not None:
+        return [Path(config_path)]
+    return [
+        Path.cwd() / "config.yaml",
+        Path.cwd() / "config.yml",
+        Path(__file__).parent.parent.parent.parent / "config.yaml",
+    ]
+
+
+def _load_extract_prompts(config_path: Path | None) -> dict[str, Any]:
     try:
         import yaml
     except ImportError:  # pragma: no cover
         return {}
-    try:
-        data = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
-    except Exception as exc:  # pragma: no cover
-        logger.warning("Failed to read extract prompts from %s: %s", config_path, exc)
-        return {}
-    extract_cfg = data.get("extract")
-    if not isinstance(extract_cfg, dict):
-        return {}
-    prompts = extract_cfg.get("prompts")
-    return prompts if isinstance(prompts, dict) else {}
+    for path in _discover_extract_config_paths(config_path):
+        if not path.exists():
+            continue
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Failed to read extract prompts from %s: %s", path, exc)
+            continue
+        extract_cfg = data.get("extract")
+        if not isinstance(extract_cfg, dict):
+            continue
+        prompts = extract_cfg.get("prompts")
+        if isinstance(prompts, dict):
+            return prompts
+    return {}
 
 
 def _mode_to_prompt_key(mode: str | None) -> str:
@@ -181,8 +196,6 @@ class KGExtractor:
         return self._system_prompt
 
     def _resolve_system_prompt(self) -> str:
-        if self._config_path is None:
-            return EXTRACT_PROMPT
         prompts = _load_extract_prompts(self._config_path)
         key = _mode_to_prompt_key(self._mode)
         text = prompts.get(key) or prompts.get("default")
