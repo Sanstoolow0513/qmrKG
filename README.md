@@ -108,6 +108,10 @@ uv run mdchunk --markdown-dir data/markdown --chunk-dir data/chunks
 # 4) Chunks → 原始三元组
 uv run kgextract --input data/chunks --output-dir data/triples/raw
 
+# 4b) 同一批 chunks 可按模式分目录输出（便于 zero-shot / few-shot 对照；prompt 见 config.yaml extract.prompts）
+uv run kgextract --input data/chunks --output-dir data/triples/raw-zero-shot --mode zero-shot
+uv run kgextract --input data/chunks --output-dir data/triples/raw-few-shot --mode few-shot
+
 # 5) 合并去重
 uv run kgmerge --input-dir data/triples/raw --output data/triples/merged/merged_triples.json
 
@@ -115,7 +119,7 @@ uv run kgmerge --input-dir data/triples/raw --output data/triples/merged/merged_
 uv run kgneo4j --import data/triples/merged/merged_triples.json
 ```
 
-常用参数：`pdftopng --dpi`、`pngtotext --recursive`、`kgextract --no-skip` 强制重抽、`kgneo4j --clear` 导入前清空库。使用 `uv run <命令> --help` 查看全部选项。
+常用参数：`pdftopng --dpi`、`pngtotext --recursive`、`kgextract --no-skip` 强制重抽、`kgextract --mode` 切换 zero/few-shot 提示词、`kgneo4j --clear` 导入前清空库。使用 `uv run <命令> --help` 查看全部选项。
 
 ## Neo4j 与前端可视化
 
