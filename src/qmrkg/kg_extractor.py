@@ -64,11 +64,18 @@ _MODE_TO_PROMPT_KEY: dict[str, str] = {
 def _discover_extract_config_paths(config_path: Path | None) -> list[Path]:
     if config_path is not None:
         return [Path(config_path)]
-    return [
-        Path.cwd() / "config.yaml",
-        Path.cwd() / "config.yml",
-        Path(__file__).parent.parent.parent.parent / "config.yaml",
-    ]
+    candidates: list[Path] = []
+    seen: set[Path] = set()
+    search_roots = [Path.cwd(), Path(__file__).resolve().parent]
+    for root in search_roots:
+        for base in [root, *root.parents]:
+            for name in ("config.yaml", "config.yml"):
+                candidate = base / name
+                if candidate in seen:
+                    continue
+                seen.add(candidate)
+                candidates.append(candidate)
+    return candidates
 
 
 def _load_extract_prompts(config_path: Path | None) -> dict[str, Any]:

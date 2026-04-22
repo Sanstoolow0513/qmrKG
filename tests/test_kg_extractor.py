@@ -99,6 +99,19 @@ def test_resolve_prompt_uses_discovered_config_when_config_path_none(tmp_path, m
     assert ex.resolve_prompt() == "FEW_FROM_DISCOVERED_CONFIG"
 
 
+def test_resolve_prompt_discovers_repo_config_when_cwd_has_no_config(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    repo_config = Path(__file__).resolve().parents[1] / "config.yaml"
+    monkeypatch.setattr(
+        "qmrkg.kg_extractor._discover_extract_config_paths",
+        lambda _config_path: [tmp_path / "config.yaml", repo_config],
+    )
+    ex = KGExtractor(runner=_RecordingRunner(), config_path=None, mode="few-shot")
+    prompt = ex.resolve_prompt()
+    assert prompt != EXTRACT_PROMPT
+    assert "## 示例" in prompt
+
+
 def test_extract_from_chunk_passes_resolved_system_prompt_to_run_text(tmp_path, monkeypatch):
     """extract_from_chunk must use run_text(..., system_prompt=<resolved for mode>), not a stale or wrong prompt."""
     config_path = _write_extract_config(
