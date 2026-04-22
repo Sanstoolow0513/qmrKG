@@ -109,11 +109,14 @@ uv run mdchunk --markdown-dir data/markdown --chunk-dir data/chunks
 uv run kgextract --input data/chunks --output-dir data/triples/raw
 
 # 4b) 同一批 chunks 可按模式分目录输出（便于 zero-shot / few-shot 对照；prompt 见 config.yaml extract.prompts）
-uv run kgextract --input data/chunks --output-dir data/triples/raw-zero-shot --mode zero-shot
-uv run kgextract --input data/chunks --output-dir data/triples/raw-few-shot --mode few-shot
+uv run kgextract --input data/chunks --output-dir data/triples/raw/zs --mode zero-shot
+uv run kgextract --input data/chunks --output-dir data/triples/raw/fs --mode few-shot
 
 # 5) 合并去重
 uv run kgmerge --input-dir data/triples/raw --output data/triples/merged/merged_triples.json
+
+# 如果第 4 步按 zs/fs 分目录输出，第 5 步 --input-dir 也要指向对应目录
+# 例如：uv run kgmerge --input-dir data/triples/raw/zs --output data/triples/merged/merged_triples.json
 
 # 6) 导入 Neo4j（需设置 NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD）
 uv run kgneo4j --import data/triples/merged/merged_triples.json

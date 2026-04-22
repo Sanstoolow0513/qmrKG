@@ -6,7 +6,7 @@
 
 ## 2. 当前结论（简版）
 
-- 已满足：自动化抽取主流程（文本输入 -> NER/RE -> 三元组 -> 融合 -> 入库）。
+- 已满足：自动化抽取主流程（文本输入 -> 联合抽取（entities + triples）-> 融合 -> 入库）。
 - 已满足（抽取侧）：`config.yaml` 中 `extract.prompts.zero_shot` / `few_shot` 已参数化；`kgextract --mode zero-shot|few-shot` 可按模式选用对应 prompt，并配合不同 `--output-dir` 分目录产出便于对照。
 - 部分满足：知识验证（目前以规则过滤为主）。
 - 未满足或证据不足：embedding 语义建模、zero-shot/few-shot **系统化对照实验与评估闭环**、完整实验脚本与报告。
