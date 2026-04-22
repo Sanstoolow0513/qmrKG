@@ -1,6 +1,24 @@
 from pathlib import Path
 
 from qmrkg.kg_extractor import EXTRACT_PROMPT, KGExtractor
+from qmrkg.llm_types import LLMResponse
+
+
+class _RecordingRunner:
+    """Minimal runner that records the last run_text system_prompt (Task2 contract)."""
+
+    def __init__(self):
+        self.last_system_prompt: str | None = None
+        self.last_user_prompt: str | None = None
+
+    def run_text(self, prompt: str, *, system_prompt: str | None = None) -> LLMResponse:
+        self.last_user_prompt = prompt
+        self.last_system_prompt = system_prompt
+        return LLMResponse(
+            text='{"entities": [], "triples": []}',
+            processed_at="2026-01-01T00:00:00Z",
+            duration_seconds=0.0,
+        )
 
 
 def _write_extract_config(tmp_path: Path, prompts_block: str) -> Path:
@@ -79,6 +97,46 @@ def test_resolve_prompt_uses_discovered_config_when_config_path_none(tmp_path, m
     monkeypatch.chdir(tmp_path)
     ex = KGExtractor(config_path=None, mode="few-shot")
     assert ex.resolve_prompt() == "FEW_FROM_DISCOVERED_CONFIG"
+
+
+def test_extract_from_chunk_passes_resolved_system_prompt_to_run_text(tmp_path, monkeypatch):
+    """extract_from_chunk must use run_text(..., system_prompt=<resolved for mode>), not a stale or wrong prompt."""
+    config_path = _write_extract_config(
+        tmp_path,
+        '    default: "DEFAULT_SYSTEM"\n    few_shot: "FEW_SHOT_VIA_EXTRACT"',
+    )
+    runner = _RecordingRunner()
+    ex = KGExtractor(runner=runner, config_path=config_path, mode="few-shot")
+    assert ex.resolve_prompt() == "FEW_SHOT_VIA_EXTRACT"
+    ex.extract_from_chunk(
+        {
+            "chunk_index": 0,
+            "source_file": "s.md",
+            "titles": [],
+            "content": "some text for extraction",
+        }
+    )
+    assert runner.last_system_prompt == "FEW_SHOT_VIA_EXTRACT"
+    assert runner.last_user_prompt == "some text for extraction"
+
+
+def test_extract_from_chunk_system_prompt_falls_back_to_builtin_like_resolve(tmp_path, monkeypatch):
+    config_path = _write_extract_config(
+        tmp_path,
+        '    zero_shot: "ONLY_ZERO"',
+    )
+    runner = _RecordingRunner()
+    ex = KGExtractor(runner=runner, config_path=config_path, mode="few-shot")
+    assert ex.resolve_prompt() == EXTRACT_PROMPT
+    ex.extract_from_chunk(
+        {
+            "chunk_index": 0,
+            "source_file": "s.md",
+            "titles": [],
+            "content": "x",
+        }
+    )
+    assert runner.last_system_prompt == EXTRACT_PROMPT
 
 
 def test_parse_json_response_plain():
