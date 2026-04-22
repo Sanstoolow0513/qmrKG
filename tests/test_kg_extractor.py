@@ -100,15 +100,31 @@ def test_resolve_prompt_uses_discovered_config_when_config_path_none(tmp_path, m
 
 
 def test_resolve_prompt_discovers_repo_config_when_cwd_has_no_config(tmp_path, monkeypatch):
+    """With no local config, fall back to the repository config.yaml (real discovery)."""
     monkeypatch.chdir(tmp_path)
-    repo_config = Path(__file__).resolve().parents[1] / "config.yaml"
-    monkeypatch.setattr(
-        "qmrkg.kg_extractor._discover_extract_config_paths",
-        lambda _config_path: [tmp_path / "config.yaml", repo_config],
-    )
     ex = KGExtractor(runner=_RecordingRunner(), config_path=None, mode="few-shot")
     prompt = ex.resolve_prompt()
     assert prompt != EXTRACT_PROMPT
+    assert "## 示例" in prompt
+
+
+def test_ancestor_cwd_config_does_not_hijack_repo_few_shot(tmp_path, monkeypatch):
+    """A config.yaml only in a parent of cwd must not be used (no cwd.parent walk)."""
+    outer = tmp_path / "with_decoy"
+    work = outer / "nested_work"
+    work.mkdir(parents=True)
+    (outer / "config.yaml").write_text(
+        """
+extract:
+  prompts:
+    few_shot: "DECOY_FROM_PARENT_CWD"
+""".strip(),
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(work)
+    ex = KGExtractor(runner=_RecordingRunner(), config_path=None, mode="few-shot")
+    prompt = ex.resolve_prompt()
+    assert "DECOY_FROM_PARENT_CWD" not in prompt
     assert "## 示例" in prompt
 
 
