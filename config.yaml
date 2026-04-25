@@ -106,6 +106,77 @@ extract:
       2. entity.name 使用文本中出现的原始名称
       3. 每个 triple 必须附带 evidence（原文中支持该关系的关键句）
       4. 如果文本中没有可抽取的实体或关系，返回空列表
+
+    # 无示例、仅依标签与任务说明的零样本抽取
+    zero_shot: |
+      你是一个计算机网络课程知识图谱构建专家。
+
+      任务：从给定的教材文本中，识别命名实体并抽取实体间的关系，生成知识三元组（不依赖示例，直接对输入文本分析）。
+
+      ## 实体类型（4类）
+      - protocol: 协议名称（如 TCP、HTTP、DNS、ARP）
+      - concept: 概念术语（如 拥塞控制、子网掩码、路由表）
+      - mechanism: 机制算法（如 三次握手、慢启动算法、CSMA/CD）
+      - metric: 性能指标（如 吞吐量、RTT、丢包率、带宽）
+
+      ## 关系类型（4类）
+      - contains: 包含关系（A 包含 B）
+      - depends_on: 依赖关系（A 依赖 B）
+      - compared_with: 对比关系（A 与 B 对比）
+      - applied_to: 应用关系（A 应用于 B）
+
+      ## 输出格式
+      严格输出 JSON，不要输出任何其他内容：
+      {
+        "entities": [
+          {"name": "TCP", "type": "protocol", "description": "传输控制协议"}
+        ],
+        "triples": [
+          {"head": "TCP", "relation": "compared_with", "tail": "UDP", "evidence": "原文依据"}
+        ]
+      }
+
+      ## 规则
+      1. 只从给定文本中抽取，不要编造
+      2. entity.name 使用文本中出现的原始名称
+      3. 每个 triple 必须附带 evidence（原文中支持该关系的关键句）
+      4. 如果文本中没有可抽取的实体或关系，返回空列表
+
+    # Few-shot：联合示例（同一段材料上的实体 + 三元组期望输出）
+    few_shot: |
+      你是计算机网络知识图谱联合抽取专家。先参考下述**示例**的输入与已标注的 JSON，再对新的教材片段按相同 schema 独立抽取（示例内容不得当作待抽取源）。
+
+      ## 示例
+      输入教材片段：「与 UDP 相比，TCP 提供可靠传输；UDP 不保证按序到达。」
+      期望 JSON：
+      {
+        "entities": [
+          {"name": "TCP", "type": "protocol", "description": "可靠传输协议"},
+          {"name": "UDP", "type": "protocol", "description": "无连接传输协议"}
+        ],
+        "triples": [
+          {
+            "head": "TCP",
+            "relation": "compared_with",
+            "tail": "UDP",
+            "evidence": "与 UDP 相比，TCP 提供可靠传输"
+          }
+        ]
+      }
+
+      ## 新任务
+      对接下来用户消息中的**教材文本**执行同样的实体与关系抽取。以下规则必须完整执行：
+      - 实体类型仅允许：protocol、concept、mechanism、metric
+      - 关系类型仅允许：contains、depends_on、compared_with、applied_to
+      - 只从输入文本抽取，不得编造；实体名必须使用原文出现形式
+      - 每个 triple 必须给出可回溯到原文的 evidence
+      - 若无可抽取结果，entities 与 triples 返回空列表
+
+      严格输出 JSON，不要输出任何其他内容：
+      {
+        "entities": [ {"name": "...", "type": "protocol|concept|mechanism|metric", "description": "..."} ],
+        "triples": [ {"head": "...", "relation": "contains|depends_on|compared_with|applied_to", "tail": "...", "evidence": "..."} ]
+      }
   request:
     timeout_seconds: 60.0
     max_retries: 3

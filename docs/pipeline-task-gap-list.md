@@ -6,9 +6,10 @@
 
 ## 2. 当前结论（简版）
 
-- 已满足：自动化抽取主流程（文本输入 -> NER/RE -> 三元组 -> 融合 -> 入库）。
+- 已满足：自动化抽取主流程（文本输入 -> 联合抽取（entities + triples）-> 融合 -> 入库）。
+- 已满足（抽取侧）：`config.yaml` 中 `extract.prompts.zero_shot` / `few_shot` 已参数化；`kgextract --mode zero-shot|few-shot` 可按模式选用对应 prompt，并配合不同 `--output-dir` 分目录产出便于对照。
 - 部分满足：知识验证（目前以规则过滤为主）。
-- 未满足或证据不足：embedding 语义建模、zero-shot/few-shot 对比实验、系统化评估指标闭环。
+- 未满足或证据不足：embedding 语义建模、zero-shot/few-shot **系统化对照实验与评估闭环**、完整实验脚本与报告。
 
 ## 3. 必做项（按优先级）
 
@@ -33,8 +34,9 @@
 
 ### P1：实验设计（zero-shot/few-shot）
 
-- [ ] 将抽取 prompt 模板参数化
+- [x] 将抽取 prompt 模板参数化
   - 交付物：`config.yaml` 中 `extract.prompts.zero_shot`、`extract.prompts.few_shot`
+- [x] `kgextract` 支持按模式选用 prompt（`--mode zero-shot` / `--mode few-shot`，默认 `zero-shot`）
 - [ ] 增加实验运行脚本
   - 交付物：`scripts/run_experiments.py`（或等价实现）
   - 维度：prompt 版本、温度、重试策略、chunk 策略
@@ -80,7 +82,7 @@
 
 - [ ] D1-D2：评测数据规范 + 标注样例
 - [ ] D3-D4：`kgeval` CLI 与指标计算
-- [ ] D5：zero/few-shot 配置化 + 首轮实验
+- [x] D5：zero/few-shot 配置化（`extract.prompts` + `kgextract --mode`）；对照实验脚本与首轮报告仍待办
 
 ### Week 2
 

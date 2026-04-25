@@ -1,6 +1,9 @@
 """CLI for knowledge graph extraction from chunks."""
 
+from __future__ import annotations
+
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -9,8 +12,10 @@ from tqdm import tqdm
 from .kg_extractor import KGExtractor
 from .tqdm_logging import setup_logging
 
+logger = logging.getLogger(__name__)
 
-def main():
+
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Extract KG triples from markdown chunks")
     parser.add_argument(
         "--input",
@@ -25,17 +30,28 @@ def main():
         help="Output directory for raw triples (default: data/triples/raw)",
     )
     parser.add_argument(
+        "--mode",
+        choices=["zero-shot", "few-shot"],
+        default="zero-shot",
+        help="Prompt / extraction mode (default: zero-shot)",
+    )
+    parser.add_argument(
         "--no-skip",
         action="store_true",
         help="Re-extract all chunks even if output exists",
     )
     parser.add_argument("-v", "--verbose", action="store_true")
-    args = parser.parse_args()
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
 
     setup_logging(args.verbose)
+    logger.info("kgextract mode: %s", args.mode)
 
     skip = not args.no_skip
-    extractor = KGExtractor()
+    extractor = KGExtractor(mode=args.mode)
 
     input_path = args.input
     if input_path.is_file():
@@ -45,7 +61,7 @@ def main():
         chunk_files = sorted(input_path.glob("*.json"))
         if not chunk_files:
             print(f"No JSON files found in {input_path}", file=sys.stderr)
-            sys.exit(1)
+            return 1
         total = 0
         multi_file = len(chunk_files) > 1
         file_iter = (
@@ -70,8 +86,9 @@ def main():
         print(f"Extracted {total} chunk(s) from {len(chunk_files)} file(s)")
     else:
         print(f"Input not found: {input_path}", file=sys.stderr)
-        sys.exit(1)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

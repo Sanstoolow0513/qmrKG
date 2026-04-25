@@ -5,7 +5,9 @@ from __future__ import annotations
 import json
 import logging
 import re
+import tomllib
 from pathlib import Path
+from typing import Any
 
 from tqdm import tqdm
 
@@ -51,16 +53,113 @@ EXTRACT_PROMPT = """\
 4. 如果文本中没有可抽取的实体或关系，返回空列表\
 """
 
+_MODE_TO_PROMPT_KEY: dict[str, str] = {
+    "default": "default",
+    "zero_shot": "zero_shot",
+    "zero-shot": "zero_shot",
+    "few_shot": "few_shot",
+    "few-shot": "few_shot",
+}
+
+
+def _find_qmrkg_repo_root() -> Path | None:
+    """Return the project root (directory whose pyproject.toml names this package), if found."""
+    start = Path(__file__).resolve().parent
+    for base in (start, *start.parents):
+        pyproject = base / "pyproject.toml"
+        if not pyproject.is_file():
+            continue
+        try:
+            data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        project = data.get("project")
+        if isinstance(project, dict) and project.get("name") == "qmrkg":
+            return base
+    return None
+
+
+def _discover_extract_config_paths(config_path: Path | None) -> list[Path]:
+    """Resolve candidate config files for extract prompt loading.
+
+    When ``config_path`` is None, only these locations are considered (in order):
+    1. ``<cwd>/config.yaml`` or ``config.yml`` (optional local override)
+    2. ``<qmrkg repo root>/config.yaml`` or ``config.yml`` (project defaults)
+
+    This avoids walking unbounded ``cwd`` ancestor chains, which can pick up unrelated
+    config files outside the project.
+    """
+    if config_path is not None:
+        return [Path(config_path).resolve()]
+
+    candidates: list[Path] = []
+    seen: set[Path] = set()
+    cwd = Path.cwd()
+    for name in ("config.yaml", "config.yml"):
+        p = cwd / name
+        key = p.resolve()
+        if key in seen:
+            continue
+        seen.add(key)
+        candidates.append(p)
+    root = _find_qmrkg_repo_root()
+    if root is not None:
+        for name in ("config.yaml", "config.yml"):
+            p = root / name
+            key = p.resolve()
+            if key in seen:
+                continue
+            seen.add(key)
+            candidates.append(p)
+    return candidates
+
+
+def _load_extract_prompts(config_path: Path | None) -> dict[str, Any]:
+    try:
+        import yaml
+    except ImportError:  # pragma: no cover
+        return {}
+    for path in _discover_extract_config_paths(config_path):
+        if not path.exists():
+            continue
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Failed to read extract prompts from %s: %s", path, exc)
+            continue
+        extract_cfg = data.get("extract")
+        if not isinstance(extract_cfg, dict):
+            continue
+        prompts = extract_cfg.get("prompts")
+        if isinstance(prompts, dict):
+            return prompts
+    return {}
+
+
+def _mode_to_prompt_key(mode: str | None) -> str:
+    if not mode or not str(mode).strip():
+        return "default"
+    key = str(mode).strip().lower()
+    return _MODE_TO_PROMPT_KEY.get(key, "default")
+
 
 class KGExtractor:
     """Extract entities and relations from markdown chunks via LLM."""
 
-    def __init__(self, runner: TaskLLMRunner | None = None, config_path: Path | None = None):
+    def __init__(
+        self,
+        runner: TaskLLMRunner | None = None,
+        config_path: Path | None = None,
+        mode: str | None = None,
+    ):
+        self._config_path = Path(config_path) if config_path is not None else None
+        self._mode = mode
         if runner is not None:
             self._runner = runner
         else:
             factory = LLMFactory(config_path)
             self._runner = factory.create(EXTRACT_TASK_NAME)
+        self._system_prompt = self._resolve_system_prompt()
 
     def extract_from_chunk(self, chunk: dict) -> ChunkExtractionResult:
         """Extract entities and relations from a single chunk dict."""
@@ -74,7 +173,7 @@ class KGExtractor:
                 triples=[],
             )
 
-        response = self._runner.run_text(content, system_prompt=EXTRACT_PROMPT)
+        response = self._runner.run_text(content, system_prompt=self._system_prompt)
         raw = self._parse_json_response(response.text)
         entities = self._parse_entities(raw.get("entities", []))
         triples = self._parse_triples(raw.get("triples", []))
@@ -134,6 +233,18 @@ class KGExtractor:
                 logger.error("Failed chunk %d: %s", idx, e)
 
         return result_paths
+
+    def resolve_prompt(self) -> str:
+        """System prompt used for extraction (config + mode, or built-in default)."""
+        return self._system_prompt
+
+    def _resolve_system_prompt(self) -> str:
+        prompts = _load_extract_prompts(self._config_path)
+        key = _mode_to_prompt_key(self._mode)
+        text = prompts.get(key) or prompts.get("default")
+        if isinstance(text, str) and text.strip():
+            return text.strip()
+        return EXTRACT_PROMPT
 
     @staticmethod
     def _parse_json_response(text: str) -> dict:

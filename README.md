@@ -108,14 +108,27 @@ uv run mdchunk --markdown-dir data/markdown --chunk-dir data/chunks
 # 4) Chunks → 原始三元组
 uv run kgextract --input data/chunks --output-dir data/triples/raw
 
+# 4b) 同一批 chunks 可按模式分目录输出（便于 zero-shot / few-shot 对照；prompt 见 config.yaml extract.prompts）
+uv run kgextract --input data/chunks --output-dir data/triples/raw/zs --mode zero-shot
+uv run kgextract --input data/chunks --output-dir data/triples/raw/fs --mode few-shot
+
 # 5) 合并去重
 uv run kgmerge --input-dir data/triples/raw --output data/triples/merged/merged_triples.json
 
+# 如果第 4 步按 zs/fs 分目录输出，第 5 步 --input-dir 也要指向对应目录
+# 并建议将 --output 也按模式分离，避免 zs/fs 结果互相覆盖
+# 例如：
+# uv run kgmerge --input-dir data/triples/raw/zs --output data/triples/merged/zs/merged_triples.json
+# uv run kgmerge --input-dir data/triples/raw/fs --output data/triples/merged/fs/merged_triples.json
+
 # 6) 导入 Neo4j（需设置 NEO4J_URI / NEO4J_USER / NEO4J_PASSWORD）
 uv run kgneo4j --import data/triples/merged/merged_triples.json
+# 若做 zs/fs 对照，可分别导入：
+# uv run kgneo4j --import data/triples/merged/zs/merged_triples.json
+# uv run kgneo4j --import data/triples/merged/fs/merged_triples.json
 ```
 
-常用参数：`pdftopng --dpi`、`pngtotext --recursive`、`kgextract --no-skip` 强制重抽、`kgneo4j --clear` 导入前清空库。使用 `uv run <命令> --help` 查看全部选项。
+常用参数：`pdftopng --dpi`、`pngtotext --recursive`、`kgextract --no-skip` 强制重抽、`kgextract --mode` 切换 zero/few-shot 提示词、`kgneo4j --clear` 导入前清空库。使用 `uv run <命令> --help` 查看全部选项。
 
 ## Neo4j 与前端可视化
 
