@@ -9,49 +9,99 @@ from pathlib import Path
 
 from tqdm import tqdm
 
+from .config import load_run_config
 from .kg_extractor import KGExtractor
 from .tqdm_logging import setup_logging
 
 logger = logging.getLogger(__name__)
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser(run_cfg: dict[str, object]) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Extract KG triples from markdown chunks")
+    parser.add_argument("--config", type=Path, help="Optional config.yaml path override")
     parser.add_argument(
         "--input",
         type=Path,
-        default=Path("data/chunks"),
+        default=Path(str(run_cfg["input"])),
         help="Input chunks directory or single JSON file (default: data/chunks)",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=Path("data/triples/raw"),
+        default=Path(str(run_cfg["output_dir"])),
         help="Output directory for raw triples (default: data/triples/raw)",
     )
     parser.add_argument(
         "--mode",
-        choices=["zero-shot", "few-shot"],
-        default="zero-shot",
-        help="Prompt / extraction mode (default: zero-shot)",
+        choices=["fs", "zs", "few-shot", "zero-shot"],
+        default=str(run_cfg["mode"]),
+        help="Prompt / extraction mode (default: fs)",
     )
     parser.add_argument(
         "--no-skip",
+        dest="no_skip",
         action="store_true",
         help="Re-extract all chunks even if output exists",
+    )
+    parser.add_argument(
+        "--skip",
+        dest="no_skip",
+        action="store_false",
+        help="Skip existing extracted files when output already exists",
+    )
+    parser.set_defaults(no_skip=bool(run_cfg["no_skip"]))
+    parser.add_argument(
+        "--review",
+        action=argparse.BooleanOptionalAction,
+        default=bool(run_cfg["review"]),
+        help="Enable in-extractor review stage (default: enabled)",
+    )
+    parser.add_argument(
+        "--strict-evidence",
+        action=argparse.BooleanOptionalAction,
+        default=bool(run_cfg["strict_evidence"]),
+        help="Require evidence to be exact chunk substring (default: enabled)",
+    )
+    parser.add_argument(
+        "--keep-dropped",
+        action=argparse.BooleanOptionalAction,
+        default=bool(run_cfg["keep_dropped"]),
+        help="Keep dropped candidates in output for auditing (default: enabled)",
+    )
+    parser.add_argument(
+        "--min-triples",
+        type=int,
+        default=int(run_cfg["min_triples"]),
+        help="Warn when kept triples per chunk is below this value (default: 1)",
+    )
+    parser.add_argument(
+        "--extractor-version",
+        type=str,
+        default=str(run_cfg["extractor_version"]),
+        help="Version label to include in output metadata",
     )
     parser.add_argument("-v", "--verbose", action="store_true")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--config", type=Path)
+    pre_args, _ = pre_parser.parse_known_args(argv)
+    run_cfg = load_run_config(pre_args.config)["kg_extract"]
+    args = build_parser(run_cfg).parse_args(argv)
 
     setup_logging(args.verbose)
     logger.info("kgextract mode: %s", args.mode)
 
     skip = not args.no_skip
-    extractor = KGExtractor(mode=args.mode)
+    extractor = KGExtractor(
+        mode=args.mode,
+        enable_review=args.review,
+        strict_evidence=args.strict_evidence,
+        keep_dropped=args.keep_dropped,
+        extractor_version=args.extractor_version,
+    )
 
     input_path = args.input
     if input_path.is_file():

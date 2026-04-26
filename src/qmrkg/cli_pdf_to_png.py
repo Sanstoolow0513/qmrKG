@@ -7,13 +7,15 @@ import logging
 import sys
 from pathlib import Path
 
+from .config import load_run_config
 from .pdf_to_png import PDFConverter, PPTConverter, convert_document_to_pngs
 
 
-def _build_parser() -> argparse.ArgumentParser:
+def _build_parser(run_cfg: dict[str, object]) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Convert PDF or PowerPoint (.ppt, .pptx) files to PNG images.",
     )
+    parser.add_argument("--config", type=Path, help="Optional config.yaml path override")
     parser.add_argument(
         "--pdf",
         type=Path,
@@ -22,32 +24,33 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--pdf-dir",
         type=Path,
-        default=Path("data/pdf"),
+        default=Path(str(run_cfg["pdf_dir"])),
         help="Directory containing PDF or presentation files (default: data/pdf)",
     )
     parser.add_argument(
         "--image-dir",
         type=Path,
-        default=Path("data/png"),
+        default=Path(str(run_cfg["image_dir"])),
         help="Root directory for PNG output; each document is written under a subfolder named "
         "after the file stem (default: data/png)",
     )
-    parser.add_argument("--dpi", type=int, default=200, help="Output DPI (default: 200)")
+    parser.add_argument("--dpi", type=int, default=int(run_cfg["dpi"]), help="Output DPI (default: 200)")
     parser.add_argument(
         "--recursive",
         action="store_true",
+        default=bool(run_cfg["recursive"]),
         help="Search subdirectories when using --pdf-dir",
     )
     parser.add_argument(
         "--libreoffice",
         type=str,
-        default="libreoffice",
+        default=str(run_cfg["libreoffice"]),
         help="LibreOffice executable for .ppt/.pptx (default: libreoffice)",
     )
     parser.add_argument(
         "--ppt-timeout",
         type=int,
-        default=300,
+        default=int(run_cfg["ppt_timeout"]),
         metavar="SEC",
         help="Timeout in seconds for LibreOffice conversion (default: 300)",
     )
@@ -56,7 +59,12 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = _build_parser()
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--config", type=Path)
+    pre_args, _ = pre_parser.parse_known_args(argv)
+    run_cfg = load_run_config(pre_args.config)["pdf_to_png"]
+
+    parser = _build_parser(run_cfg)
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)

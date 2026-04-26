@@ -6,15 +6,23 @@ import logging
 import sys
 from pathlib import Path
 
+from .config import load_run_config
 from .kg_neo4j import KGNeo4jLoader
 
 
-def main():
+def main(argv: list[str] | None = None):
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--config", type=Path)
+    pre_args, _ = pre_parser.parse_known_args(argv)
+    run_cfg = load_run_config(pre_args.config)["kg_neo4j"]
+
     parser = argparse.ArgumentParser(description="Import KG triples into Neo4j")
+    parser.add_argument("--config", type=Path, help="Optional config.yaml path override")
     parser.add_argument(
         "--import",
         dest="import_file",
         type=Path,
+        default=Path(str(run_cfg["import"])),
         help="Path to merged triples JSON file to import",
     )
     parser.add_argument("--uri", type=str, help="Neo4j URI (default: env NEO4J_URI)")
@@ -22,10 +30,20 @@ def main():
     parser.add_argument(
         "--password", type=str, help="Neo4j password (default: env NEO4J_PASSWORD)"
     )
-    parser.add_argument("--clear", action="store_true", help="Clear database before import")
-    parser.add_argument("--stats", action="store_true", help="Print database statistics")
+    parser.add_argument(
+        "--clear",
+        action=argparse.BooleanOptionalAction,
+        default=bool(run_cfg["clear"]),
+        help="Clear database before import",
+    )
+    parser.add_argument(
+        "--stats",
+        action=argparse.BooleanOptionalAction,
+        default=bool(run_cfg["stats"]),
+        help="Print database statistics",
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,

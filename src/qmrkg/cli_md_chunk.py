@@ -8,39 +8,43 @@ import logging
 import sys
 from pathlib import Path
 
+from .config import load_run_config
 from .markdown_chunker import MarkdownChunker, merge_book_pages
 
 
-def _build_parser() -> argparse.ArgumentParser:
+def _build_parser(run_cfg: dict[str, object]) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Chunk markdown files into JSON documents.")
+    parser.add_argument("--config", type=Path, help="Optional config.yaml path override")
     parser.add_argument("--markdown", type=Path, help="Process a single markdown file")
     parser.add_argument(
         "--markdown-dir",
         type=Path,
-        default=Path("data/markdown"),
+        default=Path(str(run_cfg["markdown_dir"])),
         help="Directory containing markdown files (default: data/markdown)",
     )
     parser.add_argument("--output", type=Path, help="Output JSON path for --markdown mode")
     parser.add_argument(
         "--chunk-dir",
         type=Path,
-        default=Path("data/chunks"),
+        default=Path(str(run_cfg["chunk_dir"])),
         help="Directory for generated JSON chunks (default: data/chunks)",
     )
     parser.add_argument(
         "--max-tokens",
         type=int,
-        default=4000,
+        default=int(run_cfg["max_tokens"]),
         help="Maximum tokens per chunk (default: 4000)",
     )
     parser.add_argument(
         "--recursive",
         action="store_true",
+        default=bool(run_cfg["recursive"]),
         help="Search subdirectories when using --markdown-dir",
     )
     parser.add_argument(
         "--merge",
         action="store_true",
+        default=bool(run_cfg["merge"]),
         help=(
             "Merge-and-chunk mode: scan --markdown-dir for book subdirectories, "
             "merge per-page MD files into a single clean book MD, save it to "
@@ -119,7 +123,12 @@ def _run_merge_mode(args: argparse.Namespace, chunker: MarkdownChunker) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = _build_parser()
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--config", type=Path)
+    pre_args, _ = pre_parser.parse_known_args(argv)
+    run_cfg = load_run_config(pre_args.config)["md_chunk"]
+
+    parser = _build_parser(run_cfg)
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)

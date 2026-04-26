@@ -73,7 +73,7 @@ extract:
     modality: "text"
     supports_thinking: false
   prompts:
-    default: |
+    fs: |
       你是一个计算机网络课程知识图谱构建专家。
 
       任务：从给定的教材文本中，识别命名实体并抽取实体间的关系，生成知识三元组。
@@ -108,7 +108,7 @@ extract:
       4. 如果文本中没有可抽取的实体或关系，返回空列表
 
     # 无示例、仅依标签与任务说明的零样本抽取
-    zero_shot: |
+    zs: |
       你是一个计算机网络课程知识图谱构建专家。
 
       任务：从给定的教材文本中，识别命名实体并抽取实体间的关系，生成知识三元组（不依赖示例，直接对输入文本分析）。
@@ -185,3 +185,47 @@ extract:
   rate_limit:
     rpm: 50
     max_concurrency: 4
+
+run:
+  pdf_to_png:
+    pdf_dir: "data/pdf"
+    image_dir: "data/png"
+    dpi: 200
+    recursive: false
+    libreoffice: "libreoffice"
+    ppt_timeout: 300
+
+  png_to_text:
+    image_dir: "data/png"
+    text_dir: "data/markdown"
+    recursive: true
+    lang: "ch"
+    gpu: false
+    force_ocr: false
+
+  md_chunk:
+    markdown_dir: "data/markdown"
+    chunk_dir: "data/chunks"
+    max_tokens: 4000
+    recursive: false
+    merge: false
+
+  kg_extract:
+    input: "data/chunks"
+    output_dir: "data/triples/raw"
+    mode: "fs"
+    no_skip: false
+    review: true
+    strict_evidence: true
+    keep_dropped: true
+    min_triples: 1
+    extractor_version: "kgextract_v2"
+
+  kg_merge:
+    input_dir: "data/triples/raw"
+    output: "data/triples/merged/merged_triples.json"
+
+  kg_neo4j:
+    import: "data/triples/merged/merged_triples.json"
+    clear: false
+    stats: false

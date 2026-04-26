@@ -10,6 +10,7 @@ from pathlib import Path
 
 from tqdm import tqdm
 
+from .config import load_run_config
 from .png_to_text import OCRProcessor
 
 
@@ -24,45 +25,47 @@ def _configure_logging(verbose: bool) -> None:
         logging.getLogger("httpx").setLevel(logging.WARNING)
 
 
-def _build_parser() -> argparse.ArgumentParser:
+def _build_parser(run_cfg: dict[str, object]) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Convert PNG files to markdown text via OCR.")
+    parser.add_argument("--config", type=Path, help="Optional config.yaml path override")
     parser.add_argument("--image", type=Path, help="Process a single PNG image")
     parser.add_argument(
         "--image-dir",
         type=Path,
-        default=Path("data/png"),
+        default=Path(str(run_cfg["image_dir"])),
         help="Root directory of PNG inputs (book subfolders under this path are scanned by default)",
     )
     parser.add_argument("--output", type=Path, help="Output markdown path for --image mode")
     parser.add_argument(
         "--text-dir",
         type=Path,
-        default=Path("data/markdown"),
+        default=Path(str(run_cfg["text_dir"])),
         help="Directory for markdown outputs in directory mode (default: data/markdown)",
     )
-    parser.add_argument("--config", type=Path, help="Optional config.yaml path override")
     parser.add_argument(
         "--recursive",
         action=argparse.BooleanOptionalAction,
-        default=True,
+        default=bool(run_cfg["recursive"]),
         help="Search subdirectories for PNG files when using --image-dir (default: on; use "
         "--no-recursive for a single flat folder of *.png)",
     )
     parser.add_argument(
         "--lang",
         choices=["ch", "en", "korean", "japan", "ch_tra"],
-        default="ch",
+        default=str(run_cfg["lang"]),
         help="Legacy OCR language flag kept for compatibility",
     )
     parser.add_argument(
         "--gpu",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=bool(run_cfg["gpu"]),
         help="Legacy GPU flag kept for compatibility",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging")
     parser.add_argument(
         "--force-ocr",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
+        default=bool(run_cfg["force_ocr"]),
         help="Re-run OCR even when the per-page markdown file already exists and is non-empty",
     )
     return parser
@@ -101,7 +104,12 @@ def _truncate_tqdm_label(text: str, max_chars: int = 48) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = _build_parser()
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--config", type=Path)
+    pre_args, _ = pre_parser.parse_known_args(argv)
+    run_cfg = load_run_config(pre_args.config)["png_to_text"]
+
+    parser = _build_parser(run_cfg)
     args = parser.parse_args(argv)
 
     _configure_logging(args.verbose)
