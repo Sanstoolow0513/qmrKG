@@ -223,7 +223,11 @@ run:
     chunk_dir: "data/chunks"
     max_tokens: 4000
     recursive: false
-    merge: false
+
+  kg_md_combine:
+    markdown_dir: "data/markdown"
+    # 每本书子目录下参与合并的 per-page 文件通配（相对该书目录）
+    page_glob: "*_page_*.md"
 
   kg_extract:
     input: "data/chunks"

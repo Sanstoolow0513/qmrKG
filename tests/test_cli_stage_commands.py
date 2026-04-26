@@ -384,79 +384,6 @@ def test_pngtotext_dir_one_book_batch_extract(monkeypatch, tmp_path):
     assert (text_dir / "novel" / "novel_page_0002.md").is_file()
 
 
-def test_mdchunk_merge_mode(monkeypatch, capsys, tmp_path):
-    """--merge mode must merge per-page MDs and chunk each book subdirectory."""
-    import qmrkg.cli_md_chunk as cli_md_chunk
-    from qmrkg.markdown_chunker import MarkdownChunk
-
-    markdown_dir = tmp_path / "markdown"
-    book_dir = markdown_dir / "mybook"
-    book_dir.mkdir(parents=True)
-    chunk_dir = tmp_path / "chunks"
-
-    # Create two fake per-page MD files with ```markdown fences
-    (book_dir / "mybook_page_0001.md").write_text(
-        "---\nsource: x\n---\n\n## Page 1\n\n```markdown\n# Chapter 1\n\nIntro text.\n```",
-        encoding="utf-8",
-    )
-    (book_dir / "mybook_page_0002.md").write_text(
-        "---\nsource: x\n---\n\n## Page 2\n\n```markdown\n## Section 1.1\n\nMore content.\n```",
-        encoding="utf-8",
-    )
-
-    merge_calls: dict = {}
-    chunk_calls: dict = {}
-
-    original_merge = cli_md_chunk.merge_book_pages
-
-    def stub_merge(page_files, output_path=None):
-        merge_calls["files"] = [Path(f).name for f in page_files]
-        merge_calls["output_path"] = output_path
-        if output_path:
-            Path(output_path).write_text("# Chapter 1\n\nMerged.", encoding="utf-8")
-        return "# Chapter 1\n\nMerged."
-
-    class StubChunker:
-        def __init__(self, max_tokens=4000, encoding="cl100k_base"):
-            pass
-
-        def chunk_document(self, text, source_file=None):
-            chunk_calls["text"] = text
-            chunk_calls["source_file"] = source_file
-            return [
-                MarkdownChunk(
-                    titles=["Chapter 1"],
-                    content="# Chapter 1\n\nMerged.",
-                    token_count=10,
-                    chunk_index=0,
-                    source_file=source_file,
-                )
-            ]
-
-    monkeypatch.setattr(cli_md_chunk, "merge_book_pages", stub_merge)
-    monkeypatch.setattr(cli_md_chunk, "MarkdownChunker", StubChunker)
-
-    exit_code = cli_md_chunk.main(
-        [
-            "--merge",
-            "--markdown-dir", str(markdown_dir),
-            "--chunk-dir", str(chunk_dir),
-        ]
-    )
-
-    out = capsys.readouterr().out
-    assert exit_code == 0
-    # merge_book_pages should have been called with both page files
-    assert set(merge_calls["files"]) == {"mybook_page_0001.md", "mybook_page_0002.md"}
-    # Merged MD saved to markdown_dir root
-    assert merge_calls["output_path"] == markdown_dir / "mybook.md"
-    # chunk_document should have been called
-    assert "Chapter 1" in chunk_calls["text"] or chunk_calls["text"] == "# Chapter 1\n\nMerged."
-    # JSON chunk file created
-    assert (chunk_dir / "mybook.json").exists()
-    assert "mybook" in out
-
-
 def test_qmrkg_list_shows_available_commands(capsys):
     import qmrkg.cli_qmrkg as cli_qmrkg
 
@@ -468,6 +395,51 @@ def test_qmrkg_list_shows_available_commands(capsys):
     assert "pdftopng" in out
     assert "pngtotext" in out
     assert "mdchunk" in out
+    assert "kgmdcombine" in out
     assert "kgextract" in out
     assert "kgmerge" in out
     assert "kgneo4j" in out
+
+
+def test_kgmdcombine_merges_book_subdir_pages(tmp_path, capsys, monkeypatch):
+    """kgmdcombine must merge *_page_*.md in each book folder to markdown_dir/{book}.md."""
+    import qmrkg.cli_kg_md_combine as cli_kg
+
+    markdown_dir = tmp_path / "md"
+    markdown_dir.mkdir()
+    book = markdown_dir / "mybook"
+    book.mkdir()
+    (book / "mybook_page_0001.md").write_text(
+        "# Body\n\n```markdown\n# Chapter 1\n\nHello\n```\n", encoding="utf-8"
+    )
+    (book / "mybook_page_0002.md").write_text(
+        "# Body\n\n```markdown\n# Chapter 1\n\nWorld\n```\n", encoding="utf-8"
+    )
+
+    merge_calls: list[object] = []
+
+    def stub_merge(page_files, output_path=None):
+        merge_calls.append((list(page_files), output_path))
+        if output_path is not None:
+            output_path = Path(output_path)
+            output_path.write_text("merged", encoding="utf-8")
+        return "merged"
+
+    monkeypatch.setattr(cli_kg, "merge_book_pages", stub_merge)
+
+    exit_code = cli_kg.main(["--markdown-dir", str(markdown_dir)])
+    out = capsys.readouterr().out
+    assert exit_code == 0
+    assert (markdown_dir / "mybook.md").read_text(encoding="utf-8") == "merged"
+    assert len(merge_calls) == 1
+    assert {p.name for p in merge_calls[0][0]} == {"mybook_page_0001.md", "mybook_page_0002.md"}
+
+
+def test_kgmdcombine_no_subdirs(capsys, tmp_path):
+    import qmrkg.cli_kg_md_combine as cli_kg
+
+    md = tmp_path / "empty_md"
+    md.mkdir()
+    exit_code = cli_kg.main(["--markdown-dir", str(md)])
+    assert exit_code == 0
+    assert "No book subdirectories" in capsys.readouterr().out

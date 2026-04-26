@@ -10,6 +10,7 @@ COMMANDS: tuple[tuple[str, str], ...] = (
     ("pdftopng", "Convert PDF files to PNG images"),
     ("pngtotext", "Convert PNG files to markdown text (VLM OCR)"),
     ("mdchunk", "Chunk markdown files into JSON"),
+    ("kgmdcombine", "Merge per-page markdown into one file per book"),
     ("kgextract", "Extract KG triples from markdown chunks"),
     ("kgmerge", "Merge raw triple JSON into a deduplicated graph"),
     ("kgneo4j", "Import merged triples into Neo4j"),

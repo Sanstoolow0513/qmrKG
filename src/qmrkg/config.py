@@ -31,7 +31,10 @@ DEFAULT_RUN_CONFIG: dict[str, dict[str, Any]] = {
         "chunk_dir": "data/chunks",
         "max_tokens": 4000,
         "recursive": False,
-        "merge": False,
+    },
+    "kg_md_combine": {
+        "markdown_dir": "data/markdown",
+        "page_glob": "*_page_*.md",
     },
     "kg_extract": {
         "input": "data/chunks",
