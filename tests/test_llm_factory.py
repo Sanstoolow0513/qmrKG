@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from qmrkg import LLMContentPart, LLMMessage, MultimodalTaskProcessor, TextTaskProcessor
-from qmrkg.llm_factory import EmbeddingTaskProcessor, LLMFactory
+from qmrkg.llm_factory import LLMFactory
 
 
 class FakeResponse:
@@ -126,7 +126,9 @@ ner:
   prompts: {}
 """.strip(),
     )
-    processor = TextTaskProcessor("ner", config_path=config_path, client=FakeClient(lambda **_: None))
+    processor = TextTaskProcessor(
+        "ner", config_path=config_path, client=FakeClient(lambda **_: None)
+    )
 
     with pytest.raises(ValueError, match="text-only"):
         processor.run_messages(
@@ -422,6 +424,8 @@ entity_embed:
     def handler(**kwargs):
         vectors = [[float(index), 0.0] for index, _ in enumerate(kwargs["input"])]
         return FakeEmbeddingResponse(vectors)
+
+    from qmrkg.llm_factory import EmbeddingTaskProcessor
 
     fake_client = FakeEmbeddingClient(handler)
     processor = EmbeddingTaskProcessor("entity_embed", config_path=config_path, client=fake_client)
