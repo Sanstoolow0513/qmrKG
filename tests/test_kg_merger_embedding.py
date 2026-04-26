@@ -63,19 +63,21 @@ def test_canonicalizer_respects_type_bucket():
     fake = FakeEmbeddingProcessor(
         {
             "protocol | TCP": [1.0, 0.0],
-            "concept | TCP": [1.0, 0.0],
+            "concept | TCP概念": [1.0, 0.0],
         }
     )
-    canonicalizer = make_canonicalizer(fake, bucket_by_type=True)
     entities = [
         Entity(name="TCP", type="protocol", frequency=1),
-        Entity(name="TCP", type="concept", frequency=1),
+        Entity(name="TCP概念", type="concept", frequency=1),
     ]
 
-    mapping = canonicalizer.build_canonical_map(entities)
+    bucketed = make_canonicalizer(fake, bucket_by_type=True).build_canonical_map(entities)
+    unbucketed = make_canonicalizer(fake, bucket_by_type=False).build_canonical_map(entities)
 
-    assert mapping["TCP"] == "TCP"
-    assert len(fake.calls) == 0
+    assert bucketed["TCP"] == "TCP"
+    assert bucketed["TCP概念"] == "TCP概念"
+    assert unbucketed["TCP"] == "TCP"
+    assert unbucketed["TCP概念"] == "TCP"
 
 
 def test_canonicalizer_threshold():
@@ -117,6 +119,25 @@ def test_canonical_pick_rule():
     assert mapping["慢启动"] == "TCP慢启动"
     assert mapping["慢启动算法"] == "TCP慢启动"
     assert mapping["TCP慢启动"] == "TCP慢启动"
+
+
+def test_canonical_pick_rule_tiebreaks_by_short_name():
+    fake = FakeEmbeddingProcessor(
+        {
+            "mechanism | 慢启动": [1.0, 0.0],
+            "mechanism | 慢启动算法": [1.0, 0.0],
+        }
+    )
+    canonicalizer = make_canonicalizer(fake)
+    entities = [
+        Entity(name="慢启动", type="mechanism", description="", frequency=2),
+        Entity(name="慢启动算法", type="mechanism", description="", frequency=2),
+    ]
+
+    mapping = canonicalizer.build_canonical_map(entities)
+
+    assert mapping["慢启动"] == "慢启动"
+    assert mapping["慢启动算法"] == "慢启动"
 
 
 def test_merger_with_embedding_disabled_matches_legacy_output(tmp_path):
