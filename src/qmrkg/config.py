@@ -50,6 +50,15 @@ DEFAULT_RUN_CONFIG: dict[str, dict[str, Any]] = {
     "kg_merge": {
         "input_dir": "data/triples/raw",
         "output": "data/triples/merged/merged_triples.json",
+        "embedding": {
+            "enabled": False,
+            "task_name": "entity_embed",
+            "encode_fields": ["type", "name", "description"],
+            "similarity_threshold": 0.85,
+            "bucket_by_type": True,
+            "batch_size": 1024,
+            "cache_path": "data/triples/merged/.embed_cache.json",
+        },
     },
     "kg_neo4j": {
         "import": "data/triples/merged/merged_triples.json",

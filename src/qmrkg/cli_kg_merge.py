@@ -28,6 +28,20 @@ def main(argv: list[str] | None = None):
         default=Path(str(run_cfg["output"])),
         help="Output path for merged triples (default: data/triples/merged/merged_triples.json)",
     )
+    parser.add_argument(
+        "--no-embedding",
+        action="store_true",
+        help="Disable embedding canonicalization even if config enables it",
+    )
+    parser.add_argument(
+        "--embedding-task",
+        help="Override embedding task name, e.g. entity_embed",
+    )
+    parser.add_argument(
+        "--similarity-threshold",
+        type=float,
+        help="Override embedding cosine similarity threshold",
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
 
@@ -37,8 +51,21 @@ def main(argv: list[str] | None = None):
         datefmt="%H:%M:%S",
     )
 
+    embedding_config = dict(run_cfg.get("embedding", {}))
+    if args.no_embedding:
+        embedding_config["enabled"] = False
+    if args.embedding_task is not None:
+        embedding_config["task_name"] = args.embedding_task
+    if args.similarity_threshold is not None:
+        embedding_config["similarity_threshold"] = args.similarity_threshold
+
     merger = KGMerger()
-    output = merger.merge_directory(args.input_dir, args.output)
+    output = merger.merge_directory(
+        args.input_dir,
+        args.output,
+        embedding_config=embedding_config,
+        config_path=args.config,
+    )
     print(f"Merged triples saved to: {output}")
 
 

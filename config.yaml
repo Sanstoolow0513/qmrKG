@@ -64,6 +64,21 @@ llm:
       rate_limit:
         rpm: 50
         max_concurrency: 4
+    embedding_qwen3_8b:
+      provider:
+        name: ppio
+        base_url: "https://api.ppinfra.com/openai"
+        model: "qwen/qwen3-embedding-8b"
+        modality: "embedding"
+        supports_thinking: false
+      request:
+        timeout_seconds: 60.0
+        max_retries: 3
+        encoding_format: "float"
+        dimensions: 1024
+      rate_limit:
+        rpm: 100
+        max_concurrency: 4
     deepseek_v4_flash:
       provider:
         name: ppio
@@ -201,6 +216,9 @@ extract:
         "triples": [ {"head": "...", "relation": "contains|depends_on|compared_with|applied_to", "tail": "...", "evidence": "..."} ]
       }
 
+entity_embed:
+  llm_profile: embedding_qwen3_8b
+
 run:
   pdf_to_png:
     pdf_dir: "data/pdf"
@@ -243,6 +261,14 @@ run:
   kg_merge:
     input_dir: "data/triples/raw"
     output: "data/triples/merged/merged_triples.json"
+    embedding:
+      enabled: false
+      task_name: "entity_embed"
+      encode_fields: ["type", "name", "description"]
+      similarity_threshold: 0.85
+      bucket_by_type: true
+      batch_size: 1024
+      cache_path: "data/triples/merged/.embed_cache.json"
 
   kg_neo4j:
     import: "data/triples/merged/merged_triples.json"
