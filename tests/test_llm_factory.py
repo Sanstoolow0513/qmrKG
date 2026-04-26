@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from qmrkg import LLMContentPart, LLMMessage, MultimodalTaskProcessor, TextTaskProcessor
-from qmrkg.llm_factory import LLMFactory
+from qmrkg.llm_factory import EmbeddingTaskProcessor, LLMFactory
 
 
 class FakeResponse:
@@ -27,6 +27,32 @@ class FakeClient:
         self.handler = handler
         self.chat = type("Chat", (), {"completions": FakeCompletions(self._record_and_handle)})()
         self.calls = []
+
+    def _record_and_handle(self, **kwargs):
+        self.calls.append(kwargs)
+        return self.handler(**kwargs)
+
+
+class FakeEmbeddingResponse:
+    def __init__(self, vectors: list[list[float]], model: str = "fake-embedding-model"):
+        self.model = model
+        self.data = [type("EmbeddingItem", (), {"embedding": vector})() for vector in vectors]
+        self.usage = type("Usage", (), {"prompt_tokens": 3, "total_tokens": 3})()
+
+
+class FakeEmbeddings:
+    def __init__(self, handler):
+        self._handler = handler
+
+    def create(self, **kwargs):
+        return self._handler(**kwargs)
+
+
+class FakeEmbeddingClient:
+    def __init__(self, handler):
+        self.handler = handler
+        self.calls = []
+        self.embeddings = FakeEmbeddings(self._record_and_handle)
 
     def _record_and_handle(self, **kwargs):
         self.calls.append(kwargs)
@@ -309,3 +335,136 @@ entity_embed:
 
     with pytest.raises(ValueError, match="request.thinking.enabled"):
         LLMFactory(config_path).create("entity_embed", client=FakeClient(lambda **_: None))
+
+
+def test_run_embeddings_validates_modality(monkeypatch, tmp_path):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    config_path = write_config(
+        tmp_path,
+        """
+llm:
+  profiles:
+    text_profile:
+      provider:
+        name: ppio
+        model: qwen/qwen3-8b
+        modality: text
+        supports_thinking: false
+ner:
+  llm_profile: text_profile
+  prompts: {}
+""".strip(),
+    )
+    runner = LLMFactory(config_path).create(
+        "ner",
+        client=FakeEmbeddingClient(lambda **_: FakeEmbeddingResponse([[1.0, 0.0]])),
+    )
+
+    with pytest.raises(ValueError, match="modality=text"):
+        runner.run_embeddings(["TCP"])
+
+
+def test_run_embeddings_sends_request_options(monkeypatch, tmp_path):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    config_path = write_config(
+        tmp_path,
+        """
+llm:
+  profiles:
+    embedding_profile:
+      provider:
+        name: ppio
+        model: qwen/qwen3-embedding-8b
+        modality: embedding
+        supports_thinking: false
+      request:
+        timeout_seconds: 12
+        max_retries: 1
+        encoding_format: float
+        dimensions: 1024
+      rate_limit:
+        rpm: 100
+        max_concurrency: 4
+entity_embed:
+  llm_profile: embedding_profile
+""".strip(),
+    )
+    fake_client = FakeEmbeddingClient(lambda **_: FakeEmbeddingResponse([[1.0, 0.0]]))
+    runner = LLMFactory(config_path).create("entity_embed", client=fake_client)
+
+    response = runner.run_embeddings(["protocol | TCP | 传输控制协议"])
+
+    assert response.vectors == [[1.0, 0.0]]
+    assert fake_client.calls[0]["model"] == "qwen/qwen3-embedding-8b"
+    assert fake_client.calls[0]["input"] == ["protocol | TCP | 传输控制协议"]
+    assert fake_client.calls[0]["encoding_format"] == "float"
+    assert fake_client.calls[0]["dimensions"] == 1024
+
+
+def test_embedding_task_processor_batches(monkeypatch, tmp_path):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    config_path = write_config(
+        tmp_path,
+        """
+llm:
+  profiles:
+    embedding_profile:
+      provider:
+        name: ppio
+        model: qwen/qwen3-embedding-8b
+        modality: embedding
+        supports_thinking: false
+entity_embed:
+  llm_profile: embedding_profile
+""".strip(),
+    )
+
+    def handler(**kwargs):
+        vectors = [[float(index), 0.0] for index, _ in enumerate(kwargs["input"])]
+        return FakeEmbeddingResponse(vectors)
+
+    fake_client = FakeEmbeddingClient(handler)
+    processor = EmbeddingTaskProcessor("entity_embed", config_path=config_path, client=fake_client)
+
+    vectors = processor.embed(["a", "b", "c"], batch_size=2)
+
+    assert vectors == [[0.0, 0.0], [1.0, 0.0], [0.0, 0.0]]
+    assert [call["input"] for call in fake_client.calls] == [["a", "b"], ["c"]]
+
+
+def test_run_embeddings_retries_on_transient(monkeypatch, tmp_path):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    monkeypatch.setattr("qmrkg.llm_factory.time.sleep", lambda _: None)
+    config_path = write_config(
+        tmp_path,
+        """
+llm:
+  profiles:
+    embedding_profile:
+      provider:
+        name: ppio
+        model: qwen/qwen3-embedding-8b
+        modality: embedding
+        supports_thinking: false
+      request:
+        max_retries: 1
+entity_embed:
+  llm_profile: embedding_profile
+""".strip(),
+    )
+    attempts = {"count": 0}
+
+    def handler(**kwargs):
+        attempts["count"] += 1
+        if attempts["count"] == 1:
+            error = RuntimeError("rate limited")
+            error.status_code = 429
+            raise error
+        return FakeEmbeddingResponse([[1.0, 0.0]])
+
+    runner = LLMFactory(config_path).create("entity_embed", client=FakeEmbeddingClient(handler))
+
+    response = runner.run_embeddings(["TCP"])
+
+    assert response.vectors == [[1.0, 0.0]]
+    assert attempts["count"] == 2
