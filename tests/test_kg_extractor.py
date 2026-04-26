@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from qmrkg.kg_extractor import EXTRACT_PROMPT, KGExtractor
+from qmrkg.kg_schema import Triple
 from qmrkg.llm_types import LLMResponse
 
 
@@ -25,23 +26,27 @@ def _write_extract_config(tmp_path: Path, prompts_block: str) -> Path:
     config_path = tmp_path / "config.yaml"
     config_path.write_text(
         f"""
+llm:
+  profiles:
+    extract_profile:
+      provider:
+        name: ppio
+        base_url: https://api.ppio.com/openai
+        model: deepseek/deepseek-v3.2
+        modality: text
+        supports_thinking: false
+      request:
+        timeout_seconds: 60.0
+        max_retries: 1
+        thinking:
+          enabled: false
+      rate_limit:
+        rpm: 50
+        max_concurrency: 4
 extract:
-  provider:
-    name: ppio
-    base_url: https://api.ppio.com/openai
-    model: deepseek/deepseek-v3.2
-    modality: text
-    supports_thinking: false
+  llm_profile: extract_profile
   prompts:
 {prompts_block}
-  request:
-    timeout_seconds: 60.0
-    max_retries: 1
-    thinking:
-      enabled: false
-  rate_limit:
-    rpm: 50
-    max_concurrency: 4
 """.strip(),
         encoding="utf-8",
     )
@@ -62,7 +67,7 @@ def test_resolve_prompt_prefers_zero_shot(tmp_path, monkeypatch):
     monkeypatch.setenv("PPIO_API_KEY", "test-key")
     config_path = _write_extract_config(
         tmp_path,
-        '    default: "DEFAULT_SYSTEM"\n    zero_shot: "ZERO_PROMPT"',
+        '    default: "DEFAULT_SYSTEM"\n    zs: "ZERO_PROMPT"',
     )
     ex = KGExtractor(config_path=config_path, mode="zero-shot")
     assert ex.resolve_prompt() == "ZERO_PROMPT"
@@ -253,3 +258,77 @@ def test_parse_triples_normalizes_relation_case():
     triples = KGExtractor._parse_triples(raw)
     assert len(triples) == 1
     assert triples[0].relation == "compared_with"
+
+
+def test_apply_gate_rejects_non_substring_evidence():
+    chunk_content = "TCP 通过 IP 层转发数据报。"
+    candidate = Triple(
+        head="TCP",
+        relation="depends_on",
+        tail="IP",
+        evidence="TCP 依赖 IP",
+        evidence_span={"start": 0, "end": 8},
+        review_decision="keep",
+        review_reason_code="SUPPORTED",
+        review_reason="",
+    )
+    kept, dropped = KGExtractor._apply_gate([candidate], chunk_content)
+    assert len(kept) == 0
+    assert len(dropped) == 1
+    assert dropped[0]["review"]["reason_code"] == "EVIDENCE_NOT_IN_CHUNK"
+
+
+def test_apply_gate_rejects_span_mismatch():
+    chunk_content = "TCP 依赖 IP 进行寻址。"
+    evidence = "TCP 依赖 IP"
+    candidate = Triple(
+        head="TCP",
+        relation="depends_on",
+        tail="IP",
+        evidence=evidence,
+        evidence_span={"start": 1, "end": 1 + len(evidence)},
+        review_decision="keep",
+        review_reason_code="SUPPORTED",
+        review_reason="",
+    )
+    kept, dropped = KGExtractor._apply_gate([candidate], chunk_content)
+    assert len(kept) == 0
+    assert dropped[0]["review"]["reason_code"] == "SPAN_MISMATCH"
+
+
+def test_apply_gate_rejects_when_head_tail_not_in_evidence():
+    chunk_content = "IP 提供寻址，路由表提供转发信息。"
+    evidence = "路由表提供转发信息"
+    start = chunk_content.find(evidence)
+    candidate = Triple(
+        head="IP",
+        relation="depends_on",
+        tail="路由表",
+        evidence=evidence,
+        evidence_span={"start": start, "end": start + len(evidence)},
+        review_decision="keep",
+        review_reason_code="SUPPORTED",
+        review_reason="",
+    )
+    kept, dropped = KGExtractor._apply_gate([candidate], chunk_content)
+    assert len(kept) == 0
+    assert dropped[0]["review"]["reason_code"] == "HEAD_NOT_IN_EVIDENCE"
+
+
+def test_apply_gate_keeps_valid_triple():
+    chunk_content = "TCP 依赖 IP 进行端到端通信。"
+    evidence = "TCP 依赖 IP"
+    start = chunk_content.find(evidence)
+    candidate = Triple(
+        head="TCP",
+        relation="depends_on",
+        tail="IP",
+        evidence=evidence,
+        evidence_span={"start": start, "end": start + len(evidence)},
+        review_decision="keep",
+        review_reason_code="SUPPORTED",
+        review_reason="",
+    )
+    kept, dropped = KGExtractor._apply_gate([candidate], chunk_content)
+    assert len(kept) == 1
+    assert len(dropped) == 0

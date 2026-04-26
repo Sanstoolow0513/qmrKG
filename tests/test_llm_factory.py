@@ -44,23 +44,27 @@ def test_text_task_processor_uses_system_prompt(monkeypatch, tmp_path):
     config_path = write_config(
         tmp_path,
         """
+llm:
+  profiles:
+    ner_profile:
+      provider:
+        name: ppio
+        base_url: https://api.ppio.com/openai
+        model: qwen/qwen3-8b
+        modality: text
+        supports_thinking: false
+      request:
+        timeout_seconds: 12
+        max_retries: 1
+        thinking:
+          enabled: false
+      rate_limit:
+        rpm: 20
+        max_concurrency: 2
 ner:
-  provider:
-    name: ppio
-    base_url: https://api.ppio.com/openai
-    model: qwen/qwen3-8b
-    modality: text
-    supports_thinking: false
+  llm_profile: ner_profile
   prompts:
     default: you are a ner assistant
-  request:
-    timeout_seconds: 12
-    max_retries: 1
-    thinking:
-      enabled: false
-  rate_limit:
-    rpm: 20
-    max_concurrency: 2
 """.strip(),
     )
     fake_client = FakeClient(lambda **_: FakeResponse("entities"))
@@ -79,17 +83,21 @@ def test_text_task_processor_rejects_images(monkeypatch, tmp_path):
     config_path = write_config(
         tmp_path,
         """
+llm:
+  profiles:
+    ner_profile:
+      provider:
+        name: ppio
+        model: qwen/qwen3-8b
+        modality: text
+        supports_thinking: false
+      request:
+        thinking:
+          enabled: false
+      rate_limit: {}
 ner:
-  provider:
-    name: ppio
-    model: qwen/qwen3-8b
-    modality: text
-    supports_thinking: false
+  llm_profile: ner_profile
   prompts: {}
-  request:
-    thinking:
-      enabled: false
-  rate_limit: {}
 """.strip(),
     )
     processor = TextTaskProcessor("ner", config_path=config_path, client=FakeClient(lambda **_: None))
@@ -115,23 +123,27 @@ def test_multimodal_processor_sends_reasoning_toggle(monkeypatch, tmp_path):
     config_path = write_config(
         tmp_path,
         """
+llm:
+  profiles:
+    ocr_profile:
+      provider:
+        name: ppio
+        model: qwen/qwen3-vl-8b-instruct
+        modality: multimodal
+        supports_thinking: true
+      request:
+        image_detail: high
+        timeout_seconds: 10
+        max_retries: 1
+        thinking:
+          enabled: true
+      rate_limit:
+        rpm: 20
+        max_concurrency: 2
 ocr:
-  provider:
-    name: ppio
-    model: qwen/qwen3-vl-8b-instruct
-    modality: multimodal
-    supports_thinking: true
+  llm_profile: ocr_profile
   prompts:
     default: OCR this page
-  request:
-    image_detail: high
-    timeout_seconds: 10
-    max_retries: 1
-    thinking:
-      enabled: true
-  rate_limit:
-    rpm: 20
-    max_concurrency: 2
 """.strip(),
     )
     fake_client = FakeClient(lambda **_: FakeResponse("vision result"))
@@ -149,28 +161,34 @@ def test_factory_loads_task_specific_models(monkeypatch, tmp_path):
     config_path = write_config(
         tmp_path,
         """
+llm:
+  profiles:
+    ner_profile:
+      provider:
+        name: ppio
+        model: qwen/qwen3-8b
+        modality: text
+        supports_thinking: false
+      request:
+        thinking:
+          enabled: false
+      rate_limit: {}
+    re_profile:
+      provider:
+        name: ppio
+        model: deepseek/deepseek-r1-0528
+        modality: text
+        supports_thinking: false
+      request:
+        thinking:
+          enabled: false
+      rate_limit: {}
 ner:
-  provider:
-    name: ppio
-    model: qwen/qwen3-8b
-    modality: text
-    supports_thinking: false
+  llm_profile: ner_profile
   prompts: {}
-  request:
-    thinking:
-      enabled: false
-  rate_limit: {}
 re:
-  provider:
-    name: ppio
-    model: deepseek/deepseek-r1-0528
-    modality: text
-    supports_thinking: false
+  llm_profile: re_profile
   prompts: {}
-  request:
-    thinking:
-      enabled: false
-  rate_limit: {}
 """.strip(),
     )
     factory = LLMFactory(config_path)
@@ -180,3 +198,54 @@ re:
 
     assert ner_runner.settings.model == "qwen/qwen3-8b"
     assert re_runner.settings.model == "deepseek/deepseek-r1-0528"
+
+
+def test_factory_requires_llm_profile_when_profiles_configured(monkeypatch, tmp_path):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    config_path = write_config(
+        tmp_path,
+        """
+llm:
+  profiles:
+    text_profile:
+      provider:
+        name: ppio
+        model: qwen/qwen3-8b
+        modality: text
+        supports_thinking: false
+      request:
+        thinking:
+          enabled: false
+ner:
+  prompts: {}
+""".strip(),
+    )
+
+    with pytest.raises(ValueError, match="must set non-empty 'llm_profile'"):
+        LLMFactory(config_path).create("ner", client=FakeClient(lambda **_: FakeResponse("ner")))
+
+
+def test_factory_rejects_unknown_llm_profile(monkeypatch, tmp_path):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    config_path = write_config(
+        tmp_path,
+        """
+llm:
+  profiles:
+    text_profile:
+      provider:
+        name: ppio
+        model: qwen/qwen3-8b
+        modality: text
+        supports_thinking: false
+      request:
+        thinking:
+          enabled: false
+ner:
+  llm_profile: missing_profile
+  prompts: {}
+""".strip(),
+    )
+
+    with pytest.raises(ValueError, match="references unknown llm_profile"):
+        LLMFactory(config_path).create("ner", client=FakeClient(lambda **_: FakeResponse("ner")))

@@ -7,9 +7,9 @@
 ## 2. 当前结论（简版）
 
 - 已满足：自动化抽取主流程（文本输入 -> 联合抽取（entities + triples）-> 融合 -> 入库）。
-- 已满足（抽取侧）：`config.yaml` 中 `extract.prompts.zero_shot` / `few_shot` 已参数化；`kgextract --mode zero-shot|few-shot` 可按模式选用对应 prompt，并配合不同 `--output-dir` 分目录产出便于对照。
-- 部分满足：知识验证（目前以规则过滤为主）。
-- 未满足或证据不足：embedding 语义建模、zero-shot/few-shot **系统化对照实验与评估闭环**、完整实验脚本与报告。
+- **已满足（抽取侧）**：`config.yaml` 中 `extract.prompts.zero_shot` / `few_shot` 已参数化；`KGExtractor` 通过 `_mode_to_prompt_key()` 解析 mode 参数并从 `config.yaml` 加载对应 prompt；`kgextract --mode zero-shot|few-shot` 可按模式选用对应 prompt，并配合不同 `--output-dir` 分目录产出便于对照。README.md 已更新 zs/fs 分目录工作流。
+- 部分满足：知识验证（目前以规则过滤为主，位于 `kg_merger.py` 内联逻辑）。
+- **仍未完成**：评估闭环（评测数据、自动评估脚本、评估 CLI、评估报告模板）、实验脚本与对照报告、验证器模块化、embedding 语义建模。
 
 ## 3. 必做项（按优先级）
 
@@ -36,11 +36,14 @@
 
 - [x] 将抽取 prompt 模板参数化
   - 交付物：`config.yaml` 中 `extract.prompts.zero_shot`、`extract.prompts.few_shot`
+  - 实现：`KGExtractor._resolve_system_prompt()` → `_load_extract_prompts()` → `_mode_to_prompt_key()` 链
 - [x] `kgextract` 支持按模式选用 prompt（`--mode zero-shot` / `--mode few-shot`，默认 `zero-shot`）
-- [ ] 增加实验运行脚本
-  - 交付物：`scripts/run_experiments.py`（或等价实现）
-  - 维度：prompt 版本、温度、重试策略、chunk 策略
-- [ ] 产出对比实验结果
+  - 实现：`cli_kg_extract.py` argparse + `KGExtractor(mode=...)` 透传
+- [x] README 文档已更新 zs/fs 分目录工作流示例
+- [ ] 🔴 增加实验运行脚本（**下一优先级 — 依赖 P0 评估**）
+  - 交付物：`scripts/run_experiments.py`
+  - 维度：mode、temperature、retry、chunk 策略
+- [ ] 🔴 产出对比实验结果（**下一优先级 — 依赖 P0 评估**）
   - 交付物：`docs/reports/experiment-zeroshot-vs-fewshot.md`
   - 指标：实体 F1、关系 F1、三元组 F1、成本（token/时间）
 
@@ -82,7 +85,8 @@
 
 - [ ] D1-D2：评测数据规范 + 标注样例
 - [ ] D3-D4：`kgeval` CLI 与指标计算
-- [x] D5：zero/few-shot 配置化（`extract.prompts` + `kgextract --mode`）；对照实验脚本与首轮报告仍待办
+- [x] D5：zero/few-shot 配置化（`extract.prompts` + `kgextract --mode`）✅ 已完成
+- [ ] D5 剩余：实验脚本与首轮对比报告（依赖 D1-D4 评估闭环）
 
 ### Week 2
 
@@ -116,3 +120,112 @@
 - [ ] 有 embedding 语义建模或充分论证其取舍；
 - [ ] 有覆盖率、准确率、可解释性、人工干预成本的量化评估；
 - [ ] 有演示与文档可支持毕业设计答辩。
+
+---
+
+## 8. 下一步计划（按执行顺序）
+
+### 步骤 0：现状确认 ✅
+
+| 模块 | 状态 | 关键文件 |
+|------|------|----------|
+| 抽取主流程（entities + triples） | ✅ 完成 | `kg_extractor.py`, `kg_merger.py`, `kg_neo4j.py` |
+| zero-shot prompt + CLI mode | ✅ 完成 | `config.yaml` L111-143, `cli_kg_extract.py` L33-37 |
+| few-shot prompt + CLI mode | ✅ 完成 | `config.yaml` L146-179, `kg_extractor.py` L56-62 |
+| README zs/fs 工作流文档 | ✅ 完成 | `README.md` |
+| 评估标注规范与数据 | ❌ 未开始 | 待建 `docs/evaluation/`, `data/eval/` |
+| 自动评估脚本 | ❌ 未开始 | 待建 `src/qmrkg/evaluation.py` |
+| 评估 CLI | ❌ 未开始 | 待建 `src/qmrkg/cli_eval.py` |
+| 实验脚本 | ❌ 未开始 | 待建 `scripts/run_experiments.py` |
+| 对照实验报告 | ❌ 未开始 | 待建 `docs/reports/experiment-zeroshot-vs-fewshot.md` |
+| 验证器模块化 | ❌ 未开始 | 待建 `src/qmrkg/kg_validator.py` |
+| Embedding 模块 | ❌ 未开始 | 待建 `src/qmrkg/kg_embedding.py` |
+
+### 步骤 1：P0 评估闭环（当前 🔴 阻塞项）
+
+**为什么先做？** 没有评估能力，实验脚本和对照报告无量化指标支撑，后续所有 "对比" 工作都无法量化。
+
+#### 1a. 评测规范文档 + 标注数据
+
+```
+docs/evaluation/annotation-guideline.md   # 标注规范
+data/eval/gold_triples.json               # gold set (200-500 三元组)
+```
+
+**内容要点：**
+- 实体标注规则（类型边界、别名处理）
+- 关系标注规则（方向性、负例定义）
+- 三元组评估粒度（严格匹配 vs 部分匹配）
+- 建议来源：从已有 `data/triples/merged/` 产出中人工筛选 + 校订
+
+#### 1b. 自动评估脚本
+
+```
+src/qmrkg/evaluation.py   # 核心评估逻辑
+src/qmrkg/cli_eval.py     # CLI 入口
+```
+
+**指标实现：**
+- Entity: Micro/Macro Precision, Recall, F1
+- Relation: Micro/Macro Precision, Recall, F1（按 (head, relation, tail) 匹配）
+- 统计：总抽取量、evidence 覆盖率、空响应比例
+- 输出：JSON 报告 + Markdown 表格
+
+**CLI 接口：**
+```bash
+uv run kgeval --pred data/triples/raw/zs --gold data/eval/gold_triples.json
+uv run kgeval --pred data/triples/raw/fs --gold data/eval/gold_triples.json
+```
+
+#### 1c. 评估报告模板
+
+```
+docs/reports/eval-report-template.md
+```
+
+### 步骤 2：P1 实验脚本 + 对照报告（依赖步骤 1）
+
+```
+scripts/run_experiments.py                # 一键 zs/fs 对照
+docs/reports/experiment-zeroshot-vs-fewshot.md
+```
+
+**实验脚本功能：**
+1. 对同一 `--input` 目录，自动运行 `kgextract --mode zero-shot` 和 `--mode few-shot`
+2. 分别 `kgmerge` 到不同输出目录
+3. 调用 `kgeval` 输出指标对比
+4. 汇总 token 消耗和时间成本
+
+**报告内容：**
+- 方法说明（zero-shot vs few-shot 设计差异）
+- 定量对比表（Entity F1 / Relation F1 / Triple F1 / Token / Time）
+- 定性分析（抽样 case study，误差类型分布）
+- 推荐默认配置及依据
+
+### 步骤 3：P1 验证器模块化（可并行）
+
+```
+src/qmrkg/kg_validator.py
+```
+
+从 `kg_merger.py` 中抽离验证逻辑，增加可配置规则：
+- 自环检测 (head == tail)
+- 实体类型白名单
+- 关系白名单
+- 名称长度阈值
+- evidence 长度阈值
+- 统计输出（filtered 数量 + 原因分布）
+
+### 步骤 4：P2 Embedding 语义关联（可选增项）
+
+```
+src/qmrkg/kg_embedding.py
+config.yaml → embedding 段
+docs/reports/embedding-impact.md
+```
+
+**策略：**
+- 使用轻量 embedding 模型（如 text2vec 或 bge-small-zh）
+- 对实体名称做向量化 → 余弦相似度发现同义实体候选
+- 离线对照：对比 "有 embedding 辅助去重" vs "纯规则去重" 效果
+- 不直接耦合主链路，通过开关控制

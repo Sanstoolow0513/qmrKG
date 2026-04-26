@@ -104,6 +104,7 @@ def test_settings_require_api_key(monkeypatch):
     monkeypatch.delenv("PPIO_API_KEY", raising=False)
     monkeypatch.delenv("SILICONFLOW_API_KEY", raising=False)
     monkeypatch.setattr(png_to_text, "VLMSettings", VLMSettings)
+    monkeypatch.setattr("qmrkg.llm_config.load_dotenv", lambda *_args, **_kwargs: False)
 
     with pytest.raises(ValueError, match="PPIO_API_KEY"):
         VLMSettings.from_env()
@@ -119,10 +120,11 @@ def test_ocr_processor_accepts_legacy_constructor_args(monkeypatch):
     assert processor.show_log is True
 
 
-def test_settings_load_defaults(monkeypatch):
+def test_settings_load_defaults(monkeypatch, tmp_path):
     monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    config_path = write_config(tmp_path, "")
 
-    settings = VLMSettings.from_env()
+    settings = VLMSettings.from_env(config_path)
 
     assert settings.base_url == "https://api.ppio.com/openai"
     assert settings.model == "qwen/qwen3-vl-8b-instruct"
@@ -131,12 +133,14 @@ def test_settings_load_defaults(monkeypatch):
     assert settings.thinking_enabled is False
 
 
-def test_settings_support_legacy_siliconflow_aliases(monkeypatch):
+def test_settings_support_legacy_siliconflow_aliases(monkeypatch, tmp_path):
     monkeypatch.delenv("PPIO_API_KEY", raising=False)
     monkeypatch.setenv("SILICONFLOW_API_KEY", "legacy-test-key")
     monkeypatch.setenv("SILICONFLOW_VLM_MODEL", "legacy-model")
+    config_path = write_config(tmp_path, "")
+    monkeypatch.setattr("qmrkg.llm_config.load_dotenv", lambda *_args, **_kwargs: False)
 
-    settings = VLMSettings.from_env()
+    settings = VLMSettings.from_env(config_path)
 
     assert settings.api_key == "legacy-test-key"
     assert settings.model == "legacy-model"
@@ -148,25 +152,29 @@ def test_settings_load_task_scoped_ocr_config(scratch_dir, monkeypatch):
     config_path = write_config(
         scratch_dir,
         """
+llm:
+  profiles:
+    ocr_profile:
+      provider:
+        name: ppio
+        base_url: https://example.invalid/openai
+        model: test-vlm
+        modality: multimodal
+        supports_thinking: true
+      request:
+        image_detail: low
+        timeout_seconds: 12.5
+        max_retries: 7
+        thinking:
+          enabled: true
+      rate_limit:
+        rpm: 123
+        max_concurrency: 9
 ocr:
-  provider:
-    name: ppio
-    base_url: https://example.invalid/openai
-    model: test-vlm
-    modality: multimodal
-    supports_thinking: true
+  llm_profile: ocr_profile
   prompts:
     default: default prompt
     structured: structured prompt
-  request:
-    image_detail: low
-    timeout_seconds: 12.5
-    max_retries: 7
-    thinking:
-      enabled: true
-  rate_limit:
-    rpm: 123
-    max_concurrency: 9
 """.strip(),
     )
 
@@ -212,15 +220,19 @@ def test_settings_reject_thinking_without_provider_support(scratch_dir, monkeypa
     config_path = write_config(
         scratch_dir,
         """
+llm:
+  profiles:
+    ocr_profile:
+      provider:
+        name: ppio
+        model: test-vlm
+        modality: multimodal
+        supports_thinking: false
+      request:
+        thinking:
+          enabled: true
 ocr:
-  provider:
-    name: ppio
-    model: test-vlm
-    modality: multimodal
-    supports_thinking: false
-  request:
-    thinking:
-      enabled: true
+  llm_profile: ocr_profile
 """.strip(),
     )
 
@@ -567,7 +579,3 @@ def test_env_example_lists_ppio_variables():
     content = env_example.read_text(encoding="utf-8")
 
     assert "PPIO_API_KEY=" in content
-    assert "PPIO_BASE_URL=" in content
-    assert "PPIO_VLM_MODEL=" in content
-    assert "PPIO_IMAGE_DETAIL=" in content
-    assert "PPIO_RPM=" in content

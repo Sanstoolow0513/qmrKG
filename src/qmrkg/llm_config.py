@@ -185,6 +185,29 @@ def _get_task_config(config: dict[str, Any], task_name: str) -> dict[str, Any]:
     return task_config
 
 
+def _get_llm_profiles(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    llm_config = config.get("llm", {})
+    if llm_config in (None, ""):
+        return {}
+    if not isinstance(llm_config, dict):
+        raise ValueError("config.yaml top-level 'llm' must be a mapping")
+
+    profiles = llm_config.get("profiles", {})
+    if profiles in (None, ""):
+        return {}
+    if not isinstance(profiles, dict):
+        raise ValueError("llm.profiles must be a mapping")
+
+    normalized: dict[str, dict[str, Any]] = {}
+    for profile_name, profile_config in profiles.items():
+        if not isinstance(profile_name, str) or not profile_name.strip():
+            raise ValueError("llm.profiles keys must be non-empty strings")
+        if not isinstance(profile_config, dict):
+            raise ValueError(f"llm.profiles.{profile_name} must be a mapping")
+        normalized[profile_name.strip()] = profile_config
+    return normalized
+
+
 @dataclass(slots=True)
 class TaskLLMSettings:
     task_name: str
@@ -211,10 +234,30 @@ class TaskLLMSettings:
 
         config = _load_yaml_config(config_path)
         task_config = _get_task_config(config, task_name)
-        provider_config = _get_nested_value(task_config, "provider", default={}) or {}
+        llm_profiles = _get_llm_profiles(config)
+        profile_config: dict[str, Any] = {}
+        if llm_profiles:
+            profile_name = _get_nested_value(task_config, "llm_profile")
+            if not isinstance(profile_name, str) or not profile_name.strip():
+                raise ValueError(
+                    f"task '{task_name}' must set non-empty 'llm_profile' when llm.profiles is configured"
+                )
+            profile_name = profile_name.strip()
+            profile_config = llm_profiles.get(profile_name, {})
+            if not profile_config:
+                raise ValueError(
+                    f"task '{task_name}' references unknown llm_profile '{profile_name}'"
+                )
+
+        provider_config = _get_nested_value(profile_config, "provider", default={}) or {}
+        if not llm_profiles:
+            provider_config = _get_nested_value(task_config, "provider", default={}) or {}
         prompts_config = _get_nested_value(task_config, "prompts", default={}) or {}
-        request_config = _get_nested_value(task_config, "request", default={}) or {}
-        rate_config = _get_nested_value(task_config, "rate_limit", default={}) or {}
+        request_config = _get_nested_value(profile_config, "request", default={}) or {}
+        rate_config = _get_nested_value(profile_config, "rate_limit", default={}) or {}
+        if not llm_profiles:
+            request_config = _get_nested_value(task_config, "request", default={}) or {}
+            rate_config = _get_nested_value(task_config, "rate_limit", default={}) or {}
 
         prompt_key = _read_str(_PROMPT_KEY_ALIASES, None, DEFAULT_PROMPT_KEY)
         config_prompt = prompts_config.get(prompt_key, prompts_config.get(DEFAULT_PROMPT_KEY))

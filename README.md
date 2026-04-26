@@ -63,7 +63,7 @@ qmrkg/
 │       ├── raw/            # 每 chunk 原始三元组 JSON
 │       └── merged/         # merged_triples.json
 ├── frontend/               # Next.js 图谱浏览（连接 Neo4j）
-├── config.yaml             # 任务级模型与提示词（勿提交密钥）
+├── config.yaml             # 全局 LLM profiles + 任务提示词（勿提交密钥）
 ├── .env.example            # 环境变量模板
 └── pyproject.toml
 ```
@@ -157,17 +157,17 @@ NEO4J_GRAPH_REL_LIMIT=4000
 
 ## 配置说明
 
-任务级行为（模型名、`provider`、`prompts`、`request`、`rate_limit` 等）在仓库根目录的 **`config.yaml`** 中按任务分段维护，例如 **`ocr`**（多模态 OCR）、**`ner`**、**`re`**、**`extract`**（三元组抽取）等。请勿在 YAML 中写入 API Key；敏感项放在 **`.env`**。
+LLM 行为（模型名、`provider`、`request`、`rate_limit`）统一在仓库根目录 **`config.yaml`** 的顶层 `llm.profiles` 中集中维护；任务段（如 **`ocr`**、**`extract`**）通过 `llm_profile` 选择要使用的 profile，并保留任务特有配置（如 `prompts`）。请勿在 YAML 中写入 API Key；敏感项放在 **`.env`**。
 
-不要使用已废弃的顶层 **`openai:`** 键，否则配置加载会报错。
+不要使用已废弃的顶层 **`openai:`** 键，否则配置加载会报错。若配置了 `llm.profiles`，任务段必须设置 `llm_profile` 且引用存在的 profile 名称。
 
 ### `.env` 常用变量
 
 | 变量 | 说明 |
 |------|------|
 | `PPIO_API_KEY` | PPIO API Key（必填） |
-| `PPIO_BASE_URL` | 覆盖各任务 `provider.base_url` |
-| `PPIO_MODEL` | 覆盖当前任务所用模型 |
+| `PPIO_BASE_URL` | 覆盖当前任务选中 profile 的 `provider.base_url` |
+| `PPIO_MODEL` | 覆盖当前任务选中 profile 的模型 |
 | `NEO4J_URI` / `NEO4J_USER` / `NEO4J_PASSWORD` | Neo4j 连接（`kgneo4j` 与前端） |
 
 ### 可选环境变量覆盖（与 `config.yaml` 对应）
@@ -238,10 +238,10 @@ A: 检查 `.env` 中 `PPIO_API_KEY` 与网络是否可访问 PPIO。
 A: 提高 `pdftopng` 的 `--dpi`（如 300～400），或调整 `config.yaml` 中 `ocr.prompts`。
 
 **Q: 如何限流？**  
-A: 在 `config.yaml` 各任务的 `rate_limit` 中调整 `rpm` 与 `max_concurrency`。
+A: 在 `config.yaml` 的 `llm.profiles.<profile>.rate_limit` 中调整 `rpm` 与 `max_concurrency`。
 
 **Q: reasoning 模型的 thinking 如何开关？**  
-A: 在对应任务段设置 `provider.supports_thinking: true`，再用 `request.thinking.enabled` 控制。
+A: 在对应 profile 中设置 `provider.supports_thinking: true`，再用同一 profile 下的 `request.thinking.enabled` 控制。
 
 ## License
 

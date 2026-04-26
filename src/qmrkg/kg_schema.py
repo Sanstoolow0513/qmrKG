@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 EntityType = Literal["protocol", "concept", "mechanism", "metric"]
 RelationType = Literal["contains", "depends_on", "compared_with", "applied_to"]
@@ -47,8 +47,12 @@ class Triple:
     relation: str
     tail: str
     evidence: str = ""
+    evidence_span: dict[str, int] | None = None
     frequency: int = 1
     evidences: list[str] = field(default_factory=list)
+    review_decision: str = "keep"
+    review_reason_code: str = "SUPPORTED"
+    review_reason: str = ""
 
     def is_valid(self) -> bool:
         return (
@@ -66,3 +70,4 @@ class ChunkExtractionResult:
     titles: list[str]
     entities: list[Entity]
     triples: list[Triple]
+    dropped: list[dict[str, Any]] = field(default_factory=list)

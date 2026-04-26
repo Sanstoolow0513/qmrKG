@@ -57,3 +57,19 @@ def test_triple_empty_head():
 def test_triple_empty_tail():
     t = Triple(head="TCP", relation="contains", tail="  ")
     assert not t.is_valid()
+
+
+def test_triple_with_span_and_review():
+    t = Triple(
+        head="TCP",
+        relation="depends_on",
+        tail="IP",
+        evidence="TCP 依赖 IP",
+        evidence_span={"start": 0, "end": 9},
+        review_decision="keep",
+        review_reason_code="SUPPORTED",
+        review_reason="证据充分",
+    )
+    assert t.is_valid()
+    assert t.evidence_span == {"start": 0, "end": 9}
+    assert t.review_decision == "keep"
