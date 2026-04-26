@@ -34,11 +34,7 @@ class Entity:
     frequency: int = 1
 
     def is_valid(self) -> bool:
-        return (
-            self.type in ENTITY_TYPES
-            and 2 <= len(self.name) <= 30
-            and bool(self.name.strip())
-        )
+        return self.type in ENTITY_TYPES and 2 <= len(self.name) <= 30 and bool(self.name.strip())
 
 
 @dataclass(slots=True)

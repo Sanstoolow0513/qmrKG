@@ -220,7 +220,9 @@ class KGExtractor:
         entities = self._parse_entities(proposed_raw.get("entities", []))
         proposed_triples = self._parse_triples(proposed_raw.get("triples", []))
         reviewed_triples = (
-            self._review_triples(content, proposed_triples) if self._enable_review else proposed_triples
+            self._review_triples(content, proposed_triples)
+            if self._enable_review
+            else proposed_triples
         )
         triples, dropped = self._apply_gate(
             reviewed_triples, content, strict_evidence=self._strict_evidence

@@ -29,7 +29,7 @@ def _build_parser(run_cfg: dict[str, object]) -> argparse.ArgumentParser:
         "--page-glob",
         type=str,
         default=str(run_cfg["page_glob"]),
-        help='Glob for per-page markdown inside each book subdir (default: run.kg_md_combine.page_glob)',
+        help="Glob for per-page markdown inside each book subdir (default: run.kg_md_combine.page_glob)",
     )
     parser.add_argument(
         "-v",

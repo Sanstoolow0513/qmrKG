@@ -309,7 +309,9 @@ class OCRProcessor:
     def _extract_page_result(self, image_path: Path, page_number: int) -> OCRPageResult:
         image_path = Path(image_path)
         response = self.runner.run_image(self.settings.prompt, image_path)
-        return self._response_to_page_result(response, image_path=image_path, page_number=page_number)
+        return self._response_to_page_result(
+            response, image_path=image_path, page_number=page_number
+        )
 
     @staticmethod
     def _response_to_page_result(

@@ -1,7 +1,5 @@
 from pathlib import Path
 
-import pytest
-
 
 def test_pdftopng_single_pdf(monkeypatch, capsys):
     import qmrkg.cli_pdf_to_png as cli_pdf_to_png
@@ -235,9 +233,7 @@ def test_pngtotext_dir_outputs_to_book_subdir(monkeypatch, capsys, tmp_path):
 
     monkeypatch.setattr(cli_png_to_text, "OCRProcessor", StubProcessor)
 
-    exit_code = cli_png_to_text.main(
-        ["--image-dir", str(image_dir), "--text-dir", str(text_dir)]
-    )
+    exit_code = cli_png_to_text.main(["--image-dir", str(image_dir), "--text-dir", str(text_dir)])
 
     assert exit_code == 0
     assert len(captured_output_paths) == 1
@@ -317,9 +313,7 @@ def test_pngtotext_dir_two_books_two_pages(monkeypatch, capsys, tmp_path):
 
     monkeypatch.setattr(cli_png_to_text, "OCRProcessor", StubProcessor)
 
-    exit_code = cli_png_to_text.main(
-        ["--image-dir", str(image_dir), "--text-dir", str(text_dir)]
-    )
+    exit_code = cli_png_to_text.main(["--image-dir", str(image_dir), "--text-dir", str(text_dir)])
 
     assert exit_code == 0
     assert len(save_calls) == 2
@@ -373,9 +367,7 @@ def test_pngtotext_dir_one_book_batch_extract(monkeypatch, tmp_path):
 
     monkeypatch.setattr(cli_png_to_text, "OCRProcessor", StubProcessor)
 
-    exit_code = cli_png_to_text.main(
-        ["--image-dir", str(image_dir), "--text-dir", str(text_dir)]
-    )
+    exit_code = cli_png_to_text.main(["--image-dir", str(image_dir), "--text-dir", str(text_dir)])
 
     assert exit_code == 0
     assert len(extract_calls) == 1
@@ -401,7 +393,7 @@ def test_qmrkg_list_shows_available_commands(capsys):
     assert "kgneo4j" in out
 
 
-def test_kgmdcombine_merges_book_subdir_pages(tmp_path, capsys, monkeypatch):
+def test_kgmdcombine_merges_book_subdir_pages(tmp_path, monkeypatch):
     """kgmdcombine must merge *_page_*.md in each book folder to markdown_dir/{book}.md."""
     import qmrkg.cli_kg_md_combine as cli_kg
 
@@ -428,7 +420,6 @@ def test_kgmdcombine_merges_book_subdir_pages(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(cli_kg, "merge_book_pages", stub_merge)
 
     exit_code = cli_kg.main(["--markdown-dir", str(markdown_dir)])
-    out = capsys.readouterr().out
     assert exit_code == 0
     assert (markdown_dir / "mybook.md").read_text(encoding="utf-8") == "merged"
     assert len(merge_calls) == 1

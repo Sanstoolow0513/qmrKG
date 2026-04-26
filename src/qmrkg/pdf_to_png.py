@@ -48,9 +48,7 @@ def convert_document_to_pngs(
             return pdf_converter.convert(pdf_path)
     if suf == ".pdf":
         return pdf_converter.convert(path)
-    raise ValueError(
-        f"Unsupported file type {path.suffix!r}; expected .pdf, .ppt, or .pptx"
-    )
+    raise ValueError(f"Unsupported file type {path.suffix!r}; expected .pdf, .ppt, or .pptx")
 
 
 class PPTConverter:

@@ -27,9 +27,7 @@ def main(argv: list[str] | None = None):
     )
     parser.add_argument("--uri", type=str, help="Neo4j URI (default: env NEO4J_URI)")
     parser.add_argument("--user", type=str, help="Neo4j user (default: env NEO4J_USER)")
-    parser.add_argument(
-        "--password", type=str, help="Neo4j password (default: env NEO4J_PASSWORD)"
-    )
+    parser.add_argument("--password", type=str, help="Neo4j password (default: env NEO4J_PASSWORD)")
     parser.add_argument(
         "--clear",
         action=argparse.BooleanOptionalAction,

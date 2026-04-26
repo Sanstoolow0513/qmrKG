@@ -34,7 +34,9 @@ def _build_parser(run_cfg: dict[str, object]) -> argparse.ArgumentParser:
         help="Root directory for PNG output; each document is written under a subfolder named "
         "after the file stem (default: data/png)",
     )
-    parser.add_argument("--dpi", type=int, default=int(run_cfg["dpi"]), help="Output DPI (default: 200)")
+    parser.add_argument(
+        "--dpi", type=int, default=int(run_cfg["dpi"]), help="Output DPI (default: 200)"
+    )
     parser.add_argument(
         "--recursive",
         action="store_true",

@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-
 LLMRole = Literal["system", "user", "assistant", "tool"]
 LLMModality = Literal["text", "multimodal", "embedding"]
 LLMContentType = Literal["text", "image_url"]

@@ -189,9 +189,7 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"Failed: {image_path} ({err})", file=sys.stderr)
                 continue
             try:
-                processor.process_and_save(
-                    [page_result], output_path, pdf_source=image_path.name
-                )
+                processor.process_and_save([page_result], output_path, pdf_source=image_path.name)
                 success += 1
             except Exception as exc:
                 failed += 1

@@ -124,9 +124,7 @@ class KGNeo4jLoader:
                 rel_type = RELATION_TYPE_LABELS.get(triple.get("relation", ""))
                 if not head_label or not tail_label or not rel_type:
                     continue
-                evidences_json = json.dumps(
-                    triple.get("evidences", []), ensure_ascii=False
-                )
+                evidences_json = json.dumps(triple.get("evidences", []), ensure_ascii=False)
                 session.run(
                     f"MATCH (a:{head_label} {{name: $head}}) "
                     f"MATCH (b:{tail_label} {{name: $tail}}) "

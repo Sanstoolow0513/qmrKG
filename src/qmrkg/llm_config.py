@@ -178,7 +178,9 @@ def _get_task_config(config: dict[str, Any], task_name: str) -> dict[str, Any]:
         return {}
 
     if "openai" in config:
-        raise ValueError("config.yaml must use task-scoped top-level sections instead of legacy 'openai'")
+        raise ValueError(
+            "config.yaml must use task-scoped top-level sections instead of legacy 'openai'"
+        )
 
     task_config = config.get(task_name)
     if task_config is None:
