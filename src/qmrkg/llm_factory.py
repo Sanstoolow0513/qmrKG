@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from .llm_config import TaskLLMSettings
-from .llm_types import LLMContentPart, LLMMessage, LLMResponse
+from .llm_types import LLMContentPart, LLMEmbeddingResponse, LLMMessage, LLMResponse
 from .rate_limit import RollingRateLimiter
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,9 @@ class TaskLLMRunner:
 
     def run_text(self, prompt: str, *, system_prompt: str | None = None) -> LLMResponse:
         messages: list[LLMMessage] = []
-        effective_system_prompt = system_prompt if system_prompt is not None else self.settings.prompt
+        effective_system_prompt = (
+            system_prompt if system_prompt is not None else self.settings.prompt
+        )
         if effective_system_prompt:
             messages.append(LLMMessage(role="system", content=effective_system_prompt))
         messages.append(LLMMessage(role="user", content=prompt))
@@ -92,6 +94,36 @@ class TaskLLMRunner:
                 time.sleep(backoff_seconds)
         raise RuntimeError("unreachable")
 
+    def run_embeddings(self, inputs: list[str]) -> LLMEmbeddingResponse:
+        if self.settings.modality != "embedding":
+            raise ValueError(
+                f"task '{self.settings.task_name}' is configured with modality={self.settings.modality}"
+            )
+        if not inputs:
+            return LLMEmbeddingResponse(
+                vectors=[],
+                model=self.settings.model,
+                processed_at=datetime.now(timezone.utc).isoformat(),
+            )
+
+        attempts = self.settings.max_retries + 1
+        for attempt in range(1, attempts + 1):
+            try:
+                return self._invoke_embeddings(inputs)
+            except Exception as exc:
+                if attempt >= attempts or not self._is_transient_error(exc):
+                    raise
+                backoff_seconds = min(2 ** (attempt - 1), 30)
+                logger.warning(
+                    "Transient embedding failure for task=%s on attempt %s/%s: %s",
+                    self.settings.task_name,
+                    attempt,
+                    attempts,
+                    self._format_exception_summary(exc),
+                )
+                time.sleep(backoff_seconds)
+        raise RuntimeError("unreachable")
+
     def _invoke(self, messages: list[LLMMessage]) -> LLMResponse:
         start_time = time.perf_counter()
         self.rate_limiter.acquire()
@@ -118,10 +150,38 @@ class TaskLLMRunner:
             reasoning_details=reasoning_details,
         )
 
+    def _invoke_embeddings(self, inputs: list[str]) -> LLMEmbeddingResponse:
+        start_time = time.perf_counter()
+        self.rate_limiter.acquire()
+
+        response = self.client.embeddings.create(
+            model=self.settings.model,
+            input=inputs,
+            timeout=self.settings.timeout_seconds,
+            **self._embedding_request_kwargs(),
+        )
+
+        duration = time.perf_counter() - start_time
+        prompt_tokens, _, total_tokens = self._extract_usage(response)
+        return LLMEmbeddingResponse(
+            vectors=self._extract_embedding_vectors(response),
+            model=getattr(response, "model", None) or self.settings.model,
+            prompt_tokens=prompt_tokens,
+            total_tokens=total_tokens,
+            duration_seconds=duration,
+            processed_at=datetime.now(timezone.utc).isoformat(),
+        )
+
     def _request_kwargs(self) -> dict[str, Any]:
         kwargs: dict[str, Any] = {}
         if self.settings.supports_thinking:
             kwargs["reasoning_enabled"] = self.settings.thinking_enabled
+        return kwargs
+
+    def _embedding_request_kwargs(self) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {"encoding_format": self.settings.encoding_format}
+        if self.settings.embedding_dimensions is not None:
+            kwargs["dimensions"] = self.settings.embedding_dimensions
         return kwargs
 
     def _validate_messages(self, messages: list[LLMMessage]) -> None:
@@ -215,6 +275,19 @@ class TaskLLMRunner:
         else:
             normalized = []
         return reasoning_content, normalized
+
+    @staticmethod
+    def _extract_embedding_vectors(response) -> list[list[float]]:
+        vectors: list[list[float]] = []
+        for item in getattr(response, "data", None) or []:
+            if isinstance(item, dict):
+                embedding = item.get("embedding")
+            else:
+                embedding = getattr(item, "embedding", None)
+            if embedding is None:
+                raise ValueError("embedding response item missing embedding")
+            vectors.append([float(value) for value in embedding])
+        return vectors
 
     @staticmethod
     def _build_image_data_url(image_path: Path) -> str:
@@ -364,3 +437,31 @@ class MultimodalTaskProcessor:
 
     def run_messages(self, messages: list[LLMMessage]) -> LLMResponse:
         return self._runner.run_messages(messages)
+
+
+class EmbeddingTaskProcessor:
+    """Convenience wrapper for embedding tasks with deterministic batching."""
+
+    def __init__(self, task_name: str, config_path: Path | None = None, client=None):
+        self.task_name = task_name
+        self._factory = LLMFactory(config_path)
+        self._runner = self._factory.create(task_name, client=client)
+
+    @property
+    def settings(self) -> TaskLLMSettings:
+        return self._runner.settings
+
+    def embed(self, inputs: list[str], batch_size: int = 1024) -> list[list[float]]:
+        if batch_size <= 0:
+            raise ValueError("batch_size must be greater than 0")
+        vectors: list[list[float]] = []
+        for start in range(0, len(inputs), batch_size):
+            batch = inputs[start : start + batch_size]
+            response = self._runner.run_embeddings(batch)
+            if len(response.vectors) != len(batch):
+                raise ValueError(
+                    f"embedding response length mismatch: expected {len(batch)}, "
+                    f"got {len(response.vectors)}"
+                )
+            vectors.extend(response.vectors)
+        return vectors
