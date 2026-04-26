@@ -182,9 +182,20 @@ class EmbeddingCanonicalizer:
         mapping: dict[str, str] = {r[0]: r[0] for r in rows}
         cache: dict[str, list[float]] = {}
         if self.cache_path and self.cache_path.exists():
-            raw = json.loads(self.cache_path.read_text(encoding="utf-8"))
+            try:
+                raw = json.loads(self.cache_path.read_text(encoding="utf-8"))
+            except (json.JSONDecodeError, OSError) as exc:
+                logger.warning(
+                    "Invalid embedding cache at %s, starting empty: %s", self.cache_path, exc
+                )
+                raw = None
             if isinstance(raw, dict):
                 cache = {k: v for k, v in raw.items() if isinstance(v, list)}
+            elif raw is not None:
+                logger.warning(
+                    "Invalid embedding cache at %s (not a JSON object), starting empty",
+                    self.cache_path,
+                )
 
         uf = _UnionFind(n)
 

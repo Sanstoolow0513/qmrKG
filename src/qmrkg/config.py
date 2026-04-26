@@ -81,6 +81,17 @@ def _discover_config_paths(config_path: Path | None) -> list[Path]:
     ]
 
 
+def _deep_merge(default: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
+    """Recursively merge `override` into a copy of `default` (dict values recurse)."""
+    result: dict[str, Any] = deepcopy(default)
+    for key, value in override.items():
+        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            result[key] = _deep_merge(result[key], value)
+        else:
+            result[key] = deepcopy(value)
+    return result
+
+
 def _merge_sections(default: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     merged = deepcopy(default)
     for section, values in override.items():
@@ -89,7 +100,7 @@ def _merge_sections(default: dict[str, Any], override: dict[str, Any]) -> dict[s
         if not isinstance(values, dict):
             logger.warning("Ignoring non-mapping run.%s config: %r", section, values)
             continue
-        merged[section].update(values)
+        merged[section] = _deep_merge(merged[section], values)
     return merged
 
 

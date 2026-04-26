@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 
 from qmrkg.kg_merger import KGMerger
 from qmrkg.kg_schema import Entity
@@ -195,3 +196,26 @@ def test_merger_writes_cache_and_reuses(tmp_path):
     assert first == second
     assert cache_path.exists()
     assert second_fake.calls == []
+
+
+def test_canonicalizer_invalid_cache_json_uses_empty_and_reembeds(caplog, tmp_path) -> None:
+    caplog.set_level(logging.WARNING)
+    cache_path = tmp_path / ".embed_cache.json"
+    cache_path.write_text("{bad json", encoding="utf-8")
+    fake = FakeEmbeddingProcessor(
+        {
+            "protocol | TCP": [1.0, 0.0],
+            "protocol | 传输控制协议": [1.0, 0.0],
+        }
+    )
+    entities = [
+        Entity(name="TCP", type="protocol", frequency=1),
+        Entity(name="传输控制协议", type="protocol", frequency=1),
+    ]
+    canonicalizer = make_canonicalizer(fake, cache_path=cache_path)
+    mapping = canonicalizer.build_canonical_map(entities)
+    assert mapping["传输控制协议"] == "TCP"
+    assert len(fake.calls) >= 1
+    assert "Invalid embedding cache" in caplog.text
+    new_raw = json.loads(cache_path.read_text(encoding="utf-8"))
+    assert any(isinstance(v, list) for v in new_raw.values())
