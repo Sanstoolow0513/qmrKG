@@ -25,6 +25,7 @@ DEFAULT_RPM = 60
 DEFAULT_MAX_CONCURRENCY = 4
 DEFAULT_TIMEOUT_SECONDS = 60.0
 DEFAULT_MAX_RETRIES = 3
+DEFAULT_EMBEDDING_ENCODING_FORMAT = "float"
 DEFAULT_PROMPT_KEY = "default"
 DEFAULT_OCR_MODEL = "qwen/qwen3-vl-8b-instruct"
 DEFAULT_OCR_PROMPT = (
@@ -147,6 +148,8 @@ def _read_bool(config_value: Any, *, field_name: str) -> bool:
 
 
 def _default_modality(task_name: str) -> str:
+    if task_name.endswith("_embed") or task_name == "entity_embed":
+        return "embedding"
     return "multimodal" if task_name == "ocr" else "text"
 
 
@@ -223,6 +226,8 @@ class TaskLLMSettings:
     max_concurrency: int = DEFAULT_MAX_CONCURRENCY
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
     max_retries: int = DEFAULT_MAX_RETRIES
+    encoding_format: str = DEFAULT_EMBEDDING_ENCODING_FORMAT
+    embedding_dimensions: int | None = None
 
     @classmethod
     def from_env(cls, task_name: str, config_path: Path | None = None) -> "TaskLLMSettings":
@@ -286,8 +291,8 @@ class TaskLLMSettings:
             _get_nested_value(provider_config, "modality"),
             _default_modality(task_name),
         ).lower()
-        if modality not in {"text", "multimodal"}:
-            raise ValueError("provider.modality must be one of: text, multimodal")
+        if modality not in {"text", "multimodal", "embedding"}:
+            raise ValueError("provider.modality must be one of: text, multimodal, embedding")
 
         supports_thinking = _read_bool(
             _get_nested_value(provider_config, "supports_thinking"),
@@ -323,6 +328,17 @@ class TaskLLMSettings:
             _get_nested_value(request_config, "max_retries"),
             DEFAULT_MAX_RETRIES,
         )
+        encoding_format = _read_str(
+            tuple(),
+            _get_nested_value(request_config, "encoding_format"),
+            DEFAULT_EMBEDDING_ENCODING_FORMAT,
+        )
+        dimensions_config = _get_nested_value(request_config, "dimensions")
+        embedding_dimensions = None
+        if dimensions_config not in (None, ""):
+            embedding_dimensions = int(dimensions_config)
+            if embedding_dimensions <= 0:
+                raise ValueError("request.dimensions must be greater than 0")
 
         return cls(
             task_name=task_name,
@@ -338,4 +354,6 @@ class TaskLLMSettings:
             max_concurrency=max_concurrency,
             timeout_seconds=timeout_seconds,
             max_retries=max_retries,
+            encoding_format=encoding_format,
+            embedding_dimensions=embedding_dimensions,
         )

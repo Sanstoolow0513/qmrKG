@@ -8,7 +8,7 @@ from typing import Any, Literal
 
 
 LLMRole = Literal["system", "user", "assistant", "tool"]
-LLMModality = Literal["text", "multimodal"]
+LLMModality = Literal["text", "multimodal", "embedding"]
 LLMContentType = Literal["text", "image_url"]
 
 
@@ -42,3 +42,13 @@ class LLMResponse:
     error: str | None = None
     reasoning_content: str | None = None
     reasoning_details: list[dict[str, Any]] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class LLMEmbeddingResponse:
+    vectors: list[list[float]]
+    model: str | None
+    prompt_tokens: int | None = None
+    total_tokens: int | None = None
+    duration_seconds: float = 0.0
+    processed_at: str = ""
