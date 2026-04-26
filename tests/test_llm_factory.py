@@ -249,3 +249,63 @@ ner:
 
     with pytest.raises(ValueError, match="references unknown llm_profile"):
         LLMFactory(config_path).create("ner", client=FakeClient(lambda **_: FakeResponse("ner")))
+
+
+def test_embedding_modality_no_prompt_required(monkeypatch, tmp_path):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    config_path = write_config(
+        tmp_path,
+        """
+llm:
+  profiles:
+    embedding_profile:
+      provider:
+        name: ppio
+        base_url: https://api.ppinfra.com/openai
+        model: qwen/qwen3-embedding-8b
+        modality: embedding
+        supports_thinking: false
+      request:
+        timeout_seconds: 30
+        max_retries: 2
+        encoding_format: float
+        dimensions: 1024
+      rate_limit:
+        rpm: 100
+        max_concurrency: 4
+entity_embed:
+  llm_profile: embedding_profile
+""".strip(),
+    )
+
+    runner = LLMFactory(config_path).create("entity_embed", client=FakeClient(lambda **_: None))
+
+    assert runner.settings.modality == "embedding"
+    assert runner.settings.prompt == ""
+    assert runner.settings.encoding_format == "float"
+    assert runner.settings.embedding_dimensions == 1024
+
+
+def test_embedding_modality_rejects_thinking(monkeypatch, tmp_path):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    config_path = write_config(
+        tmp_path,
+        """
+llm:
+  profiles:
+    embedding_profile:
+      provider:
+        name: ppio
+        model: qwen/qwen3-embedding-8b
+        modality: embedding
+        supports_thinking: false
+      request:
+        thinking:
+          enabled: true
+entity_embed:
+  llm_profile: embedding_profile
+""".strip(),
+    )
+
+    with pytest.raises(ValueError, match="request.thinking.enabled"):
+        LLMFactory(config_path).create("entity_embed", client=FakeClient(lambda **_: None))
