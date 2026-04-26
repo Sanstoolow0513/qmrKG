@@ -7,6 +7,7 @@ import argparse
 
 COMMANDS: tuple[tuple[str, str], ...] = (
     ("qmrkg --list", "List all available qmrkg commands"),
+    ("qmr", "Run the full pipeline (PDF -> Neo4j)"),
     ("pdftopng", "Convert PDF files to PNG images"),
     ("pngtotext", "Convert PNG files to markdown text (VLM OCR)"),
     ("mdchunk", "Chunk markdown files into JSON"),

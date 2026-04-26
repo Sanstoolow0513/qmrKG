@@ -23,6 +23,7 @@ dev = [
 ]
 
 [project.scripts]
+qmr = "qmrkg.cli_qmr:main"
 qmrkg = "qmrkg.cli_qmrkg:main"
 pdftopng = "qmrkg.cli_pdf_to_png:main"
 pngtotext = "qmrkg.cli_png_to_text:main"
