@@ -51,7 +51,7 @@ def main(argv: list[str] | None = None):
         datefmt="%H:%M:%S",
     )
 
-    embedding_config = dict(run_cfg.get("embedding", {}))
+    embedding_config = dict(run_cfg.get("embedding") or {})
     if args.no_embedding:
         embedding_config["enabled"] = False
     if args.embedding_task is not None:
