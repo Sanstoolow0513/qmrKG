@@ -312,15 +312,15 @@ def _required_str(item: dict[str, Any], field: str, path: str) -> str:
 def _validate_entity_type(value: str, path: str) -> None:
     if value not in ENTITY_TYPES:
         allowed = ", ".join(sorted(ENTITY_TYPES))
-        raise EvaluationError(f"{path} has invalid entity type: {value!r}; expected one of: {allowed}")
+        raise EvaluationError(
+            f"{path} has invalid entity type: {value!r}; expected one of: {allowed}"
+        )
 
 
 def _validate_relation(value: str, path: str) -> None:
     if value not in RELATION_TYPES:
         allowed = ", ".join(sorted(RELATION_TYPES))
-        raise EvaluationError(
-            f"{path} has invalid relation: {value!r}; expected one of: {allowed}"
-        )
+        raise EvaluationError(f"{path} has invalid relation: {value!r}; expected one of: {allowed}")
 
 
 def _has_evidence(item: dict[str, Any], path: str) -> bool:

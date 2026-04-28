@@ -144,7 +144,9 @@ def test_missing_required_triple_field_raises_clear_error() -> None:
         ],
     }
 
-    with pytest.raises(EvaluationError, match="pred.triples\\[0\\] missing required field: tail_type"):
+    with pytest.raises(
+        EvaluationError, match="pred.triples\\[0\\] missing required field: tail_type"
+    ):
         evaluate_payloads(pred, _gold_payload())
 
 
@@ -192,9 +194,7 @@ def test_duplicate_predicted_triples_collapse_and_preserve_evidence() -> None:
         ("evidence", 1, "pred.triples\\[0\\] field evidence must be a string"),
     ],
 )
-def test_malformed_evidence_fields_raise_clear_error(
-    field: str, value: object, match: str
-) -> None:
+def test_malformed_evidence_fields_raise_clear_error(field: str, value: object, match: str) -> None:
     pred = _pred_payload()
     pred["triples"][0][field] = value
 

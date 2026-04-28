@@ -15,7 +15,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Evaluate merged KG triples against pure gold triples."
     )
-    parser.add_argument("--pred", type=Path, required=True, help="Predicted merged triples JSON file")
+    parser.add_argument(
+        "--pred", type=Path, required=True, help="Predicted merged triples JSON file"
+    )
     parser.add_argument("--gold", type=Path, required=True, help="Gold triples JSON file")
     parser.add_argument("--output-json", type=Path, help="Optional path for JSON report output")
     parser.add_argument("--output-md", type=Path, help="Optional path for Markdown report output")
