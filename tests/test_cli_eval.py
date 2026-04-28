@@ -1,4 +1,6 @@
 import json
+import tomllib
+from pathlib import Path
 
 
 def _pred_payload() -> dict:
@@ -123,3 +125,17 @@ def test_cli_eval_returns_nonzero_for_invalid_input(tmp_path, capsys) -> None:
 
     assert exit_code == 1
     assert "pred file not found:" in capsys.readouterr().err
+
+
+def test_pyproject_registers_kgeval_script() -> None:
+    data = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+    assert data["project"]["scripts"]["kgeval"] == "qmrkg.cli_eval:main"
+
+
+def test_qmrkg_list_includes_kgeval(capsys) -> None:
+    from qmrkg.cli_qmrkg import main
+
+    exit_code = main(["--list"])
+
+    assert exit_code == 0
+    assert "kgeval" in capsys.readouterr().out

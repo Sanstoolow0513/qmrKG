@@ -14,6 +14,7 @@ COMMANDS: tuple[tuple[str, str], ...] = (
     ("kgextract", "Extract KG triples from markdown chunks"),
     ("kgmerge", "Merge raw triple JSON into a deduplicated graph"),
     ("kgneo4j", "Import merged triples into Neo4j"),
+    ("kgeval", "Evaluate merged triples against a gold set"),
 )
 
 

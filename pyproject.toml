@@ -34,6 +34,7 @@ kgmdcombine = "qmrkg.cli_kg_md_combine:main"
 kgextract = "qmrkg.cli_kg_extract:main"
 kgmerge = "qmrkg.cli_kg_merge:main"
 kgneo4j = "qmrkg.cli_kg_neo4j:main"
+kgeval = "qmrkg.cli_eval:main"
 
 [build-system]
 requires = ["setuptools>=61.0"]
