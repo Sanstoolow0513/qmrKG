@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from qmrkg.kg_schema import ENTITY_TYPES, RELATION_TYPES
@@ -92,6 +94,128 @@ def evaluate_payloads(
             "false_negatives": [_triple_to_dict(key) for key in false_negatives[:top_errors]],
         },
     }
+
+
+def evaluate_files(
+    pred_path: Path,
+    gold_path: Path,
+    *,
+    top_errors: int = 10,
+    evaluated_at: str | None = None,
+) -> dict[str, Any]:
+    """Load prediction and gold files, then evaluate them."""
+
+    pred_path = Path(pred_path)
+    gold_path = Path(gold_path)
+    pred = _read_json_object(pred_path, "pred")
+    gold = _read_json_object(gold_path, "gold")
+    return evaluate_payloads(
+        pred,
+        gold,
+        pred_path=str(pred_path),
+        gold_path=str(gold_path),
+        evaluated_at=evaluated_at,
+        top_errors=top_errors,
+    )
+
+
+def render_markdown_report(report: dict[str, Any]) -> str:
+    """Render an evaluation report as Markdown."""
+
+    meta = report["meta"]
+    metrics = report["metrics"]
+    evidence = report["evidence"]
+    errors = report["errors"]
+
+    pred_count = metrics["triples"]["pred_count"]
+    tp_count = metrics["triples"]["tp"]
+    pred_evidence_count = round(evidence["pred_coverage"] * pred_count)
+    tp_evidence_count = round(evidence["tp_coverage"] * tp_count)
+
+    lines = [
+        "# QmrKG Evaluation Report",
+        "",
+        "## Evaluation Inputs",
+        "",
+        f"- Prediction file: `{meta.get('pred_path')}`",
+        f"- Gold file: `{meta.get('gold_path')}`",
+        f"- Evaluated at: `{meta.get('evaluated_at')}`",
+        f"- Gold schema version: `{meta.get('gold_schema_version')}`",
+        "- Matching: strict entity and triple identity",
+        "",
+        "## Summary",
+        "",
+        "| Scope | Pred | Gold | TP | FP | FN | Precision | Recall | F1 |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+        _metric_row("Entity", metrics["entities"]),
+        _metric_row("Triple", metrics["triples"]),
+        "",
+        "## Evidence",
+        "",
+        f"Predicted evidence coverage: {pred_evidence_count}/{pred_count} "
+        f"({_fmt(evidence['pred_coverage'])})",
+        f"True-positive evidence coverage: {tp_evidence_count}/{tp_count} "
+        f"({_fmt(evidence['tp_coverage'])})",
+        "",
+        "## Error Samples",
+        "",
+        "### False Positives",
+        "",
+        _triple_table(errors["false_positives"]),
+        "",
+        "### False Negatives",
+        "",
+        _triple_table(errors["false_negatives"]),
+        "",
+        "## Notes",
+        "",
+        "- Entity matches require exact `name` and `type` equality.",
+        "- Triple matches require exact `head`, `head_type`, `relation`, `tail`, "
+        "and `tail_type` equality.",
+        "- Evidence coverage measures predicted triples with non-empty evidence fields.",
+    ]
+    return "\n".join(lines) + "\n"
+
+
+def _read_json_object(path: Path, label: str) -> dict[str, Any]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError as exc:
+        raise EvaluationError(f"{label} file not found: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise EvaluationError(f"{label} file is not valid JSON: {path}") from exc
+
+    if not isinstance(payload, dict):
+        raise EvaluationError(f"{label} file must contain a JSON object: {path}")
+    return payload
+
+
+def _metric_row(label: str, metrics: dict[str, Any]) -> str:
+    return (
+        f"| {label} | {metrics['pred_count']} | {metrics['gold_count']} | {metrics['tp']} | "
+        f"{metrics['fp']} | {metrics['fn']} | {_fmt(metrics['precision'])} | "
+        f"{_fmt(metrics['recall'])} | {_fmt(metrics['f1'])} |"
+    )
+
+
+def _triple_table(items: list[dict[str, str]]) -> str:
+    if not items:
+        return "_None_"
+
+    lines = [
+        "| Head | Head Type | Relation | Tail | Tail Type |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for item in items:
+        lines.append(
+            f"| `{item['head']}` | `{item['head_type']}` | `{item['relation']}` | "
+            f"`{item['tail']}` | `{item['tail_type']}` |"
+        )
+    return "\n".join(lines)
+
+
+def _fmt(value: float) -> str:
+    return f"{value:.4f}"
 
 
 def _list_field(

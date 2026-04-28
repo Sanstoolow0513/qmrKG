@@ -1,6 +1,13 @@
+import json
+
 import pytest
 
-from qmrkg.evaluation import EvaluationError, evaluate_payloads
+from qmrkg.evaluation import (
+    EvaluationError,
+    evaluate_files,
+    evaluate_payloads,
+    render_markdown_report,
+)
 
 
 def _pred_payload() -> dict:
@@ -197,3 +204,39 @@ def test_malformed_evidence_fields_raise_clear_error(
 def test_negative_top_errors_raises_clear_error() -> None:
     with pytest.raises(EvaluationError, match="top_errors must be greater than or equal to 0"):
         evaluate_payloads(_pred_payload(), _gold_payload(), top_errors=-1)
+
+
+def test_evaluate_files_loads_json_and_preserves_paths(tmp_path) -> None:
+    pred_path = tmp_path / "pred_merged.json"
+    gold_path = tmp_path / "gold_triples.json"
+    pred_path.write_text(json.dumps(_pred_payload(), ensure_ascii=False), encoding="utf-8")
+    gold_path.write_text(json.dumps(_gold_payload(), ensure_ascii=False), encoding="utf-8")
+
+    report = evaluate_files(
+        pred_path,
+        gold_path,
+        top_errors=3,
+        evaluated_at="2026-04-28T00:00:00Z",
+    )
+
+    assert report["meta"]["pred_path"] == str(pred_path)
+    assert report["meta"]["gold_path"] == str(gold_path)
+    assert report["metrics"]["triples"]["tp"] == 1
+
+
+def test_render_markdown_report_contains_summary_and_error_samples() -> None:
+    report = evaluate_payloads(
+        _pred_payload(),
+        _gold_payload(),
+        pred_path="pred.json",
+        gold_path="gold.json",
+        evaluated_at="2026-04-28T00:00:00Z",
+    )
+
+    markdown = render_markdown_report(report)
+
+    assert "# QmrKG Evaluation Report" in markdown
+    assert "| Entity | 3 | 2 | 2 | 1 | 0 | 0.6667 | 1.0000 | 0.8000 |" in markdown
+    assert "| Triple | 2 | 1 | 1 | 1 | 0 | 0.5000 | 1.0000 | 0.6667 |" in markdown
+    assert "Predicted evidence coverage: 1/2 (0.5000)" in markdown
+    assert "`HTTP` | `protocol` | `compared_with` | `UDP` | `protocol`" in markdown
