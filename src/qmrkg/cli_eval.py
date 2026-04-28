@@ -39,18 +39,20 @@ def main(argv: list[str] | None = None) -> int:
         print(str(exc), file=sys.stderr)
         return 1
 
+    json_to_stdout = args.output_json is None
+    status_stream = sys.stderr if json_to_stdout else sys.stdout
     json_report = json.dumps(report, ensure_ascii=False, indent=2)
     if args.output_json:
         args.output_json.parent.mkdir(parents=True, exist_ok=True)
         args.output_json.write_text(json_report + "\n", encoding="utf-8")
-        print(f"Evaluation JSON written to: {args.output_json}")
+        print(f"Evaluation JSON written to: {args.output_json}", file=status_stream)
     else:
         print(json_report)
 
     if args.output_md:
         args.output_md.parent.mkdir(parents=True, exist_ok=True)
         args.output_md.write_text(render_markdown_report(report), encoding="utf-8")
-        print(f"Evaluation Markdown written to: {args.output_md}")
+        print(f"Evaluation Markdown written to: {args.output_md}", file=status_stream)
 
     return 0
 

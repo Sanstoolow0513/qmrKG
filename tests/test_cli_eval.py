@@ -1,5 +1,4 @@
 import json
-from pathlib import Path
 
 
 def _pred_payload() -> dict:
@@ -83,6 +82,35 @@ def test_cli_eval_prints_json_to_stdout_when_no_json_output(tmp_path, capsys) ->
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["metrics"]["entities"]["f1"] == 1.0
+
+
+def test_cli_eval_keeps_stdout_json_clean_when_writing_markdown(tmp_path, capsys) -> None:
+    import qmrkg.cli_eval as cli_eval
+
+    pred_path = tmp_path / "pred_merged.json"
+    gold_path = tmp_path / "gold_triples.json"
+    output_md = tmp_path / "nested" / "reports" / "report.md"
+    pred_path.write_text(json.dumps(_pred_payload(), ensure_ascii=False), encoding="utf-8")
+    gold_path.write_text(json.dumps(_gold_payload(), ensure_ascii=False), encoding="utf-8")
+
+    exit_code = cli_eval.main(
+        [
+            "--pred",
+            str(pred_path),
+            "--gold",
+            str(gold_path),
+            "--output-md",
+            str(output_md),
+        ]
+    )
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert payload["metrics"]["entities"]["f1"] == 1.0
+    assert output_md.exists()
+    assert "Evaluation Markdown written to:" not in captured.out
+    assert "Evaluation Markdown written to:" in captured.err
 
 
 def test_cli_eval_returns_nonzero_for_invalid_input(tmp_path, capsys) -> None:
