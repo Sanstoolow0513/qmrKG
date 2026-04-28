@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -335,3 +336,20 @@ def test_evaluate_files_non_utf8_pred_json_raises_clear_error(tmp_path) -> None:
 
     with pytest.raises(EvaluationError, match="pred file is not valid UTF-8 text:"):
         evaluate_files(pred_path, gold_path)
+
+
+def test_committed_eval_fixtures_produce_expected_metrics() -> None:
+    report = evaluate_files(
+        Path("tests/fixtures/eval/pred_merged.json"),
+        Path("tests/fixtures/eval/gold_triples.json"),
+        evaluated_at="2026-04-28T00:00:00Z",
+        top_errors=10,
+    )
+
+    assert report["metrics"]["entities"]["pred_count"] == 3
+    assert report["metrics"]["entities"]["gold_count"] == 2
+    assert report["metrics"]["entities"]["tp"] == 2
+    assert report["metrics"]["triples"]["pred_count"] == 2
+    assert report["metrics"]["triples"]["gold_count"] == 1
+    assert report["metrics"]["triples"]["fp"] == 1
+    assert report["evidence"]["pred_coverage"] == 0.5
