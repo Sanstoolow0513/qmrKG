@@ -240,3 +240,95 @@ def test_render_markdown_report_contains_summary_and_error_samples() -> None:
     assert "| Triple | 2 | 1 | 1 | 1 | 0 | 0.5000 | 1.0000 | 0.6667 |" in markdown
     assert "Predicted evidence coverage: 1/2 (0.5000)" in markdown
     assert "`HTTP` | `protocol` | `compared_with` | `UDP` | `protocol`" in markdown
+
+
+def test_render_markdown_report_escapes_triple_table_cells() -> None:
+    report = {
+        "meta": {
+            "pred_path": "pred.json",
+            "gold_path": "gold.json",
+            "evaluated_at": "2026-04-28T00:00:00Z",
+            "gold_schema_version": 1,
+        },
+        "metrics": {
+            "entities": {
+                "pred_count": 0,
+                "gold_count": 0,
+                "tp": 0,
+                "fp": 0,
+                "fn": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0,
+            },
+            "triples": {
+                "pred_count": 1,
+                "gold_count": 0,
+                "tp": 0,
+                "fp": 1,
+                "fn": 0,
+                "precision": 0.0,
+                "recall": 0.0,
+                "f1": 0.0,
+            },
+        },
+        "evidence": {"pred_coverage": 0.0, "tp_coverage": 0.0},
+        "errors": {
+            "false_positives": [
+                {
+                    "head": "HT|TP`name\nnext",
+                    "head_type": "protocol",
+                    "relation": "depends_on",
+                    "tail": "TC|P",
+                    "tail_type": "protocol",
+                }
+            ],
+            "false_negatives": [],
+        },
+    }
+
+    markdown = render_markdown_report(report)
+
+    escaped_row = (
+        "| `HT\\|TP\\`name next` | `protocol` | `depends_on` | "
+        "`TC\\|P` | `protocol` |"
+    )
+    assert escaped_row in markdown.splitlines()
+
+
+def test_evaluate_files_missing_pred_file_raises_clear_error(tmp_path) -> None:
+    gold_path = tmp_path / "gold.json"
+    gold_path.write_text(json.dumps(_gold_payload(), ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(EvaluationError, match="pred file not found:"):
+        evaluate_files(tmp_path / "missing.json", gold_path)
+
+
+def test_evaluate_files_invalid_pred_json_raises_clear_error(tmp_path) -> None:
+    pred_path = tmp_path / "pred.json"
+    gold_path = tmp_path / "gold.json"
+    pred_path.write_text("{not-json", encoding="utf-8")
+    gold_path.write_text(json.dumps(_gold_payload(), ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(EvaluationError, match="pred file is not valid JSON:"):
+        evaluate_files(pred_path, gold_path)
+
+
+def test_evaluate_files_non_object_pred_json_raises_clear_error(tmp_path) -> None:
+    pred_path = tmp_path / "pred.json"
+    gold_path = tmp_path / "gold.json"
+    pred_path.write_text("[]", encoding="utf-8")
+    gold_path.write_text(json.dumps(_gold_payload(), ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(EvaluationError, match="pred file must contain a JSON object:"):
+        evaluate_files(pred_path, gold_path)
+
+
+def test_evaluate_files_non_utf8_pred_json_raises_clear_error(tmp_path) -> None:
+    pred_path = tmp_path / "pred.json"
+    gold_path = tmp_path / "gold.json"
+    pred_path.write_bytes(b"\xff")
+    gold_path.write_text(json.dumps(_gold_payload(), ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(EvaluationError, match="pred file is not valid UTF-8 text:"):
+        evaluate_files(pred_path, gold_path)

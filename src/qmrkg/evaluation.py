@@ -97,8 +97,8 @@ def evaluate_payloads(
 
 
 def evaluate_files(
-    pred_path: Path,
-    gold_path: Path,
+    pred_path: str | Path,
+    gold_path: str | Path,
     *,
     top_errors: int = 10,
     evaluated_at: str | None = None,
@@ -137,10 +137,10 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         "",
         "## Evaluation Inputs",
         "",
-        f"- Prediction file: `{meta.get('pred_path')}`",
-        f"- Gold file: `{meta.get('gold_path')}`",
-        f"- Evaluated at: `{meta.get('evaluated_at')}`",
-        f"- Gold schema version: `{meta.get('gold_schema_version')}`",
+        f"- Prediction file: `{_markdown_cell_value(meta.get('pred_path'))}`",
+        f"- Gold file: `{_markdown_cell_value(meta.get('gold_path'))}`",
+        f"- Evaluated at: `{_markdown_cell_value(meta.get('evaluated_at'))}`",
+        f"- Gold schema version: `{_markdown_cell_value(meta.get('gold_schema_version'))}`",
         "- Matching: strict entity and triple identity",
         "",
         "## Summary",
@@ -182,6 +182,8 @@ def _read_json_object(path: Path, label: str) -> dict[str, Any]:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as exc:
         raise EvaluationError(f"{label} file not found: {path}") from exc
+    except UnicodeDecodeError as exc:
+        raise EvaluationError(f"{label} file is not valid UTF-8 text: {path}") from exc
     except json.JSONDecodeError as exc:
         raise EvaluationError(f"{label} file is not valid JSON: {path}") from exc
 
@@ -208,10 +210,23 @@ def _triple_table(items: list[dict[str, str]]) -> str:
     ]
     for item in items:
         lines.append(
-            f"| `{item['head']}` | `{item['head_type']}` | `{item['relation']}` | "
-            f"`{item['tail']}` | `{item['tail_type']}` |"
+            f"| `{_markdown_cell_value(item['head'])}` | "
+            f"`{_markdown_cell_value(item['head_type'])}` | "
+            f"`{_markdown_cell_value(item['relation'])}` | "
+            f"`{_markdown_cell_value(item['tail'])}` | "
+            f"`{_markdown_cell_value(item['tail_type'])}` |"
         )
     return "\n".join(lines)
+
+
+def _markdown_cell_value(value: Any) -> str:
+    return (
+        str(value)
+        .replace("\n", " ")
+        .replace("\r", " ")
+        .replace("|", "\\|")
+        .replace("`", "\\`")
+    )
 
 
 def _fmt(value: float) -> str:
