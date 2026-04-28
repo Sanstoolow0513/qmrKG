@@ -1,0 +1,140 @@
+import pytest
+
+from qmrkg.evaluation import EvaluationError, evaluate_payloads
+
+
+def _pred_payload() -> dict:
+    return {
+        "entities": [
+            {"name": "HTTP", "type": "protocol", "description": "HTTP协议", "frequency": 3},
+            {"name": "TCP", "type": "protocol", "description": "传输控制协议", "frequency": 5},
+            {"name": "UDP", "type": "protocol", "description": "用户数据报协议", "frequency": 1},
+        ],
+        "triples": [
+            {
+                "head": "HTTP",
+                "head_type": "protocol",
+                "relation": "depends_on",
+                "tail": "TCP",
+                "tail_type": "protocol",
+                "frequency": 2,
+                "evidences": ["HTTP 使用 TCP 作为传输层协议"],
+            },
+            {
+                "head": "HTTP",
+                "head_type": "protocol",
+                "relation": "compared_with",
+                "tail": "UDP",
+                "tail_type": "protocol",
+                "frequency": 1,
+                "evidences": [],
+            },
+        ],
+    }
+
+
+def _gold_payload() -> dict:
+    return {
+        "meta": {"name": "unit-gold", "schema_version": 1},
+        "entities": [
+            {"name": "HTTP", "type": "protocol"},
+            {"name": "TCP", "type": "protocol"},
+        ],
+        "triples": [
+            {
+                "head": "HTTP",
+                "head_type": "protocol",
+                "relation": "depends_on",
+                "tail": "TCP",
+                "tail_type": "protocol",
+                "evidence": "HTTP 使用 TCP 作为传输层协议",
+            }
+        ],
+    }
+
+
+def test_evaluate_payloads_counts_strict_entity_and_triple_metrics() -> None:
+    report = evaluate_payloads(
+        _pred_payload(),
+        _gold_payload(),
+        pred_path="pred.json",
+        gold_path="gold.json",
+        evaluated_at="2026-04-28T00:00:00Z",
+        top_errors=5,
+    )
+
+    entity = report["metrics"]["entities"]
+    assert entity["pred_count"] == 3
+    assert entity["gold_count"] == 2
+    assert entity["tp"] == 2
+    assert entity["fp"] == 1
+    assert entity["fn"] == 0
+    assert entity["precision"] == pytest.approx(2 / 3)
+    assert entity["recall"] == pytest.approx(1.0)
+    assert entity["f1"] == pytest.approx(0.8)
+
+    triple = report["metrics"]["triples"]
+    assert triple["pred_count"] == 2
+    assert triple["gold_count"] == 1
+    assert triple["tp"] == 1
+    assert triple["fp"] == 1
+    assert triple["fn"] == 0
+    assert triple["precision"] == pytest.approx(0.5)
+    assert triple["recall"] == pytest.approx(1.0)
+    assert triple["f1"] == pytest.approx(2 / 3)
+
+    assert report["evidence"]["pred_coverage"] == pytest.approx(0.5)
+    assert report["evidence"]["tp_coverage"] == pytest.approx(1.0)
+    assert report["errors"]["false_positives"] == [
+        {
+            "head": "HTTP",
+            "head_type": "protocol",
+            "relation": "compared_with",
+            "tail": "UDP",
+            "tail_type": "protocol",
+        }
+    ]
+    assert report["errors"]["false_negatives"] == []
+
+
+def test_gold_entities_are_derived_from_triples_when_missing() -> None:
+    gold = {
+        "meta": {"schema_version": 1},
+        "triples": [
+            {
+                "head": "HTTP",
+                "head_type": "protocol",
+                "relation": "depends_on",
+                "tail": "TCP",
+                "tail_type": "protocol",
+            }
+        ],
+    }
+
+    report = evaluate_payloads(
+        _pred_payload(),
+        gold,
+        pred_path="pred.json",
+        gold_path="gold.json",
+        evaluated_at="2026-04-28T00:00:00Z",
+    )
+
+    assert report["metrics"]["entities"]["gold_count"] == 2
+    assert report["metrics"]["entities"]["tp"] == 2
+
+
+def test_missing_required_triple_field_raises_clear_error() -> None:
+    pred = {
+        "entities": [{"name": "HTTP", "type": "protocol"}],
+        "triples": [
+            {
+                "head": "HTTP",
+                "head_type": "protocol",
+                "relation": "depends_on",
+                "tail": "TCP",
+            }
+        ],
+    }
+
+    with pytest.raises(EvaluationError, match="pred.triples\\[0\\] missing required field: tail_type"):
+        evaluate_payloads(pred, _gold_payload())
