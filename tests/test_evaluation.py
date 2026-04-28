@@ -245,7 +245,7 @@ def test_render_markdown_report_contains_summary_and_error_samples() -> None:
 def test_render_markdown_report_escapes_triple_table_cells() -> None:
     report = {
         "meta": {
-            "pred_path": "pred.json",
+            "pred_path": "pred`input.json",
             "gold_path": "gold.json",
             "evaluated_at": "2026-04-28T00:00:00Z",
             "gold_schema_version": 1,
@@ -279,7 +279,7 @@ def test_render_markdown_report_escapes_triple_table_cells() -> None:
                     "head": "HT|TP`name\nnext",
                     "head_type": "protocol",
                     "relation": "depends_on",
-                    "tail": "TC|P",
+                    "tail": "TC``P|name",
                     "tail_type": "protocol",
                 }
             ],
@@ -290,10 +290,13 @@ def test_render_markdown_report_escapes_triple_table_cells() -> None:
     markdown = render_markdown_report(report)
 
     escaped_row = (
-        "| `HT\\|TP\\`name next` | `protocol` | `depends_on` | "
-        "`TC\\|P` | `protocol` |"
+        "| `` HT\\|TP`name next `` | `protocol` | `depends_on` | "
+        "``` TC``P\\|name ``` | `protocol` |"
     )
-    assert escaped_row in markdown.splitlines()
+    markdown_lines = markdown.splitlines()
+    assert escaped_row in markdown_lines
+    assert "- Prediction file: `` pred`input.json ``" in markdown_lines
+    assert "\\`" not in escaped_row
 
 
 def test_evaluate_files_missing_pred_file_raises_clear_error(tmp_path) -> None:

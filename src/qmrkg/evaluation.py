@@ -137,10 +137,10 @@ def render_markdown_report(report: dict[str, Any]) -> str:
         "",
         "## Evaluation Inputs",
         "",
-        f"- Prediction file: `{_markdown_cell_value(meta.get('pred_path'))}`",
-        f"- Gold file: `{_markdown_cell_value(meta.get('gold_path'))}`",
-        f"- Evaluated at: `{_markdown_cell_value(meta.get('evaluated_at'))}`",
-        f"- Gold schema version: `{_markdown_cell_value(meta.get('gold_schema_version'))}`",
+        f"- Prediction file: {_markdown_code(meta.get('pred_path'))}",
+        f"- Gold file: {_markdown_code(meta.get('gold_path'))}",
+        f"- Evaluated at: {_markdown_code(meta.get('evaluated_at'))}",
+        f"- Gold schema version: {_markdown_code(meta.get('gold_schema_version'))}",
         "- Matching: strict entity and triple identity",
         "",
         "## Summary",
@@ -210,23 +210,29 @@ def _triple_table(items: list[dict[str, str]]) -> str:
     ]
     for item in items:
         lines.append(
-            f"| `{_markdown_cell_value(item['head'])}` | "
-            f"`{_markdown_cell_value(item['head_type'])}` | "
-            f"`{_markdown_cell_value(item['relation'])}` | "
-            f"`{_markdown_cell_value(item['tail'])}` | "
-            f"`{_markdown_cell_value(item['tail_type'])}` |"
+            f"| {_markdown_code(item['head'])} | "
+            f"{_markdown_code(item['head_type'])} | "
+            f"{_markdown_code(item['relation'])} | "
+            f"{_markdown_code(item['tail'])} | "
+            f"{_markdown_code(item['tail_type'])} |"
         )
     return "\n".join(lines)
 
 
-def _markdown_cell_value(value: Any) -> str:
-    return (
-        str(value)
-        .replace("\n", " ")
-        .replace("\r", " ")
-        .replace("|", "\\|")
-        .replace("`", "\\`")
-    )
+def _markdown_code(value: Any) -> str:
+    text = str(value).replace("\n", " ").replace("\r", " ").replace("|", "\\|")
+    longest_backtick_run = 0
+    current_backtick_run = 0
+    for char in text:
+        if char == "`":
+            current_backtick_run += 1
+            longest_backtick_run = max(longest_backtick_run, current_backtick_run)
+        else:
+            current_backtick_run = 0
+    if longest_backtick_run == 0:
+        return f"`{text}`"
+    delimiter = "`" * (longest_backtick_run + 1)
+    return f"{delimiter} {text} {delimiter}"
 
 
 def _fmt(value: float) -> str:
