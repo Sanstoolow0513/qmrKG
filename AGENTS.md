@@ -1,7 +1,7 @@
 # QmrKG Project Knowledge Base
 
-**Generated:** 2026-04-20
-**Commit:** 3beb0b6
+**Generated:** 2026-04-26
+**Commit:** 58ea922
 **Branch:** master
 
 ## OVERVIEW
@@ -14,18 +14,19 @@ QmrKG is a PDF-to-Knowledge-Graph pipeline for computer networking course materi
 
 ```
 qmrkg/
-├── src/qmrkg/              # Python pipeline (21 modules)
-│   ├── pipeline.py         # PDFPipeline orchestration
-│   ├── cli_*.py            # 7 CLI entry points
-│   ├── llm_factory.py      # Task-scoped LLM processor
+├── src/qmrkg/              # Python pipeline (24 modules)
+│   ├── pipeline.py         # PDFPipeline: PDF → PNG → Markdown
+│   ├── cli_*.py            # 9 CLI entry points
+│   ├── llm_factory.py      # Task-scoped LLM processor (text + multimodal + embedding)
 │   ├── kg_*.py             # Knowledge graph extraction/merge/import
 │   └── *_chunker.py        # Markdown chunking
 ├── frontend/               # Next.js 16 visualization
 │   ├── app/                # App Router
+│   ├── app/components/     # GraphVisualizer, GraphCanvas
 │   └── app/api/graph/      # Neo4j graph data API
 ├── data/                   # Runtime data (pdf/png/markdown/chunks/triples)
-├── tests/                  # pytest suite (11 files)
-├── config.yaml             # Task-level LLM configuration
+├── tests/                  # pytest suite (15 files)
+├── config.yaml             # LLM profiles + prompt config
 └── pyproject.toml          # Python package config
 ```
 
@@ -35,9 +36,11 @@ qmrkg/
 |------|----------|-------|
 | PDF → PNG conversion | `src/qmrkg/pdf_to_png.py` | PyMuPDF-based |
 | OCR/VLM text extraction | `src/qmrkg/png_to_text.py` | qwen3-vl-8b model |
+| Per-page MD → book MD | `src/qmrkg/cli_kg_md_combine.py` | Merges page files after OCR |
 | Markdown chunking | `src/qmrkg/markdown_chunker.py` | Token-aware splitting |
-| Entity/relation extraction | `src/qmrkg/kg_extractor.py` | deepseek-v3.2 model |
-| Triple merging | `src/qmrkg/kg_merger.py` | Deduplication logic |
+| Entity/relation extraction | `src/qmrkg/kg_extractor.py` | deepseek-v4-flash model |
+| Triple merging | `src/qmrkg/kg_merger.py` | Dedup + embedding canonicalization |
+| Entity canonicalization | `src/qmrkg/kg_merger.py` | Embedding-based entity resolution |
 | Neo4j import | `src/qmrkg/kg_neo4j.py` | Bulk loading |
 | LLM task factory | `src/qmrkg/llm_factory.py` | Rate limiting, retries |
 | Graph visualization | `frontend/app/page.tsx` | react-force-graph-2d |
@@ -49,10 +52,12 @@ qmrkg/
 uv run qmrkg --list                     # List all commands
 uv run pdftopng --pdf-dir data/pdf      # PDF → PNG
 uv run pngtotext --image-dir data/png   # OCR → Markdown
+uv run kgmdcombine --markdown-dir data/markdown  # Merge page files → book MD
 uv run mdchunk --markdown-dir data/markdown   # → JSON chunks
-uv run kgextract --input data/chunks    # → Raw triples
+uv run kgextract --input data/chunks    # → Raw triples (zs/fs modes)
 uv run kgmerge                          # → Merged triples
 uv run kgneo4j --import data/triples/merged/merged_triples.json  # → Neo4j
+uv run qmr                              # Full pipeline (PDF → Neo4j, single command)
 ```
 
 ### Python API
@@ -160,4 +165,7 @@ make neo4j-down-v  # Stop and remove volumes
 - **Relation types:** contains, depends_on, compared_with, applied_to
 - **Rate limiting:** Per-task rpm/max_concurrency in config.yaml
 - **Not a monorepo:** Two independent projects (Python CLI + Next.js frontend)
-- **Pipeline stages:** PDF → PNG → Markdown → Chunks → Triples → Merged → Neo4j
+- **Pipeline stages:** PDF → PNG → Markdown (per-page) → kgmdcombine (book MD) → Chunks → Triples → Merged → Neo4j
+- **kgextract modes:** `--mode zero-shot` / `few-shot` switches config.yaml prompts; use separate output dirs
+- **Embedding canonicalization:** kgmerge optionally uses embedding profile for entity dedup
+- **LLM profiles:** qwen3-vl-8b (OCR), deepseek-v4-flash (extract), embedding_qwen3_8b (embed)

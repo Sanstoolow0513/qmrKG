@@ -223,6 +223,7 @@ class TaskLLMSettings:
     modality: str
     supports_thinking: bool = False
     thinking_enabled: bool = False
+    reasoning_effort: str | None = None
     image_detail: str = DEFAULT_IMAGE_DETAIL
     rpm: int = DEFAULT_RPM
     max_concurrency: int = DEFAULT_MAX_CONCURRENCY
@@ -308,6 +309,17 @@ class TaskLLMSettings:
             raise ValueError(
                 f"task '{task_name}' enables request.thinking.enabled but provider.supports_thinking is false"
             )
+        reasoning_effort_raw = _get_nested_value(request_config, "thinking", "effort")
+        reasoning_effort: str | None = None
+        if reasoning_effort_raw not in (None, ""):
+            if not isinstance(reasoning_effort_raw, str):
+                raise ValueError("request.thinking.effort must be a string")
+            normalized_effort = reasoning_effort_raw.strip().lower()
+            if normalized_effort not in {"low", "medium", "high"}:
+                raise ValueError("request.thinking.effort must be one of: low, medium, high")
+            reasoning_effort = normalized_effort
+        elif thinking_enabled:
+            reasoning_effort = "medium"
 
         image_detail = _read_image_detail(
             _IMAGE_DETAIL_ALIASES,
@@ -351,6 +363,7 @@ class TaskLLMSettings:
             modality=modality,
             supports_thinking=supports_thinking,
             thinking_enabled=thinking_enabled,
+            reasoning_effort=reasoning_effort,
             image_detail=image_detail,
             rpm=rpm,
             max_concurrency=max_concurrency,

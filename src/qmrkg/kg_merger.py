@@ -17,6 +17,10 @@ from .kg_schema import Entity, Triple
 from .llm_factory import EmbeddingTaskProcessor
 
 logger = logging.getLogger(__name__)
+try:  # pragma: no cover - import behavior covered indirectly
+    import faiss
+except ImportError:  # pragma: no cover - validated at runtime
+    faiss = None
 
 SUFFIX_PATTERN = re.compile(r"(协议|算法|机制|方法|技术|方式)$")
 
@@ -81,6 +85,98 @@ class _UnionFind:
             self.parent[right_root] = left_root
 
 
+class _EmbeddingBinaryCache:
+    """Binary embedding cache backed by metadata JSON and NumPy matrix."""
+
+    VERSION = 1
+
+    def __init__(self, base_path: Path, signature: str):
+        self.base_path = base_path
+        self.signature = signature
+        self.meta_path = base_path.with_name(f"{base_path.name}.meta.json")
+        self.vec_path = base_path.with_name(f"{base_path.name}.npy")
+        self.key_to_idx: dict[str, int] = {}
+        self.vectors = np.empty((0, 0), dtype=np.float32)
+        self.dim: int | None = None
+
+    @staticmethod
+    def _coerce_base_path(cache_path: Path) -> Path:
+        return cache_path.with_suffix("") if cache_path.suffix else cache_path
+
+    @classmethod
+    def from_cache_path(cls, cache_path: Path, signature: str) -> "_EmbeddingBinaryCache":
+        return cls(cls._coerce_base_path(cache_path), signature)
+
+    def load(self) -> None:
+        if not self.meta_path.exists() or not self.vec_path.exists():
+            return
+        try:
+            raw = json.loads(self.meta_path.read_text(encoding="utf-8"))
+            if not isinstance(raw, dict):
+                logger.warning("Invalid binary cache meta at %s, ignoring", self.meta_path)
+                return
+            if raw.get("version") != self.VERSION or raw.get("signature") != self.signature:
+                logger.warning("Embedding cache signature/version mismatch, ignoring old cache")
+                return
+            key_to_idx = raw.get("key_to_idx")
+            if not isinstance(key_to_idx, dict):
+                logger.warning("Invalid key_to_idx in cache meta at %s", self.meta_path)
+                return
+            vectors = np.load(self.vec_path, allow_pickle=False)
+            if vectors.ndim != 2:
+                logger.warning("Invalid vector shape in cache at %s", self.vec_path)
+                return
+            self.vectors = np.asarray(vectors, dtype=np.float32)
+            self.dim = int(self.vectors.shape[1]) if self.vectors.shape[0] > 0 else None
+            cleaned: dict[str, int] = {}
+            for key, idx in key_to_idx.items():
+                if not isinstance(key, str) or not isinstance(idx, int):
+                    continue
+                if idx < 0 or idx >= self.vectors.shape[0]:
+                    continue
+                cleaned[key] = idx
+            self.key_to_idx = cleaned
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            logger.warning("Failed to load embedding cache, starting empty: %s", exc)
+            self.key_to_idx = {}
+            self.vectors = np.empty((0, 0), dtype=np.float32)
+            self.dim = None
+
+    def get(self, key: str) -> list[float] | None:
+        idx = self.key_to_idx.get(key)
+        if idx is None:
+            return None
+        return self.vectors[idx].astype(np.float32).tolist()
+
+    def put(self, key: str, vec: list[float]) -> None:
+        arr = np.asarray(vec, dtype=np.float32).reshape(1, -1)
+        if arr.shape[1] == 0:
+            return
+        if self.dim is None:
+            self.dim = int(arr.shape[1])
+            self.vectors = arr.copy()
+            self.key_to_idx[key] = 0
+            return
+        if arr.shape[1] != self.dim:
+            raise ValueError(
+                f"embedding dimension mismatch: expected {self.dim}, got {arr.shape[1]}"
+            )
+        next_idx = int(self.vectors.shape[0])
+        self.vectors = np.vstack([self.vectors, arr])
+        self.key_to_idx[key] = next_idx
+
+    def save(self) -> None:
+        self.base_path.parent.mkdir(parents=True, exist_ok=True)
+        np.save(self.vec_path, self.vectors.astype(np.float32))
+        payload = {
+            "version": self.VERSION,
+            "signature": self.signature,
+            "dim": self.dim,
+            "key_to_idx": self.key_to_idx,
+        }
+        self.meta_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 class EmbeddingCanonicalizer:
     """Group similar entity names in buckets using embedding cosine similarity."""
 
@@ -92,6 +188,10 @@ class EmbeddingCanonicalizer:
         bucket_by_type: bool,
         batch_size: int,
         cache_path: Path | None,
+        cache_format: str,
+        encoding_template: str,
+        max_desc_chars: int,
+        faiss_top_k: int,
         config_path: Path | None,
         processor: Any = None,
     ):
@@ -101,6 +201,10 @@ class EmbeddingCanonicalizer:
         self.bucket_by_type = bucket_by_type
         self.batch_size = batch_size
         self.cache_path = cache_path
+        self.cache_format = cache_format
+        self.encoding_template = encoding_template
+        self.max_desc_chars = max_desc_chars
+        self.faiss_top_k = faiss_top_k
         self.processor = (
             processor
             if processor is not None
@@ -112,36 +216,60 @@ class EmbeddingCanonicalizer:
         model = getattr(settings, "model", "") if settings is not None else ""
         return model or self.task_name
 
+    def _embedding_signature(self) -> str:
+        settings = getattr(self.processor, "settings", None)
+        model = self._model_id()
+        encoding_format = (
+            getattr(settings, "encoding_format", None) if settings is not None else None
+        ) or "float"
+        dimensions = getattr(settings, "embedding_dimensions", None) if settings is not None else None
+        return f"{model}::{encoding_format}::{dimensions or 'native'}"
+
+    def _cache_key(self, text: str) -> str:
+        signature = self._embedding_signature()
+        digest = hashlib.sha1(text.encode("utf-8")).hexdigest()
+        return f"{signature}::{digest}"
+
     def _encode_row(self, name: str, type_: str, description: str) -> str | None:
         if not (name and name.strip()):
             return None
-        parts: list[str] = []
+        values: dict[str, str] = {
+            "type": (type_ or "").strip(),
+            "name": (name or "").strip(),
+            "description": (description or "").strip(),
+        }
+        desc = values["description"]
+        if desc and self.max_desc_chars > 0:
+            values["description"] = desc[: self.max_desc_chars]
+        if self.encoding_template != "structured_zh":
+            parts = [values[f] for f in self.encode_fields if values.get(f)]
+            return " | ".join(parts)
+        labels = {"type": "实体类型", "name": "实体名", "description": "定义"}
+        chunks: list[str] = []
         for field in self.encode_fields:
-            if field == "type":
-                v = (type_ or "").strip()
-            elif field == "name":
-                v = (name or "").strip()
-            elif field == "description":
-                v = (description or "").strip()
-            else:
+            value = values.get(field, "")
+            if not value:
                 continue
-            if not v:
-                continue
-            parts.append(v)
-        return " | ".join(parts)
+            label = labels.get(field, field)
+            chunks.append(f"{label}：{value}")
+        return "；".join(chunks) if chunks else None
 
     def _embed_texts_resolved(
-        self, texts: list[str], cache: dict[str, list[float]]
+        self, texts: list[str], cache_json: dict[str, list[float]], cache_bin: _EmbeddingBinaryCache | None
     ) -> list[list[float]]:
         """Return embedding vectors, same order as `texts`."""
-        model_id = self._model_id()
         out: list[list[float]] = []
         pending_idx: list[int] = []
         pending_text: list[str] = []
         for i, text in enumerate(texts):
-            key = f"{model_id}::{hashlib.sha1(text.encode('utf-8')).hexdigest()}"
-            if key in cache:
-                out.append([float(x) for x in cache[key]])
+            key = self._cache_key(text)
+            if cache_bin is not None:
+                vec = cache_bin.get(key)
+                if vec is not None:
+                    out.append(vec)
+                    continue
+            if key in cache_json:
+                out.append([float(x) for x in cache_json[key]])
             else:
                 out.append([])  # placeholder
                 pending_idx.append(i)
@@ -151,8 +279,11 @@ class EmbeddingCanonicalizer:
             for j, i in enumerate(pending_idx):
                 text = pending_text[j]
                 vec = new_vecs[j]
-                key = f"{model_id}::{hashlib.sha1(text.encode('utf-8')).hexdigest()}"
-                cache[key] = [float(x) for x in vec]
+                key = self._cache_key(text)
+                if cache_bin is not None:
+                    cache_bin.put(key, vec)
+                else:
+                    cache_json[key] = [float(x) for x in vec]
                 out[i] = [float(x) for x in vec]
         return out
 
@@ -180,22 +311,31 @@ class EmbeddingCanonicalizer:
 
         n = len(rows)
         mapping: dict[str, str] = {r[0]: r[0] for r in rows}
-        cache: dict[str, list[float]] = {}
-        if self.cache_path and self.cache_path.exists():
-            try:
-                raw = json.loads(self.cache_path.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError) as exc:
-                logger.warning(
-                    "Invalid embedding cache at %s, starting empty: %s", self.cache_path, exc
+        cache_json: dict[str, list[float]] = {}
+        cache_bin: _EmbeddingBinaryCache | None = None
+        if self.cache_path:
+            if self.cache_format == "binary":
+                cache_bin = _EmbeddingBinaryCache.from_cache_path(
+                    self.cache_path, self._embedding_signature()
                 )
-                raw = None
-            if isinstance(raw, dict):
-                cache = {k: v for k, v in raw.items() if isinstance(v, list)}
-            elif raw is not None:
-                logger.warning(
-                    "Invalid embedding cache at %s (not a JSON object), starting empty",
-                    self.cache_path,
-                )
+                cache_bin.load()
+            elif self.cache_path.exists():
+                try:
+                    raw = json.loads(self.cache_path.read_text(encoding="utf-8"))
+                except (json.JSONDecodeError, OSError) as exc:
+                    logger.warning(
+                        "Invalid embedding cache at %s, starting empty: %s",
+                        self.cache_path,
+                        exc,
+                    )
+                    raw = None
+                if isinstance(raw, dict):
+                    cache_json = {k: v for k, v in raw.items() if isinstance(v, list)}
+                elif raw is not None:
+                    logger.warning(
+                        "Invalid embedding cache at %s (not a JSON object), starting empty",
+                        self.cache_path,
+                    )
 
         uf = _UnionFind(n)
 
@@ -218,15 +358,23 @@ class EmbeddingCanonicalizer:
                 valid.append(i)
             if len(texts) < 2:
                 continue
-            vecs = self._embed_texts_resolved(texts, cache)
+            vecs = self._embed_texts_resolved(texts, cache_json, cache_bin)
             m = len(vecs)
             mat = np.asarray(vecs, dtype=np.float32)
             norms = np.linalg.norm(mat, axis=1, keepdims=True)
             mat = mat / np.maximum(norms, np.float32(1e-12))
-            sim = mat @ mat.T
+            if faiss is None:
+                raise ImportError("faiss is required for embedding canonicalization. Install faiss-cpu.")
+            index = faiss.IndexFlatIP(mat.shape[1])
+            index.add(mat)
+            top_k = max(2, min(self.faiss_top_k, m))
+            scores, neighbors = index.search(mat, top_k)
             for a in range(m):
-                for b in range(a + 1, m):
-                    if float(sim[a, b]) >= self.similarity_threshold:
+                for rank in range(1, top_k):
+                    b = int(neighbors[a, rank])
+                    if b < 0 or b <= a:
+                        continue
+                    if float(scores[a, rank]) >= self.similarity_threshold:
                         uf.union(valid[a], valid[b])
 
         members_by_root: dict[int, list[int]] = defaultdict(list)
@@ -241,10 +389,13 @@ class EmbeddingCanonicalizer:
                 mapping[rows[i][0]] = canonical
 
         if self.cache_path is not None:
-            self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-            self.cache_path.write_text(
-                json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8"
-            )
+            if self.cache_format == "binary" and cache_bin is not None:
+                cache_bin.save()
+            else:
+                self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+                self.cache_path.write_text(
+                    json.dumps(cache_json, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
 
         return mapping
 
@@ -312,6 +463,10 @@ class KGMerger:
             batch_size = int(embedding_config.get("batch_size", 1024))
             emb_cache = embedding_config.get("cache_path")
             cache_path = Path(emb_cache) if emb_cache is not None else None
+            cache_format = str(embedding_config.get("cache_format", "binary"))
+            encoding_template = str(embedding_config.get("encoding_template", "structured_zh"))
+            max_desc_chars = int(embedding_config.get("max_desc_chars", 160))
+            faiss_top_k = int(embedding_config.get("faiss_top_k", 50))
             canonicalizer = EmbeddingCanonicalizer(
                 task_name=task_name,
                 encode_fields=encode_fields,
@@ -319,6 +474,10 @@ class KGMerger:
                 bucket_by_type=bucket_by_type,
                 batch_size=batch_size,
                 cache_path=cache_path,
+                cache_format=cache_format,
+                encoding_template=encoding_template,
+                max_desc_chars=max_desc_chars,
+                faiss_top_k=faiss_top_k,
                 config_path=config_path,
             )
             canonical_map = canonicalizer.build_canonical_map(merged_entities)

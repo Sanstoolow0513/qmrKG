@@ -6,6 +6,7 @@ import json
 import logging
 import re
 import tomllib
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
@@ -63,6 +64,7 @@ REVIEW_PROMPT = """\
 2. head 与 tail 必须都出现在 evidence 中
 3. relation 必须属于 contains / depends_on / compared_with / applied_to
 4. 不满足条件时必须 decision=drop，并给出 reason_code
+5. 不要计算字符级起止位置，不要猜测 span，evidence_span 固定输出为 null
 
 输出必须为 JSON：
 {
@@ -72,7 +74,7 @@ REVIEW_PROMPT = """\
       "relation": "...",
       "tail": "...",
       "evidence": "...",
-      "evidence_span": {"start": 0, "end": 10},
+      "evidence_span": null,
       "review": {
         "decision": "keep|revise|drop",
         "reason_code": "SUPPORTED|EVIDENCE_NOT_IN_CHUNK|SPAN_MISMATCH|HEAD_NOT_IN_EVIDENCE|TAIL_NOT_IN_EVIDENCE|INVALID_RELATION|SELF_LOOP|LOW_CONFIDENCE_DROP",
@@ -201,6 +203,7 @@ class KGExtractor:
             factory = LLMFactory(config_path)
             self._runner = factory.create(EXTRACT_TASK_NAME)
         self._system_prompt = self._resolve_system_prompt()
+        self._review_prompt = self._resolve_review_prompt()
 
     def extract_from_chunk(self, chunk: dict) -> ChunkExtractionResult:
         """Extract entities and relations from a single chunk dict."""
@@ -244,6 +247,8 @@ class KGExtractor:
         skip_existing: bool = True,
         *,
         progress_leave: bool = True,
+        progress_desc: str = "kgextract",
+        progress_position: int = 0,
     ) -> list[Path]:
         """Extract from all chunks in a JSON file, saving per-chunk results."""
         chunks_path = Path(chunks_path)
@@ -251,43 +256,73 @@ class KGExtractor:
         output_dir.mkdir(parents=True, exist_ok=True)
 
         chunks = json.loads(chunks_path.read_text(encoding="utf-8"))
-        result_paths: list[Path] = []
+        result_path_map: dict[int, Path] = {}
+        pending: list[tuple[int, dict[str, Any], Path]] = []
+        skipped_count = 0
 
-        chunk_iter = tqdm(
-            chunks,
-            desc="kgextract",
-            unit="chunk",
-            total=len(chunks),
-            dynamic_ncols=True,
-            leave=progress_leave,
-        )
-        for chunk in chunk_iter:
+        for chunk in chunks:
             idx = chunk.get("chunk_index", 0)
             out_path = output_dir / f"{chunks_path.stem}_chunk_{idx:04d}.json"
 
             if skip_existing and out_path.exists():
-                tqdm.write(f"{out_path.name} skip for existing output")
-                result_paths.append(out_path)
+                skipped_count += 1
+                result_path_map[idx] = out_path
                 continue
+            pending.append((idx, chunk, out_path))
 
-            try:
-                result = self.extract_from_chunk(chunk)
-                self._save_result(result, out_path, extractor_version=self._extractor_version)
-                result_paths.append(out_path)
-                logger.info(
-                    "Extracted chunk %d: %d entities, %d triples",
-                    idx,
-                    len(result.entities),
-                    len(result.triples),
-                )
-            except Exception as e:
-                logger.error("Failed chunk %d: %s", idx, e)
+        if pending:
+            max_workers = self._resolve_max_workers(len(pending))
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(self._extract_and_save_chunk, chunk, out_path): idx
+                    for idx, chunk, out_path in pending
+                }
+                for future in tqdm(
+                    as_completed(futures),
+                    desc=progress_desc,
+                    unit="chunk",
+                    total=len(futures),
+                    dynamic_ncols=True,
+                    leave=progress_leave,
+                    position=progress_position,
+                ):
+                    idx = futures[future]
+                    try:
+                        out_path = future.result()
+                        result_path_map[idx] = out_path
+                    except Exception as e:
+                        logger.error("Failed chunk %d: %s", idx, e)
 
-        return result_paths
+        if skipped_count:
+            tqdm.write(f"{chunks_path.name} skipped existing outputs: {skipped_count}")
+
+        return [result_path_map[idx] for idx in sorted(result_path_map)]
+
+    def _resolve_max_workers(self, pending_count: int) -> int:
+        configured = getattr(getattr(self._runner, "settings", None), "max_concurrency", 1)
+        if not isinstance(configured, int) or configured <= 0:
+            configured = 1
+        return max(1, min(pending_count, configured))
+
+    def _extract_and_save_chunk(self, chunk: dict[str, Any], out_path: Path) -> Path:
+        idx = chunk.get("chunk_index", 0)
+        result = self.extract_from_chunk(chunk)
+        self._save_result(result, out_path, extractor_version=self._extractor_version)
+        logger.info(
+            "Extracted chunk %d: %d entities, %d triples",
+            idx,
+            len(result.entities),
+            len(result.triples),
+        )
+        return out_path
 
     def resolve_prompt(self) -> str:
         """System prompt used for extraction (config + mode, or built-in default)."""
         return self._system_prompt
+
+    def resolve_review_prompt(self) -> str:
+        """System prompt used for review (config + mode, or built-in default)."""
+        return self._review_prompt
 
     def _resolve_system_prompt(self) -> str:
         prompts = _load_extract_prompts(self._config_path)
@@ -299,6 +334,19 @@ class KGExtractor:
         if isinstance(text, str) and text.strip():
             return text.strip()
         return EXTRACT_PROMPT
+
+    def _resolve_review_prompt(self) -> str:
+        prompts = _load_extract_prompts(self._config_path)
+        key = _mode_to_prompt_key(self._mode)
+        review_mode_key = f"review_{key}"
+        text = prompts.get(review_mode_key)
+        if not text:
+            text = prompts.get("review")
+        if not text:
+            text = prompts.get("review_default")
+        if isinstance(text, str) and text.strip():
+            return text.strip()
+        return REVIEW_PROMPT
 
     @staticmethod
     def _parse_json_response(text: str) -> dict:
@@ -371,7 +419,7 @@ class KGExtractor:
         }
         review_response = self._runner.run_text(
             json.dumps(payload, ensure_ascii=False),
-            system_prompt=REVIEW_PROMPT,
+            system_prompt=self._review_prompt,
         )
         reviewed_raw = self._parse_json_response(review_response.text)
         reviewed = self._parse_triples(reviewed_raw.get("triples", []))

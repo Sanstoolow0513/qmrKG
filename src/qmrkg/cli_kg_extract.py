@@ -105,7 +105,13 @@ def main(argv: list[str] | None = None) -> int:
 
     input_path = args.input
     if input_path.is_file():
-        paths = extractor.extract_from_chunks_file(input_path, args.output_dir, skip_existing=skip)
+        paths = extractor.extract_from_chunks_file(
+            input_path,
+            args.output_dir,
+            skip_existing=skip,
+            progress_desc=f"{input_path.name} 进度",
+            progress_position=0,
+        )
         print(f"Extracted {len(paths)} chunk(s) from {input_path.name}")
     elif input_path.is_dir():
         chunk_files = sorted(input_path.glob("*.json"))
@@ -114,23 +120,39 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         total = 0
         multi_file = len(chunk_files) > 1
-        file_iter = (
-            tqdm(
-                chunk_files,
-                desc="kgextract",
-                unit="file",
+        if multi_file:
+            file_pbar = tqdm(
                 total=len(chunk_files),
+                desc="文件 0/0",
+                unit="file",
                 dynamic_ncols=True,
+                position=0,
+                leave=True,
             )
-            if multi_file
-            else chunk_files
-        )
-        for cf in file_iter:
+            try:
+                for idx, cf in enumerate(chunk_files, start=1):
+                    file_pbar.set_description_str(f"文件 {idx}/{len(chunk_files)}: {cf.name}")
+                    paths = extractor.extract_from_chunks_file(
+                        cf,
+                        args.output_dir,
+                        skip_existing=skip,
+                        progress_leave=False,
+                        progress_desc=f"{cf.name} chunk",
+                        progress_position=1,
+                    )
+                    total += len(paths)
+                    file_pbar.update(1)
+            finally:
+                file_pbar.close()
+        else:
+            cf = chunk_files[0]
             paths = extractor.extract_from_chunks_file(
                 cf,
                 args.output_dir,
                 skip_existing=skip,
-                progress_leave=not multi_file,
+                progress_leave=True,
+                progress_desc=f"{cf.name} 进度",
+                progress_position=0,
             )
             total += len(paths)
         print(f"Extracted {total} chunk(s) from {len(chunk_files)} file(s)")

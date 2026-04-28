@@ -254,7 +254,7 @@ def test_extract_text_sends_openai_compatible_vision_request(scratch_dir, monkey
     assert image_part["type"] == "image_url"
     assert image_part["image_url"]["url"].startswith("data:image/png;base64,")
     assert image_part["image_url"]["detail"] == "high"
-    assert "reasoning_enabled" not in processor._client.calls[0]
+    assert "reasoning_effort" not in processor._client.calls[0]
 
 
 def test_extract_text_returns_compatibility_confidence(scratch_dir, monkeypatch):

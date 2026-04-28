@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-Core Python pipeline for PDF-to-Knowledge-Graph processing. 21 modules handling document conversion, OCR, chunking, entity extraction, and Neo4j import.
+Core Python pipeline for PDF-to-Knowledge-Graph processing. 24 modules handling document conversion, OCR, chunking, entity extraction, embedding canonicalization, and Neo4j import.
 
 ## STRUCTURE
 
@@ -16,15 +16,16 @@ src/qmrkg/
 ├── png_to_text.py          # OCRProcessor: VLM-based OCR
 ├── markdown_chunker.py     # MarkdownChunker: token-aware splitting
 ├── kg_extractor.py         # KGExtractor: entity/relation extraction
-├── kg_merger.py            # KGMerger: triple deduplication
+├── kg_merger.py            # KGMerger: triple dedup + embedding canonicalization
 ├── kg_neo4j.py             # KGNeo4jLoader: graph import
 ├── kg_schema.py            # Data models (Entity, Triple)
-├── llm_factory.py          # TaskLLMFactory: rate-limited LLM calls
+├── llm_factory.py          # TaskLLMFactory: rate-limited LLM calls (text+multimodal+embedding)
 ├── llm_config.py           # TaskLLMSettings: YAML + env config
 ├── llm_types.py            # LLM message/response types
 ├── rate_limit.py           # RollingWindowRateLimiter
+├── config.py               # Pipeline run config loader
 ├── tqdm_logging.py         # Progress bar utilities
-└── cli_*.py                # 7 CLI entry points
+└── cli_*.py                # 9 CLI entry points
 ```
 
 ## WHERE TO LOOK
@@ -35,11 +36,13 @@ src/qmrkg/
 | PDF rendering | `pdf_to_png.py` | `PDFConverter` uses PyMuPDF |
 | OCR extraction | `png_to_text.py` | `OCRProcessor` with multimodal LLM |
 | Text chunking | `markdown_chunker.py` | Token-based with overlap |
-| Triple extraction | `kg_extractor.py` | NER + RE via LLM |
-| Triple merging | `kg_merger.py` | Entity resolution, relation dedup |
+| Markdown merging | `cli_kg_md_combine.py` | Per-page → book MD |
+| Triple extraction | `kg_extractor.py` | NER + RE via LLM (zs/fs modes) |
+| Triple merging | `kg_merger.py` | Entity resolution, relation dedup, embedding canonicalization |
 | Neo4j loading | `kg_neo4j.py` | Cypher-based bulk import |
-| LLM orchestration | `llm_factory.py` | Factory for text/multimodal tasks |
+| LLM orchestration | `llm_factory.py` | Factory for text/multimodal/embedding tasks |
 | Configuration | `llm_config.py` | YAML parsing + env overrides |
+| Run defaults | `config.py` | Pipeline stage defaults |
 
 ## KEY CLASSES
 
@@ -49,12 +52,14 @@ src/qmrkg/
 | `PDFConverter` | pdf_to_png.py | Renders PDF pages to PNG images |
 | `OCRProcessor` | png_to_text.py | VLM OCR for image→text |
 | `MarkdownChunker` | markdown_chunker.py | Splits markdown into JSON chunks |
-| `KGExtractor` | kg_extractor.py | Extracts entities/triples from chunks |
-| `KGMerger` | kg_merger.py | Merges and deduplicates triples |
+| `KGExtractor` | kg_extractor.py | Extracts entities/triples from chunks (zs/fs) |
+| `KGMerger` | kg_merger.py | Merges, deduplicates, canonicalizes entities |
 | `KGNeo4jLoader` | kg_neo4j.py | Imports triples to Neo4j |
 | `TextTaskProcessor` | llm_factory.py | Text-only LLM tasks |
 | `MultimodalTaskProcessor` | llm_factory.py | Image+text LLM tasks |
+| `EmbeddingTaskProcessor` | llm_factory.py | Embedding generation tasks |
 | `TaskLLMSettings` | llm_config.py | Configuration management |
+| `RunConfig` | config.py | Pipeline stage default settings |
 | `RollingWindowRateLimiter` | rate_limit.py | Per-task rate limiting |
 
 ## CONVENTIONS
@@ -91,6 +96,9 @@ async with self.rate_limiter.acquire():
 - ❌ **Don't exceed 100 char lines** - black/ruff enforces this
 - ❌ **Don't use Python <3.13** - type hints require 3.13 features
 - ❌ **Don't import from `llm_factory` directly in tests** - mock via `monkeypatch`
+- ❌ **Don't use deprecated `openai:` top-level key** in config.yaml — raises error
+- ❌ **Don't use `SILICONFLOW_*` env vars** — use `PPIO_*` equivalents
+- ❌ **Don't omit `evidence` field** in extracted triples
 
 ## TESTING
 
@@ -116,3 +124,6 @@ uv run pytest tests/test_llm_factory.py -v
 - **Chunking:** Token-based with configurable overlap
 - **Entity Types:** protocol, concept, mechanism, metric (defined in kg_schema.py)
 - **Relation Types:** contains, depends_on, compared_with, applied_to
+- **Extraction Modes:** zero-shot / few-shot via `extract.prompts` in config.yaml
+- **Embedding Canonicalization:** Optional, configured in `kg_merge.embedding` (config.yaml)
+- **kgmdcombine:** OCR outputs per-page files; kgmdcombine merges them into book-level MD before chunking

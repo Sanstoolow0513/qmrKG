@@ -30,8 +30,10 @@ frontend/
 |------|----------|-------|
 | Main visualization | `app/page.tsx` | Renders GraphVisualizer |
 | Graph data API | `app/api/graph/route.ts` | Queries Neo4j, returns graph data |
-| Components | `app/components/` | React components |
-| Utilities | `app/lib/` | Helper functions |
+| Force graph component | `app/components/GraphCanvas.tsx` | react-force-graph-2d canvas |
+| Visualization wrapper | `app/components/GraphVisualizer.tsx` | Controls, legend, layout |
+| Theme/colors | `app/lib/graphTheme.ts` | Graph styling constants |
+| Route handler | `app/api/graph/route.ts` | Neo4j query execution |
 
 ## COMMANDS
 

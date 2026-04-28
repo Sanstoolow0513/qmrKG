@@ -1,4 +1,7 @@
+import json
 from pathlib import Path
+import threading
+import time
 
 from qmrkg.kg_extractor import EXTRACT_PROMPT, KGExtractor
 from qmrkg.kg_schema import Triple
@@ -93,6 +96,26 @@ def test_resolve_prompt_falls_back_to_builtin_when_default_missing(tmp_path, mon
     assert ex.resolve_prompt() == EXTRACT_PROMPT
 
 
+def test_resolve_review_prompt_prefers_mode_specific_prompt(tmp_path, monkeypatch):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    config_path = _write_extract_config(
+        tmp_path,
+        '    few_shot: "FEW_PROMPT"\n    review_fs: "REVIEW_FS_PROMPT"\n    review: "REVIEW_DEFAULT"',
+    )
+    ex = KGExtractor(config_path=config_path, mode="few-shot")
+    assert ex.resolve_review_prompt() == "REVIEW_FS_PROMPT"
+
+
+def test_resolve_review_prompt_falls_back_to_review_default(tmp_path, monkeypatch):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    config_path = _write_extract_config(
+        tmp_path,
+        '    few_shot: "FEW_PROMPT"\n    review: "REVIEW_DEFAULT_PROMPT"',
+    )
+    ex = KGExtractor(config_path=config_path, mode="few-shot")
+    assert ex.resolve_review_prompt() == "REVIEW_DEFAULT_PROMPT"
+
+
 def test_resolve_prompt_uses_discovered_config_when_config_path_none(tmp_path, monkeypatch):
     monkeypatch.setenv("PPIO_API_KEY", "test-key")
     _write_extract_config(
@@ -171,6 +194,46 @@ def test_extract_from_chunk_system_prompt_falls_back_to_builtin_like_resolve(tmp
         }
     )
     assert runner.last_system_prompt == EXTRACT_PROMPT
+
+
+def test_review_from_chunk_passes_resolved_review_prompt_to_run_text(tmp_path, monkeypatch):
+    class _ReviewRecordingRunner:
+        def __init__(self):
+            self.system_prompts: list[str | None] = []
+
+        def run_text(self, prompt: str, *, system_prompt: str | None = None) -> LLMResponse:
+            self.system_prompts.append(system_prompt)
+            if len(self.system_prompts) == 1:
+                return LLMResponse(
+                    text=(
+                        '{"entities": [{"name": "TCP", "type": "protocol", "description": "x"}],'
+                        ' "triples": [{"head": "TCP", "relation": "depends_on", "tail": "IP",'
+                        ' "evidence": "TCP 依赖 IP"}]}'
+                    ),
+                    processed_at="2026-01-01T00:00:00Z",
+                    duration_seconds=0.0,
+                )
+            return LLMResponse(
+                text='{"triples": []}',
+                processed_at="2026-01-01T00:00:00Z",
+                duration_seconds=0.0,
+            )
+
+    config_path = _write_extract_config(
+        tmp_path,
+        '    few_shot: "FEW_SHOT_VIA_EXTRACT"\n    review_fs: "REVIEW_FS_VIA_CONFIG"',
+    )
+    runner = _ReviewRecordingRunner()
+    ex = KGExtractor(runner=runner, config_path=config_path, mode="few-shot")
+    ex.extract_from_chunk(
+        {
+            "chunk_index": 0,
+            "source_file": "s.md",
+            "titles": [],
+            "content": "some text for extraction",
+        }
+    )
+    assert runner.system_prompts == ["FEW_SHOT_VIA_EXTRACT", "REVIEW_FS_VIA_CONFIG"]
 
 
 def test_parse_json_response_plain():
@@ -332,3 +395,39 @@ def test_apply_gate_keeps_valid_triple():
     kept, dropped = KGExtractor._apply_gate([candidate], chunk_content)
     assert len(kept) == 1
     assert len(dropped) == 0
+
+
+def test_extract_from_chunks_file_runs_in_parallel(tmp_path):
+    class _SlowRunner:
+        def __init__(self):
+            self.settings = type("Settings", (), {"max_concurrency": 4})()
+            self.active = 0
+            self.max_active = 0
+            self._lock = threading.Lock()
+
+        def run_text(self, prompt: str, *, system_prompt: str | None = None) -> LLMResponse:
+            with self._lock:
+                self.active += 1
+                self.max_active = max(self.max_active, self.active)
+            time.sleep(0.05)
+            with self._lock:
+                self.active -= 1
+            return LLMResponse(
+                text='{"entities": [], "triples": []}',
+                processed_at="2026-01-01T00:00:00Z",
+                duration_seconds=0.0,
+            )
+
+    runner = _SlowRunner()
+    extractor = KGExtractor(runner=runner, enable_review=False)
+    chunks = [
+        {"chunk_index": i, "source_file": "book.md", "titles": [], "content": f"content-{i}"}
+        for i in range(6)
+    ]
+    chunks_path = tmp_path / "chunks.json"
+    chunks_path.write_text(json.dumps(chunks, ensure_ascii=False), encoding="utf-8")
+    output_dir = tmp_path / "out"
+
+    result_paths = extractor.extract_from_chunks_file(chunks_path, output_dir, skip_existing=False)
+    assert len(result_paths) == 6
+    assert runner.max_active >= 2

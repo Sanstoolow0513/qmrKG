@@ -30,14 +30,6 @@ data/
 *.pdopt
 inference/
 
-# workspaces
-.cursor/
-.vscode/
-
-# agentic cli
-CLAUDE.md
-GEMINI.md
-QWEN.md
 
 # .DS_Store
 .DS_Store
@@ -60,7 +52,6 @@ frontend/.nyc_output/
 .pnpm-store
 
 # Thesis/reference dump and LaTeX build artifacts
-docs/reports/reference/
 *.aux
 *.bbl
 *.bcf
@@ -74,3 +65,7 @@ docs/reports/reference/
 *.run.xml
 *.synctex.gz
 *.toc
+
+# Local paper/reference library (large, managed outside git)
+papers/
+docs/reports/reference/

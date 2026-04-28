@@ -180,8 +180,47 @@ ocr:
     response = processor.run_image("OCR this page", image_path)
 
     assert response.text == "vision result"
-    assert fake_client.calls[0]["reasoning_enabled"] is True
+    assert fake_client.calls[0]["reasoning_effort"] == "medium"
     assert fake_client.calls[0]["messages"][0]["content"][1]["image_url"]["detail"] == "high"
+
+
+def test_multimodal_processor_supports_reasoning_effort_override(monkeypatch, tmp_path):
+    monkeypatch.setenv("PPIO_API_KEY", "test-key")
+    image_path = tmp_path / "page.png"
+    image_path.write_bytes(b"fake-image")
+    config_path = write_config(
+        tmp_path,
+        """
+llm:
+  profiles:
+    ocr_profile:
+      provider:
+        name: ppio
+        model: qwen/qwen3-vl-8b-instruct
+        modality: multimodal
+        supports_thinking: true
+      request:
+        image_detail: high
+        timeout_seconds: 10
+        max_retries: 1
+        thinking:
+          enabled: true
+          effort: high
+      rate_limit:
+        rpm: 20
+        max_concurrency: 2
+ocr:
+  llm_profile: ocr_profile
+  prompts:
+    default: OCR this page
+""".strip(),
+    )
+    fake_client = FakeClient(lambda **_: FakeResponse("vision result"))
+
+    processor = MultimodalTaskProcessor("ocr", config_path=config_path, client=fake_client)
+    processor.run_image("OCR this page", image_path)
+
+    assert fake_client.calls[0]["reasoning_effort"] == "high"
 
 
 def test_factory_loads_task_specific_models(monkeypatch, tmp_path):

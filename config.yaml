@@ -3,7 +3,7 @@
 
 llm:
   profiles:
-    ocr_default:
+    qwen3-vl-8b:
       provider:
         name: ppio
         base_url: "https://api.ppinfra.com/openai"
@@ -19,37 +19,7 @@ llm:
       rate_limit:
         rpm: 100
         max_concurrency: 10
-    extract_default:
-      provider:
-        name: ppio
-        base_url: "https://api.ppinfra.com/openai"
-        model: "deepseek/deepseek-v3.2"
-        modality: "text"
-        supports_thinking: false
-      request:
-        timeout_seconds: 60.0
-        max_retries: 3
-        thinking:
-          enabled: false
-      rate_limit:
-        rpm: 50
-        max_concurrency: 4
-    ner_default:
-      provider:
-        name: ppio
-        base_url: "https://api.ppinfra.com/openai"
-        model: "deepseek/deepseek-v3.2"
-        modality: "text"
-        supports_thinking: false
-      request:
-        timeout_seconds: 60.0
-        max_retries: 3
-        thinking:
-          enabled: false
-      rate_limit:
-        rpm: 50
-        max_concurrency: 4
-    re_default:
+    deepseek-v3.2:
       provider:
         name: ppio
         base_url: "https://api.ppinfra.com/openai"
@@ -77,12 +47,12 @@ llm:
         encoding_format: "float"
         dimensions: 1024
       rate_limit:
-        rpm: 100
-        max_concurrency: 4
+        rpm: 3000
+        max_concurrency: 300
     deepseek_v4_flash:
       provider:
         name: ppio
-        base_url: "https://api.ppinfra.com/openai"
+        base_url: "https://api.ppinfra.com/v3/openai"
         model: "deepseek/deepseek-v4-flash"
         modality: "text"
         supports_thinking: true
@@ -93,10 +63,10 @@ llm:
           enabled: true
       rate_limit:
         rpm: 3000
-        max_concurrency: 
+        max_concurrency: 3000
 
 ocr:
-  llm_profile: ocr_default
+  llm_profile: qwen3-vl-8b
 
   prompts:
     default: |
@@ -180,12 +150,19 @@ extract:
       3. 每个 triple 必须附带 evidence（原文中支持该关系的关键句）
       4. 如果文本中没有可抽取的实体或关系，返回空列表
 
-    # Few-shot：联合示例（同一段材料上的实体 + 三元组期望输出）
+    # Few-shot：多示例联合抽取（覆盖 4 类关系，含负面与粒度规则）
     fs: |
-      你是计算机网络知识图谱联合抽取专家。先参考下述**示例**的输入与已标注的 JSON，再对新的教材片段按相同 schema 独立抽取（示例内容不得当作待抽取源）。
+      你是计算机网络知识图谱联合抽取专家。先学习示例中的标注风格，再对新的教材片段独立抽取。
+      注意：示例仅用于学习格式与标准，不是待抽取语料。
 
-      ## 示例
-      输入教材片段：「与 UDP 相比，TCP 提供可靠传输；UDP 不保证按序到达。」
+      ## 固定 schema
+      - 实体类型仅允许：protocol、concept、mechanism、metric
+      - 关系类型仅允许：contains、depends_on、compared_with、applied_to
+
+      ## Few-shot 示例（覆盖 4 种关系）
+      ### 示例 1：compared_with
+      输入教材片段：
+      「与 UDP 相比，TCP 提供可靠传输；UDP 不保证按序到达。」
       期望 JSON：
       {
         "entities": [
@@ -193,27 +170,156 @@ extract:
           {"name": "UDP", "type": "protocol", "description": "无连接传输协议"}
         ],
         "triples": [
-          {
-            "head": "TCP",
-            "relation": "compared_with",
-            "tail": "UDP",
-            "evidence": "与 UDP 相比，TCP 提供可靠传输"
-          }
+          {"head": "TCP", "relation": "compared_with", "tail": "UDP", "evidence": "与 UDP 相比，TCP 提供可靠传输"}
         ]
       }
 
-      ## 新任务
-      对接下来用户消息中的**教材文本**执行同样的实体与关系抽取。以下规则必须完整执行：
-      - 实体类型仅允许：protocol、concept、mechanism、metric
-      - 关系类型仅允许：contains、depends_on、compared_with、applied_to
-      - 只从输入文本抽取，不得编造；实体名必须使用原文出现形式
-      - 每个 triple 必须给出可回溯到原文的 evidence
-      - 若无可抽取结果，entities 与 triples 返回空列表
-
-      严格输出 JSON，不要输出任何其他内容：
+      ### 示例 2：contains
+      输入教材片段：
+      「OSI 参考模型包含物理层、数据链路层、网络层、传输层、会话层、表示层和应用层。」
+      期望 JSON：
       {
-        "entities": [ {"name": "...", "type": "protocol|concept|mechanism|metric", "description": "..."} ],
-        "triples": [ {"head": "...", "relation": "contains|depends_on|compared_with|applied_to", "tail": "...", "evidence": "..."} ]
+        "entities": [
+          {"name": "OSI 参考模型", "type": "concept", "description": "网络体系结构分层模型"},
+          {"name": "物理层", "type": "concept", "description": "OSI 第一层"},
+          {"name": "数据链路层", "type": "concept", "description": "OSI 第二层"},
+          {"name": "网络层", "type": "concept", "description": "OSI 第三层"},
+          {"name": "传输层", "type": "concept", "description": "OSI 第四层"},
+          {"name": "会话层", "type": "concept", "description": "OSI 第五层"},
+          {"name": "表示层", "type": "concept", "description": "OSI 第六层"},
+          {"name": "应用层", "type": "concept", "description": "OSI 第七层"}
+        ],
+        "triples": [
+          {"head": "OSI 参考模型", "relation": "contains", "tail": "物理层", "evidence": "OSI 参考模型包含物理层"},
+          {"head": "OSI 参考模型", "relation": "contains", "tail": "数据链路层", "evidence": "OSI 参考模型包含物理层、数据链路层"},
+          {"head": "OSI 参考模型", "relation": "contains", "tail": "网络层", "evidence": "OSI 参考模型包含物理层、数据链路层、网络层"},
+          {"head": "OSI 参考模型", "relation": "contains", "tail": "传输层", "evidence": "OSI 参考模型包含物理层、数据链路层、网络层、传输层"},
+          {"head": "OSI 参考模型", "relation": "contains", "tail": "会话层", "evidence": "OSI 参考模型包含物理层、数据链路层、网络层、传输层、会话层"},
+          {"head": "OSI 参考模型", "relation": "contains", "tail": "表示层", "evidence": "OSI 参考模型包含物理层、数据链路层、网络层、传输层、会话层、表示层"},
+          {"head": "OSI 参考模型", "relation": "contains", "tail": "应用层", "evidence": "OSI 参考模型包含物理层、数据链路层、网络层、传输层、会话层、表示层和应用层"}
+        ]
+      }
+
+      ### 示例 3：depends_on
+      输入教材片段：
+      「TCP 的可靠传输依赖确认应答机制与重传机制来保证数据正确送达。」
+      期望 JSON：
+      {
+        "entities": [
+          {"name": "TCP", "type": "protocol", "description": "传输控制协议"},
+          {"name": "可靠传输", "type": "concept", "description": "保证数据正确有序送达的能力"},
+          {"name": "确认应答机制", "type": "mechanism", "description": "通过 ACK 确认接收状态"},
+          {"name": "重传机制", "type": "mechanism", "description": "丢失或超时后重新发送数据"}
+        ],
+        "triples": [
+          {"head": "可靠传输", "relation": "depends_on", "tail": "确认应答机制", "evidence": "TCP 的可靠传输依赖确认应答机制"},
+          {"head": "可靠传输", "relation": "depends_on", "tail": "重传机制", "evidence": "TCP 的可靠传输依赖确认应答机制与重传机制"},
+          {"head": "TCP", "relation": "depends_on", "tail": "确认应答机制", "evidence": "TCP 的可靠传输依赖确认应答机制"},
+          {"head": "TCP", "relation": "depends_on", "tail": "重传机制", "evidence": "TCP 的可靠传输依赖确认应答机制与重传机制"}
+        ]
+      }
+
+      ### 示例 4：applied_to
+      输入教材片段：
+      「慢启动算法应用于 TCP 拥塞控制过程，在连接初期逐步增大发送窗口。」
+      期望 JSON：
+      {
+        "entities": [
+          {"name": "慢启动算法", "type": "mechanism", "description": "拥塞窗口逐步增长机制"},
+          {"name": "TCP", "type": "protocol", "description": "传输控制协议"},
+          {"name": "拥塞控制", "type": "concept", "description": "控制网络拥塞的策略"}
+        ],
+        "triples": [
+          {"head": "慢启动算法", "relation": "applied_to", "tail": "TCP", "evidence": "慢启动算法应用于 TCP 拥塞控制过程"},
+          {"head": "慢启动算法", "relation": "applied_to", "tail": "拥塞控制", "evidence": "慢启动算法应用于 TCP 拥塞控制过程"}
+        ]
+      }
+
+      ## 负面示例（什么不该抽）
+      - 不抽过泛词：如“计算机”“网络”“系统”“课程”“章节”等泛化背景词。
+      - 不抽结构导航词：如“本章”“如下图所示”“第 3 节”等版式导航信息。
+      - 不抽未在原文出现的术语或缩写扩展，不做常识补全。
+
+      ## 粒度规则
+      - 优先拆分“协议 + 概念/机制”复合短语：
+        - 例如“TCP 拥塞控制”优先拆为 `TCP`（protocol）与 `拥塞控制`（concept）。
+      - 仅当整体在原文被明确当作稳定术语使用时，才保留整体实体。
+      - 含“算法/机制/流程/过程/握手”等词，优先标注为 mechanism；
+        抽象能力或性质（如“可靠传输”“流量控制”）优先标注为 concept。
+
+      ## evidence 规则（必须遵守）
+      - evidence 必须是输入文本中的连续原文子串，禁止改写、拼接、补词。
+      - evidence 优先使用完整分句；若句子过长，可截取最短可证明关系的连续片段。
+      - evidence 必须能同时支撑 head、relation、tail 的判定。
+
+      ## 新任务
+      对接下来用户消息中的教材文本执行抽取，输出严格 JSON，不要输出任何其他内容：
+      {
+        "entities": [
+          {"name": "...", "type": "protocol|concept|mechanism|metric", "description": "..."}
+        ],
+        "triples": [
+          {"head": "...", "relation": "contains|depends_on|compared_with|applied_to", "tail": "...", "evidence": "..."}
+        ]
+      }
+
+    review: |
+      你是知识图谱三元组审核器。你的任务是审核候选 triples，并输出“可直接入库前”的修正结果。
+
+      ## 输入说明
+      你会收到一个 JSON 对象：
+      {
+        "chunk": "原始教材文本",
+        "triples": [
+          {"head": "...", "relation": "...", "tail": "...", "evidence": "..."}
+        ]
+      }
+
+      ## 审核标准（必须严格执行）
+      1. relation 只能是：contains / depends_on / compared_with / applied_to
+      2. evidence 必须是 chunk 中的连续原文子串（逐字一致），不能改写、拼接、补词
+      3. head 与 tail 都必须出现在 evidence 中
+      4. 若 triple 不满足任一条件，必须 decision=drop
+      5. 严禁引入 chunk 中不存在的新实体、新关系或新证据
+      6. 不要计算字符级位置；evidence_span 固定输出 null
+
+      ## decision 规则
+      - keep: 完全满足标准，可直接保留
+      - revise: 仅当你能通过“最小修改 evidence 或字段”使其满足标准时使用
+      - drop: 无法满足标准或证据不足
+
+      ## reason_code 约束
+      仅可使用以下枚举：
+      SUPPORTED
+      EVIDENCE_NOT_IN_CHUNK
+      SPAN_MISMATCH
+      HEAD_NOT_IN_EVIDENCE
+      TAIL_NOT_IN_EVIDENCE
+      INVALID_RELATION
+      SELF_LOOP
+      LOW_CONFIDENCE_DROP
+
+      ## 输出要求
+      - 只输出严格 JSON，不要输出解释文字
+      - 顶层仅包含一个键：triples
+      - 每个 triple 必须包含 review 对象
+
+      输出格式：
+      {
+        "triples": [
+          {
+            "head": "...",
+            "relation": "contains|depends_on|compared_with|applied_to",
+            "tail": "...",
+            "evidence": "...",
+            "evidence_span": null,
+            "review": {
+              "decision": "keep|revise|drop",
+              "reason_code": "SUPPORTED|EVIDENCE_NOT_IN_CHUNK|SPAN_MISMATCH|HEAD_NOT_IN_EVIDENCE|TAIL_NOT_IN_EVIDENCE|INVALID_RELATION|SELF_LOOP|LOW_CONFIDENCE_DROP",
+              "reason": "简短中文原因"
+            }
+          }
+        ]
       }
 
 entity_embed:
@@ -264,10 +370,14 @@ run:
     embedding:
       enabled: false
       task_name: "entity_embed"
+      encoding_template: "structured_zh"
       encode_fields: ["type", "name", "description"]
+      max_desc_chars: 160
       similarity_threshold: 0.85
       bucket_by_type: true
+      faiss_top_k: 50
       batch_size: 1024
+      cache_format: "binary"
       cache_path: "data/triples/merged/.embed_cache.json"
 
   kg_neo4j:

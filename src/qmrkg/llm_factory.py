@@ -174,8 +174,12 @@ class TaskLLMRunner:
 
     def _request_kwargs(self) -> dict[str, Any]:
         kwargs: dict[str, Any] = {}
-        if self.settings.supports_thinking:
-            kwargs["reasoning_enabled"] = self.settings.thinking_enabled
+        if (
+            self.settings.supports_thinking
+            and self.settings.thinking_enabled
+            and self.settings.reasoning_effort
+        ):
+            kwargs["reasoning_effort"] = self.settings.reasoning_effort
         return kwargs
 
     def _embedding_request_kwargs(self) -> dict[str, Any]:
