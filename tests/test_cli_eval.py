@@ -71,6 +71,37 @@ def test_cli_eval_writes_json_and_markdown(tmp_path, capsys) -> None:
     assert "# QmrKG Evaluation Report" in output_md.read_text(encoding="utf-8")
 
 
+def test_cli_eval_committed_fixtures_produce_expected_metrics(tmp_path, capsys) -> None:
+    import qmrkg.cli_eval as cli_eval
+
+    fixture_dir = Path(__file__).parent / "fixtures" / "eval"
+    output_json = tmp_path / "fixture-report.json"
+    output_md = tmp_path / "fixture-report.md"
+
+    exit_code = cli_eval.main(
+        [
+            "--pred",
+            str(fixture_dir / "pred_merged.json"),
+            "--gold",
+            str(fixture_dir / "gold_triples.json"),
+            "--output-json",
+            str(output_json),
+            "--output-md",
+            str(output_md),
+        ]
+    )
+
+    assert exit_code == 0
+    captured = capsys.readouterr()
+    assert "Evaluation JSON written to:" in captured.out
+    assert "Evaluation Markdown written to:" in captured.out
+    report = json.loads(output_json.read_text(encoding="utf-8"))
+    assert report["metrics"]["triples"]["fp"] == 1
+    assert report["metrics"]["entities"]["tp"] == 2
+    assert report["evidence"]["pred_coverage"] == 0.5
+    assert "# QmrKG Evaluation Report" in output_md.read_text(encoding="utf-8")
+
+
 def test_cli_eval_prints_json_to_stdout_when_no_json_output(tmp_path, capsys) -> None:
     import qmrkg.cli_eval as cli_eval
 

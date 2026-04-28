@@ -339,9 +339,11 @@ def test_evaluate_files_non_utf8_pred_json_raises_clear_error(tmp_path) -> None:
 
 
 def test_committed_eval_fixtures_produce_expected_metrics() -> None:
+    fixture_dir = Path(__file__).parent / "fixtures" / "eval"
+
     report = evaluate_files(
-        Path("tests/fixtures/eval/pred_merged.json"),
-        Path("tests/fixtures/eval/gold_triples.json"),
+        fixture_dir / "pred_merged.json",
+        fixture_dir / "gold_triples.json",
         evaluated_at="2026-04-28T00:00:00Z",
         top_errors=10,
     )
@@ -353,3 +355,4 @@ def test_committed_eval_fixtures_produce_expected_metrics() -> None:
     assert report["metrics"]["triples"]["gold_count"] == 1
     assert report["metrics"]["triples"]["fp"] == 1
     assert report["evidence"]["pred_coverage"] == 0.5
+    assert report["evidence"]["tp_coverage"] == 1.0

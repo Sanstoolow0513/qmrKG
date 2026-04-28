@@ -25,7 +25,8 @@ Gold 文件使用纯金标格式：
     "schema_version": 1
   },
   "entities": [
-    {"name": "HTTP", "type": "protocol"}
+    {"name": "HTTP", "type": "protocol"},
+    {"name": "TCP", "type": "protocol"}
   ],
   "triples": [
     {
