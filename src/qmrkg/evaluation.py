@@ -43,6 +43,9 @@ def evaluate_payloads(
 ) -> dict[str, Any]:
     """Evaluate predicted merged KG payload against a strict gold payload."""
 
+    if top_errors < 0:
+        raise EvaluationError("top_errors must be greater than or equal to 0")
+
     pred_entities = _parse_entities(_list_field(pred_payload, "entities", "pred"), "pred.entities")
     pred_triples = _parse_triples(_list_field(pred_payload, "triples", "pred"), "pred.triples")
     gold_triples = _parse_triples(_list_field(gold_payload, "triples", "gold"), "gold.triples")
@@ -145,7 +148,7 @@ def _parse_triples(items: list[Any], path: str) -> dict[TripleKey, bool]:
         _validate_entity_type(key.head_type, f"{item_path}.head_type")
         _validate_entity_type(key.tail_type, f"{item_path}.tail_type")
         _validate_relation(key.relation, f"{item_path}.relation")
-        triples[key] = triples.get(key, False) or _has_evidence(item)
+        triples[key] = triples.get(key, False) or _has_evidence(item, item_path)
     return triples
 
 
@@ -170,16 +173,30 @@ def _validate_entity_type(value: str, path: str) -> None:
 def _validate_relation(value: str, path: str) -> None:
     if value not in RELATION_TYPES:
         allowed = ", ".join(sorted(RELATION_TYPES))
-        raise EvaluationError(f"{path} has invalid relation: {value!r}; expected one of: {allowed}")
+        raise EvaluationError(
+            f"{path} has invalid relation: {value!r}; expected one of: {allowed}"
+        )
 
 
-def _has_evidence(item: dict[str, Any]) -> bool:
-    evidences = item.get("evidences")
-    if isinstance(evidences, list) and any(isinstance(value, str) and value.strip() for value in evidences):
-        return True
-
+def _has_evidence(item: dict[str, Any], path: str) -> bool:
     evidence = item.get("evidence")
-    return isinstance(evidence, str) and bool(evidence.strip())
+    if "evidence" in item and not isinstance(evidence, str):
+        raise EvaluationError(f"{path} field evidence must be a string")
+
+    if "evidences" in item:
+        evidences = item["evidences"]
+        if not isinstance(evidences, list):
+            raise EvaluationError(f"{path} field evidences must be a list")
+        for index, value in enumerate(evidences):
+            if not isinstance(value, str):
+                raise EvaluationError(f"{path}.evidences[{index}] must be a string")
+        if any(value.strip() for value in evidences):
+            return True
+
+    if "evidence" not in item:
+        return False
+
+    return bool(evidence.strip())
 
 
 def _entities_from_triples(triples: dict[TripleKey, bool]) -> set[EntityKey]:

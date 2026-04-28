@@ -138,3 +138,62 @@ def test_missing_required_triple_field_raises_clear_error() -> None:
 
     with pytest.raises(EvaluationError, match="pred.triples\\[0\\] missing required field: tail_type"):
         evaluate_payloads(pred, _gold_payload())
+
+
+def test_duplicate_predicted_triples_collapse_and_preserve_evidence() -> None:
+    pred = {
+        "entities": [
+            {"name": "HTTP", "type": "protocol"},
+            {"name": "TCP", "type": "protocol"},
+        ],
+        "triples": [
+            {
+                "head": "HTTP",
+                "head_type": "protocol",
+                "relation": "depends_on",
+                "tail": "TCP",
+                "tail_type": "protocol",
+                "evidences": [],
+            },
+            {
+                "head": "HTTP",
+                "head_type": "protocol",
+                "relation": "depends_on",
+                "tail": "TCP",
+                "tail_type": "protocol",
+                "evidences": ["HTTP 使用 TCP 作为传输层协议"],
+            },
+        ],
+    }
+
+    report = evaluate_payloads(pred, _gold_payload())
+
+    assert report["metrics"]["triples"]["pred_count"] == 1
+    assert report["evidence"]["pred_coverage"] == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "match"),
+    [
+        (
+            "evidences",
+            "not-a-list",
+            "pred.triples\\[0\\] field evidences must be a list",
+        ),
+        ("evidences", [1], "pred.triples\\[0\\].evidences\\[0\\] must be a string"),
+        ("evidence", 1, "pred.triples\\[0\\] field evidence must be a string"),
+    ],
+)
+def test_malformed_evidence_fields_raise_clear_error(
+    field: str, value: object, match: str
+) -> None:
+    pred = _pred_payload()
+    pred["triples"][0][field] = value
+
+    with pytest.raises(EvaluationError, match=match):
+        evaluate_payloads(pred, _gold_payload())
+
+
+def test_negative_top_errors_raises_clear_error() -> None:
+    with pytest.raises(EvaluationError, match="top_errors must be greater than or equal to 0"):
+        evaluate_payloads(_pred_payload(), _gold_payload(), top_errors=-1)
