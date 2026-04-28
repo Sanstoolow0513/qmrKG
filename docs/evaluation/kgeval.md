@@ -63,8 +63,8 @@ Gold 文件使用纯金标格式：
 
 报告输出实体和三元组的 micro Precision、Recall、F1，并输出 evidence 覆盖率：
 
-- predicted evidence coverage：预测三元组中 `evidences` 非空的比例。
-- true-positive evidence coverage：命中 gold 的预测三元组中 `evidences` 非空的比例。
+- predicted evidence coverage：预测三元组中 `evidences` 或兼容字段 `evidence` 非空的比例。
+- true-positive evidence coverage：命中 gold 的预测三元组中 `evidences` 或兼容字段 `evidence` 非空的比例。
 
 Evidence 只用于覆盖率统计，不参与 strict triple matching。
 
