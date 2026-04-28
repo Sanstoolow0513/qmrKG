@@ -139,3 +139,11 @@ def test_qmrkg_list_includes_kgeval(capsys) -> None:
 
     assert exit_code == 0
     assert "kgeval" in capsys.readouterr().out
+
+
+def test_cli_eval_help_describes_gold_evaluation() -> None:
+    from qmrkg.cli_eval import build_parser
+
+    help_text = build_parser().format_help()
+
+    assert "Evaluate merged KG triples against pure gold triples." in help_text
