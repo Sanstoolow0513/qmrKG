@@ -37,7 +37,7 @@ src/qmrkg/
 | OCR extraction | `png_to_text.py` | `OCRProcessor` with multimodal LLM |
 | Text chunking | `markdown_chunker.py` | Token-based with overlap |
 | Markdown merging | `cli_kg_md_combine.py` | Per-page → book MD |
-| Triple extraction | `kg_extractor.py` | NER + RE via LLM (zs/fs modes) |
+| Triple extraction | `kg_extractor.py` | NER + RE via LLM (zs/fs modes, optional review/audit gate) |
 | Triple merging | `kg_merger.py` | Entity resolution, relation dedup, embedding canonicalization |
 | Neo4j loading | `kg_neo4j.py` | Cypher-based bulk import |
 | LLM orchestration | `llm_factory.py` | Factory for text/multimodal/embedding tasks |
@@ -52,7 +52,7 @@ src/qmrkg/
 | `PDFConverter` | pdf_to_png.py | Renders PDF pages to PNG images |
 | `OCRProcessor` | png_to_text.py | VLM OCR for image→text |
 | `MarkdownChunker` | markdown_chunker.py | Splits markdown into JSON chunks |
-| `KGExtractor` | kg_extractor.py | Extracts entities/triples from chunks (zs/fs) |
+| `KGExtractor` | kg_extractor.py | Extracts entities/triples from chunks (zs/fs, optional review audit) |
 | `KGMerger` | kg_merger.py | Merges, deduplicates, canonicalizes entities |
 | `KGNeo4jLoader` | kg_neo4j.py | Imports triples to Neo4j |
 | `TextTaskProcessor` | llm_factory.py | Text-only LLM tasks |
@@ -125,5 +125,6 @@ uv run pytest tests/test_llm_factory.py -v
 - **Entity Types:** protocol, concept, mechanism, metric (defined in kg_schema.py)
 - **Relation Types:** contains, depends_on, compared_with, applied_to
 - **Extraction Modes:** zero-shot / few-shot via `extract.prompts` in config.yaml
+- **Triple Review:** Post-extraction quality audit (REVIEW_PROMPT) — validates triples against evidence; configurable via `KGExtractor(enable_review=True)`; review prompt with 8 defined `reason_code` values
 - **Embedding Canonicalization:** Optional, configured in `kg_merge.embedding` (config.yaml)
 - **kgmdcombine:** OCR outputs per-page files; kgmdcombine merges them into book-level MD before chunking

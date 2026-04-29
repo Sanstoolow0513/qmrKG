@@ -1,57 +1,81 @@
-# Python-generated files
+# ============================================================
+# Python
+# ============================================================
 __pycache__/
-*.py[oc]
-build/
+*.py[cod]
+*.egg-info/
 dist/
+build/
 wheels/
-*.egg-info
 
+# ============================================================
 # Virtual environments
-.venv
-# Local git worktrees (keep empty .worktrees/ in clone via .gitkeep)
-.worktrees/
-!.worktrees/.gitkeep
+# ============================================================
+.venv/
+
+# ============================================================
+# Caches
+# ============================================================
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.tmp/
+
+# Local pytest working directories
 .pytest_local/
 .pytest-tmp/
-.pytest_cache/
-.tmp/
 pytest-cache-files*/
+
+# Test scratch space
 tests/_scratch/
 
-# Data: ignore generated artifacts; keep empty dirs with .gitkeep
-data/
-
-# Config files with sensitive data
+# ============================================================
+# Environment & secrets
+# ============================================================
 .env
 
-# Model files
-*.pdmodel
-*.pdiparams
-*.pdopt
-inference/
-
-
-# .DS_Store
+# ============================================================
+# IDE / Editor
+# ============================================================
+.codex
+.cursor/
+.vscode/
+.idea/
+*.swp
+*~
 .DS_Store
+Thumbs.db
 
+# ============================================================
+# Git worktrees (keep directory with .gitkeep)
+# ============================================================
+.worktrees/
+!.worktrees/.gitkeep
+
+# ============================================================
+# Data (generated artifacts; not version-controlled)
+# ============================================================
+data/
+
+# ============================================================
 # Frontend (Next.js / Node)
+# ============================================================
 frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/.turbo/
 frontend/.vercel/
 frontend/.env*.local
-frontend/npm-debug.log*
-frontend/yarn-debug.log*
-frontend/yarn-error.log*
-frontend/pnpm-debug.log*
+frontend/*-debug.log*
 frontend/coverage/
 frontend/.nyc_output/
 
-# pnpm
+# Package manager store
 .pnpm-store
 
-# Thesis/reference dump and LaTeX build artifacts
+# ============================================================
+# LaTeX build artifacts
+# ============================================================
 *.aux
 *.bbl
 *.bcf
@@ -59,13 +83,23 @@ frontend/.nyc_output/
 *.fdb_latexmk
 *.fls
 *.lof
-*.log
 *.lot
 *.out
 *.run.xml
 *.synctex.gz
 *.toc
+texput.log
 
-# Local paper/reference library (large, managed outside git)
+# ============================================================
+# Model files (local inference artifacts)
+# ============================================================
+*.pdmodel
+*.pdiparams
+*.pdopt
+inference/
+
+# ============================================================
+# Large reference libraries (managed outside git)
+# ============================================================
 papers/
 docs/reports/reference/

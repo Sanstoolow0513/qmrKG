@@ -1,7 +1,7 @@
 # QmrKG Project Knowledge Base
 
-**Generated:** 2026-04-26
-**Commit:** 58ea922
+**Generated:** 2026-04-29
+**Commit:** 624b3e5
 **Branch:** master
 
 ## OVERVIEW
@@ -38,7 +38,8 @@ qmrkg/
 | OCR/VLM text extraction | `src/qmrkg/png_to_text.py` | qwen3-vl-8b model |
 | Per-page MD → book MD | `src/qmrkg/cli_kg_md_combine.py` | Merges page files after OCR |
 | Markdown chunking | `src/qmrkg/markdown_chunker.py` | Token-aware splitting |
-| Entity/relation extraction | `src/qmrkg/kg_extractor.py` | deepseek-v4-flash model |
+| Entity/relation extraction | `src/qmrkg/kg_extractor.py` | deepseek-v4-flash model (zs/fs + triple review) |
+| Triple review/audit | `src/qmrkg/kg_extractor.py` | Post-extraction quality gate (REVIEW_PROMPT, enable_review) |
 | Triple merging | `src/qmrkg/kg_merger.py` | Dedup + embedding canonicalization |
 | Entity canonicalization | `src/qmrkg/kg_merger.py` | Embedding-based entity resolution |
 | Neo4j import | `src/qmrkg/kg_neo4j.py` | Bulk loading |
@@ -160,6 +161,7 @@ make neo4j-down-v  # Stop and remove volumes
 
 ## NOTES
 
+- **Triple review:** Post-extraction quality gate with strict evidence checking; configurable via `kg_extract.enable_review` in `config.yaml` run section
 - **Chinese-first:** LLM prompts in config.yaml are Chinese
 - **Entity types:** protocol, concept, mechanism, metric
 - **Relation types:** contains, depends_on, compared_with, applied_to
