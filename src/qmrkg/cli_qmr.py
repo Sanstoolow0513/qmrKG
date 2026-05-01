@@ -8,6 +8,7 @@ import sys
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
+from .config import load_run_config
 from . import (
     cli_kg_extract,
     cli_kg_md_combine,
@@ -44,13 +45,11 @@ def _stages() -> list[tuple[str, Callable[[list[str] | None], int | None]]]:
 
 
 def _wrap_kgmerge(argv: list[str] | None) -> int | None:
-    cli_kg_merge.main(argv)
-    return 0
+    return cli_kg_merge.main(argv)
 
 
 def _wrap_kgneo4j(argv: list[str] | None) -> int | None:
-    cli_kg_neo4j.main(argv)
-    return 0
+    return cli_kg_neo4j.main(argv)
 
 
 def _normalize_token(name: str) -> str:
@@ -71,13 +70,21 @@ def _parse_stage_arg(value: str) -> str:
     return s
 
 
-def _effective_to_stage(args: argparse.Namespace) -> str:
-    if args.to_stage is not None:
-        t = str(args.to_stage)
-        if args.no_neo4j and STAGE_NAMES.index(t) > STAGE_NAMES.index("kgmerge"):
+def _get_option(config: argparse.Namespace | dict[str, object], key: str) -> object:
+    if isinstance(config, dict):
+        return config.get(key)
+    return getattr(config, key)
+
+
+def _effective_to_stage(config: argparse.Namespace | dict[str, object]) -> str:
+    to_stage = _get_option(config, "to_stage")
+    no_neo4j = bool(_get_option(config, "no_neo4j"))
+    if to_stage is not None:
+        t = str(to_stage)
+        if no_neo4j and STAGE_NAMES.index(t) > STAGE_NAMES.index("kgmerge"):
             return "kgmerge"
         return t
-    return "kgmerge" if args.no_neo4j else "kgneo4j"
+    return "kgmerge" if no_neo4j else "kgneo4j"
 
 
 def _iter_selected_stages(
@@ -93,12 +100,10 @@ def _iter_selected_stages(
         yield all_stages[i]
 
 
-def _build_sub_argv(config: Path | None, verbose: bool) -> list[str] | None:
+def _build_sub_argv(config: Path | None) -> list[str] | None:
     out: list[str] = []
     if config is not None:
         out.extend(["--config", str(config)])
-    if verbose:
-        out.append("-v")
     return out or None
 
 
@@ -119,47 +124,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--config",
         type=Path,
-        help="config.yaml path (passed to every sub-command)",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Pass -v to each sub-command (verbose logging where supported)",
-    )
-    parser.add_argument(
-        "--no-neo4j",
-        action="store_true",
-        help="Stop after kgmerge (skip importing into Neo4j)",
-    )
-    parser.add_argument(
-        "--from-stage",
-        type=_parse_stage_arg,
-        metavar="STAGE",
-        help=f"Start at this stage ({', '.join(STAGE_NAMES)})",
-    )
-    parser.add_argument(
-        "--to-stage",
-        type=_parse_stage_arg,
-        metavar="STAGE",
-        help="End at this stage (inclusive; default: kgneo4j, or kgmerge with --no-neo4j)",
+        help="config.yaml path; pipeline selection is read from run.qmr",
     )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    to_stage = _effective_to_stage(args)
-    from_stage = str(args.from_stage) if args.from_stage is not None else None
+    run_cfg = dict(load_run_config(args.config)["qmr"])
+    if run_cfg.get("from_stage") is not None:
+        run_cfg["from_stage"] = _parse_stage_arg(str(run_cfg["from_stage"]))
+    if run_cfg.get("to_stage") is not None:
+        run_cfg["to_stage"] = _parse_stage_arg(str(run_cfg["to_stage"]))
+    to_stage = _effective_to_stage(run_cfg)
+    from_stage = str(run_cfg["from_stage"]) if run_cfg.get("from_stage") is not None else None
 
-    if args.verbose:
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="%(asctime)s %(levelname)s %(name)s %(message)s",
-            datefmt="%H:%M:%S",
-        )
-
-    sub_base = _build_sub_argv(args.config, args.verbose)
+    sub_base = _build_sub_argv(args.config)
     try:
         iterator = _iter_selected_stages(from_stage, to_stage)
     except ValueError as e:

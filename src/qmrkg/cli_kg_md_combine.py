@@ -11,47 +11,29 @@ from .config import load_run_config
 from .markdown_chunker import merge_book_pages
 
 
-def _build_parser(run_cfg: dict[str, object]) -> argparse.ArgumentParser:
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Merge per-page markdown (*_page_*.md) under each book subfolder of "
-            "--markdown-dir into a single {bookname}.md at the markdown root."
+            "run.kg_md_combine.markdown_dir into a single {bookname}.md at the markdown root."
         ),
     )
-    parser.add_argument("--config", type=Path, help="Optional config.yaml path override")
     parser.add_argument(
-        "--markdown-dir",
+        "--config",
         type=Path,
-        default=Path(str(run_cfg["markdown_dir"])),
-        help="Root directory: each immediate subdirectory is one book (default: data/markdown)",
-    )
-    parser.add_argument(
-        "--page-glob",
-        type=str,
-        default=str(run_cfg["page_glob"]),
-        help="Glob for per-page markdown inside each book subdir (default: run.kg_md_combine.page_glob)",
-    )
-    parser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Enable verbose logging",
+        help="config.yaml path; all stage settings are read from run.kg_md_combine",
     )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
-    pre_parser = argparse.ArgumentParser(add_help=False)
-    pre_parser.add_argument("--config", type=Path)
-    pre_args, _ = pre_parser.parse_known_args(argv)
-    run_cfg = load_run_config(pre_args.config)["kg_md_combine"]
-
-    parser = _build_parser(run_cfg)
+    parser = _build_parser()
     args = parser.parse_args(argv)
+    run_cfg = load_run_config(args.config)["kg_md_combine"]
 
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
+    logging.basicConfig(level=logging.INFO)
 
-    markdown_dir: Path = args.markdown_dir
+    markdown_dir = Path(str(run_cfg["markdown_dir"]))
     if not markdown_dir.exists():
         print(f"Error: Markdown directory not found: {markdown_dir}", file=sys.stderr)
         return 1
@@ -64,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
     success = 0
     failed = 0
 
-    page_glob = args.page_glob
+    page_glob = str(run_cfg["page_glob"])
     for book_dir in book_dirs:
         page_files = sorted(book_dir.glob(page_glob))
         if not page_files:

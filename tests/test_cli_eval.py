@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import json
 import tomllib
 from pathlib import Path
+from textwrap import dedent
 
 
 def _pred_payload() -> dict:
@@ -37,6 +40,12 @@ def _gold_payload() -> dict:
     }
 
 
+def write_config(tmp_path: Path, content: str) -> Path:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(dedent(content).strip() + "\n", encoding="utf-8")
+    return config_path
+
+
 def test_cli_eval_writes_json_and_markdown(tmp_path, capsys) -> None:
     import qmrkg.cli_eval as cli_eval
 
@@ -46,21 +55,20 @@ def test_cli_eval_writes_json_and_markdown(tmp_path, capsys) -> None:
     output_md = tmp_path / "report.md"
     pred_path.write_text(json.dumps(_pred_payload(), ensure_ascii=False), encoding="utf-8")
     gold_path.write_text(json.dumps(_gold_payload(), ensure_ascii=False), encoding="utf-8")
-
-    exit_code = cli_eval.main(
-        [
-            "--pred",
-            str(pred_path),
-            "--gold",
-            str(gold_path),
-            "--output-json",
-            str(output_json),
-            "--output-md",
-            str(output_md),
-            "--top-errors",
-            "2",
-        ]
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          kg_eval:
+            pred: "{pred_path}"
+            gold: "{gold_path}"
+            output_json: "{output_json}"
+            output_md: "{output_md}"
+            top_errors: 2
+        """,
     )
+
+    exit_code = cli_eval.main(["--config", str(config_path)])
 
     assert exit_code == 0
     captured = capsys.readouterr()
@@ -77,19 +85,19 @@ def test_cli_eval_committed_fixtures_produce_expected_metrics(tmp_path, capsys) 
     fixture_dir = Path(__file__).parent / "fixtures" / "eval"
     output_json = tmp_path / "fixture-report.json"
     output_md = tmp_path / "fixture-report.md"
-
-    exit_code = cli_eval.main(
-        [
-            "--pred",
-            str(fixture_dir / "pred_merged.json"),
-            "--gold",
-            str(fixture_dir / "gold_triples.json"),
-            "--output-json",
-            str(output_json),
-            "--output-md",
-            str(output_md),
-        ]
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          kg_eval:
+            pred: "{fixture_dir / "pred_merged.json"}"
+            gold: "{fixture_dir / "gold_triples.json"}"
+            output_json: "{output_json}"
+            output_md: "{output_md}"
+        """,
     )
+
+    exit_code = cli_eval.main(["--config", str(config_path)])
 
     assert exit_code == 0
     captured = capsys.readouterr()
@@ -109,8 +117,17 @@ def test_cli_eval_prints_json_to_stdout_when_no_json_output(tmp_path, capsys) ->
     gold_path = tmp_path / "gold_triples.json"
     pred_path.write_text(json.dumps(_pred_payload(), ensure_ascii=False), encoding="utf-8")
     gold_path.write_text(json.dumps(_gold_payload(), ensure_ascii=False), encoding="utf-8")
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          kg_eval:
+            pred: "{pred_path}"
+            gold: "{gold_path}"
+        """,
+    )
 
-    exit_code = cli_eval.main(["--pred", str(pred_path), "--gold", str(gold_path)])
+    exit_code = cli_eval.main(["--config", str(config_path)])
 
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
@@ -125,17 +142,18 @@ def test_cli_eval_keeps_stdout_json_clean_when_writing_markdown(tmp_path, capsys
     output_md = tmp_path / "nested" / "reports" / "report.md"
     pred_path.write_text(json.dumps(_pred_payload(), ensure_ascii=False), encoding="utf-8")
     gold_path.write_text(json.dumps(_gold_payload(), ensure_ascii=False), encoding="utf-8")
-
-    exit_code = cli_eval.main(
-        [
-            "--pred",
-            str(pred_path),
-            "--gold",
-            str(gold_path),
-            "--output-md",
-            str(output_md),
-        ]
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          kg_eval:
+            pred: "{pred_path}"
+            gold: "{gold_path}"
+            output_md: "{output_md}"
+        """,
     )
+
+    exit_code = cli_eval.main(["--config", str(config_path)])
 
     assert exit_code == 0
     captured = capsys.readouterr()
@@ -151,11 +169,31 @@ def test_cli_eval_returns_nonzero_for_invalid_input(tmp_path, capsys) -> None:
 
     gold_path = tmp_path / "gold_triples.json"
     gold_path.write_text(json.dumps(_gold_payload(), ensure_ascii=False), encoding="utf-8")
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          kg_eval:
+            pred: "{tmp_path / "missing.json"}"
+            gold: "{gold_path}"
+        """,
+    )
 
-    exit_code = cli_eval.main(["--pred", str(tmp_path / "missing.json"), "--gold", str(gold_path)])
+    exit_code = cli_eval.main(["--config", str(config_path)])
 
     assert exit_code == 1
     assert "pred file not found:" in capsys.readouterr().err
+
+
+def test_cli_eval_returns_nonzero_without_gold(tmp_path, capsys) -> None:
+    import qmrkg.cli_eval as cli_eval
+
+    config_path = write_config(tmp_path, "run:\n  kg_eval:\n    pred: data/x.json\n")
+
+    exit_code = cli_eval.main(["--config", str(config_path)])
+
+    assert exit_code == 1
+    assert "run.kg_eval.gold must be set" in capsys.readouterr().err
 
 
 def test_pyproject_registers_kgeval_script() -> None:

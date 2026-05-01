@@ -5,13 +5,13 @@ from __future__ import annotations
 import json
 import logging
 import re
-import tomllib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any
 
 from tqdm import tqdm
 
+from .config import load_config
 from .kg_schema import ChunkExtractionResult, Entity, Triple
 from .llm_factory import LLMFactory, TaskLLMRunner
 
@@ -96,77 +96,14 @@ _MODE_TO_PROMPT_KEY: dict[str, str] = {
 }
 
 
-def _find_qmrkg_repo_root() -> Path | None:
-    """Return the project root (directory whose pyproject.toml names this package), if found."""
-    start = Path(__file__).resolve().parent
-    for base in (start, *start.parents):
-        pyproject = base / "pyproject.toml"
-        if not pyproject.is_file():
-            continue
-        try:
-            data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
-        except Exception:
-            continue
-        project = data.get("project")
-        if isinstance(project, dict) and project.get("name") == "qmrkg":
-            return base
-    return None
-
-
-def _discover_extract_config_paths(config_path: Path | None) -> list[Path]:
-    """Resolve candidate config files for extract prompt loading.
-
-    When ``config_path`` is None, only these locations are considered (in order):
-    1. ``<cwd>/config.yaml`` or ``config.yml`` (optional local override)
-    2. ``<qmrkg repo root>/config.yaml`` or ``config.yml`` (project defaults)
-
-    This avoids walking unbounded ``cwd`` ancestor chains, which can pick up unrelated
-    config files outside the project.
-    """
-    if config_path is not None:
-        return [Path(config_path).resolve()]
-
-    candidates: list[Path] = []
-    seen: set[Path] = set()
-    cwd = Path.cwd()
-    for name in ("config.yaml", "config.yml"):
-        p = cwd / name
-        key = p.resolve()
-        if key in seen:
-            continue
-        seen.add(key)
-        candidates.append(p)
-    root = _find_qmrkg_repo_root()
-    if root is not None:
-        for name in ("config.yaml", "config.yml"):
-            p = root / name
-            key = p.resolve()
-            if key in seen:
-                continue
-            seen.add(key)
-            candidates.append(p)
-    return candidates
-
-
 def _load_extract_prompts(config_path: Path | None) -> dict[str, Any]:
-    try:
-        import yaml
-    except ImportError:  # pragma: no cover
+    data = load_config(config_path)
+    extract_cfg = data.get("extract")
+    if not isinstance(extract_cfg, dict):
         return {}
-    for path in _discover_extract_config_paths(config_path):
-        if not path.exists():
-            continue
-        try:
-            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        except Exception as exc:  # pragma: no cover
-            logger.warning("Failed to read extract prompts from %s: %s", path, exc)
-            continue
-        extract_cfg = data.get("extract")
-        if not isinstance(extract_cfg, dict):
-            continue
-        prompts = extract_cfg.get("prompts")
-        if isinstance(prompts, dict):
-            return prompts
+    prompts = extract_cfg.get("prompts")
+    if isinstance(prompts, dict):
+        return prompts
     return {}
 
 

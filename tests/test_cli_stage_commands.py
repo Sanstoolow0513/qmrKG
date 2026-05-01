@@ -1,13 +1,31 @@
+from __future__ import annotations
+
 from pathlib import Path
+from textwrap import dedent
 
 
-def test_pdftopng_single_pdf(monkeypatch, capsys):
+def write_config(tmp_path: Path, content: str) -> Path:
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(dedent(content).strip() + "\n", encoding="utf-8")
+    return config_path
+
+
+def test_pdftopng_single_pdf(monkeypatch, capsys, tmp_path):
     import qmrkg.cli_pdf_to_png as cli_pdf_to_png
 
-    temp_dir = Path(".pytest_local/cli_pdftopng_single")
-    temp_dir.mkdir(parents=True, exist_ok=True)
-    pdf_path = temp_dir / "sample.pdf"
+    pdf_path = tmp_path / "sample.pdf"
     pdf_path.write_bytes(b"%PDF-1.4")
+    image_dir = tmp_path / "png"
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          pdf_to_png:
+            input_file: "{pdf_path}"
+            image_dir: "{image_dir}"
+            dpi: 300
+        """,
+    )
 
     calls = {}
 
@@ -21,21 +39,31 @@ def test_pdftopng_single_pdf(monkeypatch, capsys):
 
     monkeypatch.setattr(cli_pdf_to_png, "PDFConverter", StubConverter)
 
-    exit_code = cli_pdf_to_png.main(["--pdf", str(pdf_path), "--dpi", "300"])
+    exit_code = cli_pdf_to_png.main(["--config", str(config_path)])
 
     out = capsys.readouterr().out
     assert exit_code == 0
     assert calls["init"]["dpi"] == 300
+    assert calls["init"]["output_dir"] == image_dir
     assert calls["convert"] == pdf_path
     assert "Processed: sample.pdf" in out
 
 
-def test_pdftopng_directory_mode_passes_recursive(monkeypatch):
+def test_pdftopng_directory_mode_passes_recursive(monkeypatch, tmp_path):
     import qmrkg.cli_pdf_to_png as cli_pdf_to_png
 
-    temp_dir = Path(".pytest_local/cli_pdftopng_dir")
-    temp_dir.mkdir(parents=True, exist_ok=True)
-    (temp_dir / "a.pdf").write_bytes(b"%PDF-1.4")
+    pdf_dir = tmp_path / "pdf"
+    pdf_dir.mkdir()
+    (pdf_dir / "a.pdf").write_bytes(b"%PDF-1.4")
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          pdf_to_png:
+            pdf_dir: "{pdf_dir}"
+            recursive: true
+        """,
+    )
 
     calls = {}
 
@@ -53,10 +81,10 @@ def test_pdftopng_directory_mode_passes_recursive(monkeypatch):
 
     monkeypatch.setattr(cli_pdf_to_png, "PDFConverter", StubConverter)
 
-    exit_code = cli_pdf_to_png.main(["--pdf-dir", str(temp_dir), "--recursive"])
+    exit_code = cli_pdf_to_png.main(["--config", str(config_path)])
 
     assert exit_code == 0
-    assert calls["convert_all"]["pdf_dir"] == temp_dir
+    assert calls["convert_all"]["pdf_dir"] == pdf_dir
     assert calls["convert_all"]["recursive"] is True
     assert calls["convert_all"]["ppt_converter"] is not None
 
@@ -67,6 +95,14 @@ def test_pdftopng_single_pptx(monkeypatch, capsys, tmp_path):
     pptx = tmp_path / "deck.pptx"
     pptx.write_bytes(b"x")
     fake_png = tmp_path / "deck_page_0001.png"
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          pdf_to_png:
+            input_file: "{pptx}"
+        """,
+    )
     calls = {}
 
     def fake_convert(path, _pdf_c, _ppt_c):
@@ -77,7 +113,7 @@ def test_pdftopng_single_pptx(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr(cli_pdf_to_png, "PDFConverter", lambda **kwargs: object())
     monkeypatch.setattr(cli_pdf_to_png, "PPTConverter", lambda **kwargs: object())
 
-    exit_code = cli_pdf_to_png.main(["--pdf", str(pptx)])
+    exit_code = cli_pdf_to_png.main(["--config", str(config_path)])
 
     out = capsys.readouterr().out
     assert exit_code == 0
@@ -85,15 +121,22 @@ def test_pdftopng_single_pptx(monkeypatch, capsys, tmp_path):
     assert "Processed: deck.pptx" in out
 
 
-def test_pngtotext_single_image(monkeypatch, capsys):
+def test_pngtotext_single_image(monkeypatch, capsys, tmp_path):
     import qmrkg.cli_png_to_text as cli_png_to_text
     from qmrkg.png_to_text import OCRPageResult
 
-    temp_dir = Path(".pytest_local/cli_pngtotext_single")
-    temp_dir.mkdir(parents=True, exist_ok=True)
-    image_path = temp_dir / "page_1.png"
+    image_path = tmp_path / "page_1.png"
     image_path.write_bytes(b"fakepng")
-    output_path = temp_dir / "result.md"
+    output_path = tmp_path / "result.md"
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          png_to_text:
+            input_file: "{image_path}"
+            output: "{output_path}"
+        """,
+    )
 
     calls = {}
 
@@ -124,33 +167,52 @@ def test_pngtotext_single_image(monkeypatch, capsys):
 
     monkeypatch.setattr(cli_png_to_text, "OCRProcessor", StubProcessor)
 
-    exit_code = cli_png_to_text.main(["--image", str(image_path), "--output", str(output_path)])
+    exit_code = cli_png_to_text.main(["--config", str(config_path)])
 
     out = capsys.readouterr().out
     assert exit_code == 0
+    assert calls["init"]["config_path"] == config_path
     assert calls["extract_from_images"] == [image_path]
     assert calls["process_and_save"]["output_path"] == output_path
     assert "Saved markdown to:" in out
 
 
-def test_pngtotext_missing_input_returns_error(capsys):
+def test_pngtotext_missing_input_returns_error(capsys, tmp_path):
     import qmrkg.cli_png_to_text as cli_png_to_text
 
-    exit_code = cli_png_to_text.main(["--image", "not-exist.png"])
+    missing = tmp_path / "not-exist.png"
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          png_to_text:
+            input_file: "{missing}"
+        """,
+    )
+
+    exit_code = cli_png_to_text.main(["--config", str(config_path)])
 
     captured = capsys.readouterr()
     assert exit_code == 1
     assert "Image file not found" in captured.err
 
 
-def test_mdchunk_single_markdown(monkeypatch, capsys):
+def test_mdchunk_single_markdown(monkeypatch, capsys, tmp_path):
     import qmrkg.cli_md_chunk as cli_md_chunk
 
-    temp_dir = Path(".pytest_local/cli_mdchunk_single")
-    temp_dir.mkdir(parents=True, exist_ok=True)
-    markdown_path = temp_dir / "doc.md"
+    markdown_path = tmp_path / "doc.md"
     markdown_path.write_text("# title\n\ncontent", encoding="utf-8")
-    chunk_dir = temp_dir / "chunks"
+    chunk_dir = tmp_path / "chunks"
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          md_chunk:
+            input_file: "{markdown_path}"
+            chunk_dir: "{chunk_dir}"
+            max_tokens: 2048
+        """,
+    )
 
     calls = {}
 
@@ -168,9 +230,7 @@ def test_mdchunk_single_markdown(monkeypatch, capsys):
 
     monkeypatch.setattr(cli_md_chunk, "MarkdownChunker", StubChunker)
 
-    exit_code = cli_md_chunk.main(
-        ["--markdown", str(markdown_path), "--chunk-dir", str(chunk_dir), "--max-tokens", "2048"]
-    )
+    exit_code = cli_md_chunk.main(["--config", str(config_path)])
 
     out = capsys.readouterr().out
     assert exit_code == 0
@@ -180,30 +240,48 @@ def test_mdchunk_single_markdown(monkeypatch, capsys):
     assert "Chunked: doc.md" in out
 
 
-def test_mdchunk_missing_markdown_returns_error(capsys):
+def test_mdchunk_missing_markdown_returns_error(capsys, tmp_path):
     import qmrkg.cli_md_chunk as cli_md_chunk
 
-    exit_code = cli_md_chunk.main(["--markdown", "missing.md"])
+    missing = tmp_path / "missing.md"
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          md_chunk:
+            input_file: "{missing}"
+        """,
+    )
+
+    exit_code = cli_md_chunk.main(["--config", str(config_path)])
 
     captured = capsys.readouterr()
     assert exit_code == 1
     assert "Markdown file not found" in captured.err
 
 
-def test_pngtotext_dir_outputs_to_book_subdir(monkeypatch, capsys, tmp_path):
+def test_pngtotext_dir_outputs_to_book_subdir(monkeypatch, tmp_path):
     """Directory mode must write each page MD into a book-named subdirectory."""
     import qmrkg.cli_png_to_text as cli_png_to_text
     from qmrkg.png_to_text import OCRPageResult
 
     image_dir = tmp_path / "png"
     image_dir.mkdir()
-    # Matches pdftopng layout: one folder per book under the image root
     book_png_dir = image_dir / "mybook"
     book_png_dir.mkdir()
     image_path = book_png_dir / "mybook_page_0001.png"
     image_path.write_bytes(b"fakepng")
 
     text_dir = tmp_path / "markdown"
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          png_to_text:
+            image_dir: "{image_dir}"
+            text_dir: "{text_dir}"
+        """,
+    )
     captured_output_paths: list[Path] = []
 
     class StubProcessor:
@@ -233,12 +311,11 @@ def test_pngtotext_dir_outputs_to_book_subdir(monkeypatch, capsys, tmp_path):
 
     monkeypatch.setattr(cli_png_to_text, "OCRProcessor", StubProcessor)
 
-    exit_code = cli_png_to_text.main(["--image-dir", str(image_dir), "--text-dir", str(text_dir)])
+    exit_code = cli_png_to_text.main(["--config", str(config_path)])
 
     assert exit_code == 0
     assert len(captured_output_paths) == 1
     output = captured_output_paths[0]
-    # Parent directory should be the book stem (no _page_NNNN suffix)
     assert output.parent.name == "mybook"
     assert output.name == "mybook_page_0001.md"
 
@@ -271,7 +348,7 @@ def test_truncate_tqdm_label():
     assert out.endswith("…")
 
 
-def test_pngtotext_dir_two_books_two_pages(monkeypatch, capsys, tmp_path):
+def test_pngtotext_dir_two_books_two_pages(monkeypatch, tmp_path):
     """Directory mode processes each book group; two PNGs yield two saves."""
     import qmrkg.cli_png_to_text as cli_png_to_text
     from qmrkg.png_to_text import OCRPageResult
@@ -284,6 +361,15 @@ def test_pngtotext_dir_two_books_two_pages(monkeypatch, capsys, tmp_path):
         (d / f"{name}_page_0001.png").write_bytes(b"fakepng")
 
     text_dir = tmp_path / "markdown"
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          png_to_text:
+            image_dir: "{image_dir}"
+            text_dir: "{text_dir}"
+        """,
+    )
     save_calls: list[Path] = []
 
     class StubProcessor:
@@ -313,7 +399,7 @@ def test_pngtotext_dir_two_books_two_pages(monkeypatch, capsys, tmp_path):
 
     monkeypatch.setattr(cli_png_to_text, "OCRProcessor", StubProcessor)
 
-    exit_code = cli_png_to_text.main(["--image-dir", str(image_dir), "--text-dir", str(text_dir)])
+    exit_code = cli_png_to_text.main(["--config", str(config_path)])
 
     assert exit_code == 0
     assert len(save_calls) == 2
@@ -335,6 +421,15 @@ def test_pngtotext_dir_one_book_batch_extract(monkeypatch, tmp_path):
     p2.write_bytes(b"b")
 
     text_dir = tmp_path / "markdown"
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          png_to_text:
+            image_dir: "{image_dir}"
+            text_dir: "{text_dir}"
+        """,
+    )
     extract_calls: list[list[Path]] = []
 
     class StubProcessor:
@@ -367,7 +462,7 @@ def test_pngtotext_dir_one_book_batch_extract(monkeypatch, tmp_path):
 
     monkeypatch.setattr(cli_png_to_text, "OCRProcessor", StubProcessor)
 
-    exit_code = cli_png_to_text.main(["--image-dir", str(image_dir), "--text-dir", str(text_dir)])
+    exit_code = cli_png_to_text.main(["--config", str(config_path)])
 
     assert exit_code == 0
     assert len(extract_calls) == 1
@@ -407,6 +502,14 @@ def test_kgmdcombine_merges_book_subdir_pages(tmp_path, monkeypatch):
     (book / "mybook_page_0002.md").write_text(
         "# Body\n\n```markdown\n# Chapter 1\n\nWorld\n```\n", encoding="utf-8"
     )
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          kg_md_combine:
+            markdown_dir: "{markdown_dir}"
+        """,
+    )
 
     merge_calls: list[object] = []
 
@@ -419,7 +522,7 @@ def test_kgmdcombine_merges_book_subdir_pages(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cli_kg, "merge_book_pages", stub_merge)
 
-    exit_code = cli_kg.main(["--markdown-dir", str(markdown_dir)])
+    exit_code = cli_kg.main(["--config", str(config_path)])
     assert exit_code == 0
     assert (markdown_dir / "mybook.md").read_text(encoding="utf-8") == "merged"
     assert len(merge_calls) == 1
@@ -431,6 +534,14 @@ def test_kgmdcombine_no_subdirs(capsys, tmp_path):
 
     md = tmp_path / "empty_md"
     md.mkdir()
-    exit_code = cli_kg.main(["--markdown-dir", str(md)])
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          kg_md_combine:
+            markdown_dir: "{md}"
+        """,
+    )
+    exit_code = cli_kg.main(["--config", str(config_path)])
     assert exit_code == 0
     assert "No book subdirectories" in capsys.readouterr().out

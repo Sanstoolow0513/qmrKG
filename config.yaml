@@ -67,6 +67,7 @@ llm:
 
 ocr:
   llm_profile: qwen3-vl-8b
+  prompt_key: default
 
   prompts:
     default: |
@@ -326,7 +327,13 @@ entity_embed:
   llm_profile: embedding_qwen3_8b
 
 run:
+  qmr:
+    from_stage: null
+    to_stage: null
+    no_neo4j: false
+
   pdf_to_png:
+    input_file: null
     pdf_dir: "data/pdf"
     image_dir: "data/png"
     dpi: 200
@@ -335,6 +342,8 @@ run:
     ppt_timeout: 300
 
   png_to_text:
+    input_file: null
+    output: null
     image_dir: "data/png"
     text_dir: "data/markdown"
     recursive: true
@@ -343,6 +352,8 @@ run:
     force_ocr: false
 
   md_chunk:
+    input_file: null
+    output: null
     markdown_dir: "data/markdown"
     chunk_dir: "data/chunks"
     max_tokens: 4000
@@ -361,7 +372,6 @@ run:
     review: true
     strict_evidence: true
     keep_dropped: true
-    min_triples: 1
     extractor_version: "kgextract_v2"
 
   kg_merge:
@@ -381,6 +391,15 @@ run:
       cache_path: "data/triples/merged/.embed_cache.json"
 
   kg_neo4j:
-    import: "data/triples/merged/merged_triples.json"
+    import_file: "data/triples/merged/merged_triples.json"
+    uri: "bolt://localhost:7687"
+    user: "neo4j"
     clear: false
     stats: false
+
+  kg_eval:
+    pred: "data/triples/merged/merged_triples.json"
+    gold: null
+    output_json: null
+    output_md: null
+    top_errors: 10
