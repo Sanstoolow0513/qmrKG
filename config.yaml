@@ -63,7 +63,7 @@ llm:
           enabled: true
       rate_limit:
         rpm: 3000
-        max_concurrency: 3000
+        max_concurrency: 900
 
 ocr:
   llm_profile: qwen3-vl-8b
@@ -326,6 +326,32 @@ extract:
 entity_embed:
   llm_profile: embedding_qwen3_8b
 
+entity_merge_review:
+  llm_profile: deepseek_v4_flash
+  prompt_key: default
+  prompts:
+    default: |
+      你是计算机网络知识图谱的实体归一化复核器。
+
+      判断两个候选 term 是否指向同一个实体。不要输出置信度。
+      只能根据用户消息中的 descriptions/triples 证据判断，并且只能引用给定 evidence id。
+      如果上下文标记 truncated=true，说明仍有未展示的三元组；除非证据极强，否则应输出 unsure。
+
+      决策标准：
+      - merge：两个 term 在三元组中可互换，合并后语义不变。
+      - keep_separate：二者相关但不是同一实体，或存在对比、包含、依赖、应用等反证。
+      - unsure：证据不足，不能安全合并。
+
+      输出必须是严格 JSON，不要输出 Markdown 或解释文字：
+      {
+        "decision": "merge|keep_separate|unsure",
+        "canonical_name": "只能是候选 term 之一，不能合并时为 null",
+        "reason_code": "短原因码",
+        "reason": "简短中文原因",
+        "supporting_evidence_ids": ["支持 merge 的证据 id"],
+        "conflict_evidence_ids": ["支持 keep_separate 的证据 id"]
+      }
+
 run:
   qmr:
     from_stage: null
@@ -383,12 +409,23 @@ run:
       encoding_template: "structured_zh"
       encode_fields: ["type", "name", "description"]
       max_desc_chars: 160
+      candidate_threshold: 0.78
       similarity_threshold: 0.85
+      direct_merge_without_recheck: false
       bucket_by_type: true
       faiss_top_k: 50
       batch_size: 1024
       cache_format: "binary"
       cache_path: "data/triples/merged/.embed_cache.json"
+      llm_recheck:
+        enabled: false
+        task_name: "entity_merge_review"
+        max_pairs: 200
+        context_triples_per_entity: 8
+        require_supporting_evidence: true
+        allow_merge_with_truncated_context: false
+        max_cluster_size: 4
+        require_complete_pairwise_cluster: true
 
   kg_neo4j:
     import_file: "data/triples/merged/merged_triples.json"

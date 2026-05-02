@@ -341,3 +341,440 @@ def test_binary_cache_signature_mismatch_reembeds(monkeypatch, tmp_path):
     canonicalizer = make_canonicalizer(fake, cache_path=cache_path, faiss_top_k=2)
     canonicalizer.build_canonical_map(entities)
     assert fake.calls != []
+
+
+class FakeMergeJudgeProcessor:
+    def __init__(self, response_text: str):
+        self.response_text = response_text
+        self.prompts: list[str] = []
+
+    def run_text(self, prompt: str, *, system_prompt: str | None = None):
+        self.prompts.append(prompt)
+        return SimpleNamespace(text=self.response_text)
+
+
+class FakeQueuedMergeJudgeProcessor:
+    def __init__(self, response_texts: list[str]):
+        self.response_texts = list(response_texts)
+        self.prompts: list[str] = []
+
+    def run_text(self, prompt: str, *, system_prompt: str | None = None):
+        self.prompts.append(prompt)
+        if not self.response_texts:
+            raise AssertionError("no queued LLM response")
+        return SimpleNamespace(text=self.response_texts.pop(0))
+
+
+def test_merger_llm_recheck_merges_validated_candidate(monkeypatch, tmp_path):
+    from qmrkg import kg_merger
+
+    monkeypatch.setattr(kg_merger, "faiss", SimpleNamespace(IndexFlatIP=FakeFaissIndexFlatIP))
+    fake_embed = FakeEmbeddingProcessor(
+        {
+            "实体类型：mechanism；实体名：三次握手；定义：TCP 建立连接的三次握手": [1.0, 0.0],
+            "实体类型：mechanism；实体名：三路握手；定义：三次握手的别称": [1.0, 0.0],
+            "实体类型：concept；实体名：可靠传输；定义：保证数据可靠到达": [0.0, 1.0],
+        }
+    )
+    monkeypatch.setattr(
+        kg_merger,
+        "EmbeddingTaskProcessor",
+        lambda task_name, config_path=None: fake_embed,
+    )
+    judge = FakeMergeJudgeProcessor(
+        json.dumps(
+            {
+                "decision": "merge",
+                "canonical_name": "三次握手",
+                "reason_code": "SAME_MECHANISM",
+                "reason": "证据显示二者描述同一连接建立机制。",
+                "supporting_evidence_ids": ["L_DESC_1", "R_DESC_1"],
+                "conflict_evidence_ids": [],
+            },
+            ensure_ascii=False,
+        )
+    )
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    (raw_dir / "chunk.json").write_text(
+        json.dumps(
+            {
+                "chunk_index": 1,
+                "source_file": "book.md",
+                "entities": [
+                    {
+                        "name": "三次握手",
+                        "type": "mechanism",
+                        "description": "TCP 建立连接的三次握手",
+                    },
+                    {"name": "三路握手", "type": "mechanism", "description": "三次握手的别称"},
+                    {"name": "可靠传输", "type": "concept", "description": "保证数据可靠到达"},
+                ],
+                "triples": [
+                    {
+                        "head": "三次握手",
+                        "relation": "applied_to",
+                        "tail": "可靠传输",
+                        "evidence": "三次握手用于建立可靠传输连接。",
+                    },
+                    {
+                        "head": "三路握手",
+                        "relation": "applied_to",
+                        "tail": "可靠传输",
+                        "evidence": "三路握手用于建立可靠传输连接。",
+                    },
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    output_path = tmp_path / "merged.json"
+    KGMerger(merge_judge_processor=judge).merge_directory(
+        raw_dir,
+        output_path,
+        embedding_config={
+            "enabled": True,
+            "candidate_threshold": 0.8,
+            "cache_path": None,
+            "llm_recheck": {"enabled": True},
+        },
+    )
+
+    data = json.loads(output_path.read_text(encoding="utf-8"))
+    names = {entity["name"] for entity in data["entities"]}
+    assert "三次握手" in names
+    assert "三路握手" not in names
+    assert data["merge_audit"]["decisions"][0]["method"] == "llm_recheck"
+    assert "embedding_score" not in judge.prompts[0]
+
+
+def test_merger_llm_recheck_rejects_unverifiable_llm_support(monkeypatch, tmp_path):
+    from qmrkg import kg_merger
+
+    monkeypatch.setattr(kg_merger, "faiss", SimpleNamespace(IndexFlatIP=FakeFaissIndexFlatIP))
+    fake_embed = FakeEmbeddingProcessor(
+        {
+            "实体类型：concept；实体名：拥塞控制；定义：避免网络过载": [1.0, 0.0],
+            "实体类型：concept；实体名：拥塞管理；定义：避免网络拥塞": [1.0, 0.0],
+        }
+    )
+    monkeypatch.setattr(
+        kg_merger,
+        "EmbeddingTaskProcessor",
+        lambda task_name, config_path=None: fake_embed,
+    )
+    judge = FakeMergeJudgeProcessor(
+        json.dumps(
+            {
+                "decision": "merge",
+                "canonical_name": "拥塞控制",
+                "reason_code": "SAME_CONCEPT",
+                "reason": "看起来类似。",
+                "supporting_evidence_ids": ["FAKE_EVIDENCE"],
+                "conflict_evidence_ids": [],
+            },
+            ensure_ascii=False,
+        )
+    )
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    (raw_dir / "chunk.json").write_text(
+        json.dumps(
+            {
+                "entities": [
+                    {"name": "拥塞控制", "type": "concept", "description": "避免网络过载"},
+                    {"name": "拥塞管理", "type": "concept", "description": "避免网络拥塞"},
+                ],
+                "triples": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    output_path = tmp_path / "merged.json"
+    KGMerger(merge_judge_processor=judge).merge_directory(
+        raw_dir,
+        output_path,
+        embedding_config={
+            "enabled": True,
+            "candidate_threshold": 0.8,
+            "cache_path": None,
+            "llm_recheck": {"enabled": True},
+        },
+    )
+
+    data = json.loads(output_path.read_text(encoding="utf-8"))
+    names = {entity["name"] for entity in data["entities"]}
+    assert {"拥塞控制", "拥塞管理"}.issubset(names)
+    assert data["merge_audit"]["decisions"][0]["decision"] == "unsure"
+
+
+def test_merger_rules_reject_direct_relation_before_llm(monkeypatch, tmp_path):
+    from qmrkg import kg_merger
+
+    monkeypatch.setattr(kg_merger, "faiss", SimpleNamespace(IndexFlatIP=FakeFaissIndexFlatIP))
+    fake_embed = FakeEmbeddingProcessor(
+        {
+            "实体类型：concept；实体名：拥塞控制；定义：避免网络过载": [1.0, 0.0],
+            "实体类型：concept；实体名：流量控制；定义：避免接收方过载": [1.0, 0.0],
+        }
+    )
+    monkeypatch.setattr(
+        kg_merger,
+        "EmbeddingTaskProcessor",
+        lambda task_name, config_path=None: fake_embed,
+    )
+    judge = FakeMergeJudgeProcessor("{}")
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    (raw_dir / "chunk.json").write_text(
+        json.dumps(
+            {
+                "entities": [
+                    {"name": "拥塞控制", "type": "concept", "description": "避免网络过载"},
+                    {"name": "流量控制", "type": "concept", "description": "避免接收方过载"},
+                ],
+                "triples": [
+                    {
+                        "head": "拥塞控制",
+                        "relation": "compared_with",
+                        "tail": "流量控制",
+                        "evidence": "拥塞控制与流量控制不同。",
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    output_path = tmp_path / "merged.json"
+    KGMerger(merge_judge_processor=judge).merge_directory(
+        raw_dir,
+        output_path,
+        embedding_config={
+            "enabled": True,
+            "candidate_threshold": 0.8,
+            "cache_path": None,
+            "llm_recheck": {"enabled": True},
+        },
+    )
+
+    data = json.loads(output_path.read_text(encoding="utf-8"))
+    names = {entity["name"] for entity in data["entities"]}
+    assert {"拥塞控制", "流量控制"}.issubset(names)
+    assert judge.prompts == []
+    assert data["merge_audit"]["decisions"][0]["reason_code"] == "DIRECT_RELATION_SELF_LOOP_RISK"
+
+
+def test_merger_embedding_without_recheck_does_not_merge_ambiguous_candidate(monkeypatch, tmp_path):
+    from qmrkg import kg_merger
+
+    monkeypatch.setattr(kg_merger, "faiss", SimpleNamespace(IndexFlatIP=FakeFaissIndexFlatIP))
+    fake_embed = FakeEmbeddingProcessor(
+        {
+            "实体类型：concept；实体名：TCP流量控制；定义：TCP 中控制发送速率": [1.0, 0.0],
+            "实体类型：concept；实体名：UDP流量控制；定义：UDP 场景中的流量控制": [1.0, 0.0],
+        }
+    )
+    monkeypatch.setattr(
+        kg_merger,
+        "EmbeddingTaskProcessor",
+        lambda task_name, config_path=None: fake_embed,
+    )
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    (raw_dir / "chunk.json").write_text(
+        json.dumps(
+            {
+                "entities": [
+                    {"name": "TCP流量控制", "type": "concept", "description": "TCP 中控制发送速率"},
+                    {
+                        "name": "UDP流量控制",
+                        "type": "concept",
+                        "description": "UDP 场景中的流量控制",
+                    },
+                ],
+                "triples": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    output_path = tmp_path / "merged.json"
+    KGMerger().merge_directory(
+        raw_dir,
+        output_path,
+        embedding_config={
+            "enabled": True,
+            "candidate_threshold": 0.8,
+            "cache_path": None,
+            "llm_recheck": {"enabled": False},
+        },
+    )
+
+    data = json.loads(output_path.read_text(encoding="utf-8"))
+    names = {entity["name"] for entity in data["entities"]}
+    assert {"TCP流量控制", "UDP流量控制"}.issubset(names)
+    assert data["merge_audit"]["decisions"][0]["reason_code"] == "LLM_RECHECK_DISABLED"
+
+
+def test_merger_rejects_transitive_cluster_without_complete_pairwise_review(monkeypatch, tmp_path):
+    from qmrkg import kg_merger
+
+    monkeypatch.setattr(kg_merger, "faiss", SimpleNamespace(IndexFlatIP=FakeFaissIndexFlatIP))
+    fake_embed = FakeEmbeddingProcessor(
+        {
+            "实体类型：mechanism；实体名：A_TCP重传；定义：TCP 特定重传机制": [1.0, 0.0],
+            "实体类型：mechanism；实体名：B_重传；定义：通用重传机制": [0.8, 0.6],
+            "实体类型：mechanism；实体名：C_ARQ重传；定义：ARQ 特定重传机制": [0.28, 0.96],
+        }
+    )
+    monkeypatch.setattr(
+        kg_merger,
+        "EmbeddingTaskProcessor",
+        lambda task_name, config_path=None: fake_embed,
+    )
+    merge_response = json.dumps(
+        {
+            "decision": "merge",
+            "canonical_name": "B_重传",
+            "reason_code": "LOCAL_EQUIVALENCE",
+            "reason": "局部证据支持合并。",
+            "supporting_evidence_ids": ["L_DESC_1", "R_DESC_1"],
+            "conflict_evidence_ids": [],
+        },
+        ensure_ascii=False,
+    )
+    judge = FakeQueuedMergeJudgeProcessor([merge_response, merge_response])
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    (raw_dir / "chunk.json").write_text(
+        json.dumps(
+            {
+                "entities": [
+                    {"name": "A_TCP重传", "type": "mechanism", "description": "TCP 特定重传机制"},
+                    {"name": "B_重传机制", "type": "mechanism", "description": "通用重传机制"},
+                    {"name": "C_ARQ重传", "type": "mechanism", "description": "ARQ 特定重传机制"},
+                ],
+                "triples": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    output_path = tmp_path / "merged.json"
+    KGMerger(merge_judge_processor=judge).merge_directory(
+        raw_dir,
+        output_path,
+        embedding_config={
+            "enabled": True,
+            "candidate_threshold": 0.75,
+            "cache_path": None,
+            "llm_recheck": {
+                "enabled": True,
+                "require_complete_pairwise_cluster": True,
+            },
+        },
+    )
+
+    data = json.loads(output_path.read_text(encoding="utf-8"))
+    names = {entity["name"] for entity in data["entities"]}
+    assert {"A_TCP重传", "B_重传", "C_ARQ重传"}.issubset(names)
+    assert data["merge_audit"]["cluster_conflicts"][0]["reason_code"] == (
+        "INCOMPLETE_PAIRWISE_CLUSTER"
+    )
+
+
+def test_merger_rejects_llm_merge_when_context_is_truncated(monkeypatch, tmp_path):
+    from qmrkg import kg_merger
+
+    monkeypatch.setattr(kg_merger, "faiss", SimpleNamespace(IndexFlatIP=FakeFaissIndexFlatIP))
+    fake_embed = FakeEmbeddingProcessor(
+        {
+            "实体类型：mechanism；实体名：三次握手；定义：TCP 建立连接机制": [1.0, 0.0],
+            "实体类型：mechanism；实体名：三路握手；定义：TCP 建立连接机制": [1.0, 0.0],
+            "实体类型：concept；实体名：可靠传输；定义：可靠数据传输": [0.0, 1.0],
+            "实体类型：concept；实体名：连接建立；定义：建立连接": [0.0, -1.0],
+        }
+    )
+    monkeypatch.setattr(
+        kg_merger,
+        "EmbeddingTaskProcessor",
+        lambda task_name, config_path=None: fake_embed,
+    )
+    judge = FakeMergeJudgeProcessor(
+        json.dumps(
+            {
+                "decision": "merge",
+                "canonical_name": "三次握手",
+                "reason_code": "SAME_MECHANISM",
+                "reason": "证据显示二者相同。",
+                "supporting_evidence_ids": ["L_DESC_1", "R_DESC_1"],
+                "conflict_evidence_ids": [],
+            },
+            ensure_ascii=False,
+        )
+    )
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    (raw_dir / "chunk.json").write_text(
+        json.dumps(
+            {
+                "entities": [
+                    {"name": "三次握手", "type": "mechanism", "description": "TCP 建立连接机制"},
+                    {"name": "三路握手", "type": "mechanism", "description": "TCP 建立连接机制"},
+                    {"name": "可靠传输", "type": "concept", "description": "可靠数据传输"},
+                    {"name": "连接建立", "type": "concept", "description": "建立连接"},
+                ],
+                "triples": [
+                    {
+                        "head": "三次握手",
+                        "relation": "applied_to",
+                        "tail": "可靠传输",
+                        "evidence": "三次握手应用于可靠传输。",
+                    },
+                    {
+                        "head": "三次握手",
+                        "relation": "depends_on",
+                        "tail": "连接建立",
+                        "evidence": "三次握手依赖连接建立过程。",
+                    },
+                    {
+                        "head": "三路握手",
+                        "relation": "applied_to",
+                        "tail": "可靠传输",
+                        "evidence": "三路握手应用于可靠传输。",
+                    },
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    output_path = tmp_path / "merged.json"
+    KGMerger(merge_judge_processor=judge).merge_directory(
+        raw_dir,
+        output_path,
+        embedding_config={
+            "enabled": True,
+            "candidate_threshold": 0.8,
+            "cache_path": None,
+            "llm_recheck": {
+                "enabled": True,
+                "context_triples_per_entity": 1,
+                "allow_merge_with_truncated_context": False,
+            },
+        },
+    )
+
+    data = json.loads(output_path.read_text(encoding="utf-8"))
+    names = {entity["name"] for entity in data["entities"]}
+    assert {"三次握手", "三路握手"}.issubset(names)
+    assert data["merge_audit"]["decisions"][0]["reason_code"] == "TRUNCATED_CONTEXT"

@@ -129,6 +129,47 @@ def test_main_default_mode_fs(monkeypatch, tmp_path, capsys) -> None:
     assert "kgextract mode: fs" in capsys.readouterr().out
 
 
+def test_main_batches_directory_chunk_files(monkeypatch, tmp_path, capsys) -> None:
+    import qmrkg.cli_kg_extract as cli
+
+    calls: dict = {}
+
+    class StubExtractor:
+        def __init__(self, **kwargs):
+            pass
+
+        def extract_from_chunks_files(self, chunk_files, output_dir, **kwargs):
+            calls["chunk_files"] = [Path(path).name for path in chunk_files]
+            calls["output_dir"] = Path(output_dir)
+            calls["skip_existing"] = kwargs["skip_existing"]
+            return [Path("a"), Path("b")]
+
+    monkeypatch.setattr(cli, "KGExtractor", StubExtractor)
+
+    chunk_dir = tmp_path / "chunks"
+    chunk_dir.mkdir()
+    (chunk_dir / "b.json").write_text("[]", encoding="utf-8")
+    (chunk_dir / "a.json").write_text("[]", encoding="utf-8")
+    out_dir = tmp_path / "out"
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          kg_extract:
+            input: "{chunk_dir}"
+            output_dir: "{out_dir}"
+        """,
+    )
+
+    exit_code = cli.main(["--config", str(config_path)])
+
+    assert exit_code == 0
+    assert calls["chunk_files"] == ["a.json", "b.json"]
+    assert calls["output_dir"] == out_dir
+    assert calls["skip_existing"] is True
+    assert "Extracted 2 chunk(s) from 2 file(s)" in capsys.readouterr().out
+
+
 def test_main_rejects_invalid_config_mode(tmp_path, capsys) -> None:
     import qmrkg.cli_kg_extract as cli
 

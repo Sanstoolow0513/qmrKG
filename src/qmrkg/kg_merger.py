@@ -7,6 +7,7 @@ import json
 import logging
 import re
 from collections import defaultdict
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -14,7 +15,7 @@ import numpy as np
 from tqdm import tqdm
 
 from .kg_schema import Entity, Triple
-from .llm_factory import EmbeddingTaskProcessor
+from .llm_factory import EmbeddingTaskProcessor, TextTaskProcessor
 
 logger = logging.getLogger(__name__)
 try:  # pragma: no cover - import behavior covered indirectly
@@ -54,6 +55,46 @@ ALIAS_MAP: dict[str, str] = {
     "路由信息协议": "RIP",
 }
 
+_PUNCT_OR_SPACE_PATTERN = re.compile(r"[\s\-_/\\.,，。:：;；()（）\[\]【】{}<>《》\"'`]+")
+
+
+@dataclass(slots=True)
+class EntityMergeCandidate:
+    """Embedding-retrieved candidate pair for entity canonicalization."""
+
+    left: str
+    right: str
+    left_type: str
+    right_type: str
+    left_frequency: int
+    right_frequency: int
+    score: float
+
+
+@dataclass(slots=True)
+class EntityMergeDecision:
+    """Auditable decision for one candidate pair."""
+
+    left: str
+    right: str
+    decision: str
+    method: str
+    reason_code: str
+    canonical_name: str | None = None
+    reason: str = ""
+    embedding_score: float | None = None
+    supporting_evidence_ids: list[str] = field(default_factory=list)
+    conflict_evidence_ids: list[str] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class _EntityContext:
+    name: str
+    type: str = ""
+    frequency: int = 0
+    descriptions: list[str] = field(default_factory=list)
+    triples: list[dict[str, str]] = field(default_factory=list)
+
 
 def normalize_entity_name(name: str) -> str:
     """Normalize an entity name to a canonical form."""
@@ -66,6 +107,11 @@ def normalize_entity_name(name: str) -> str:
     if without_suffix != name and len(without_suffix) >= 2:
         return without_suffix
     return name
+
+
+def _compact_entity_name(name: str) -> str:
+    """Normalize superficial punctuation/casing for strong exact-name checks."""
+    return _PUNCT_OR_SPACE_PATTERN.sub("", normalize_entity_name(name)).lower()
 
 
 class _UnionFind:
@@ -174,7 +220,9 @@ class _EmbeddingBinaryCache:
             "dim": self.dim,
             "key_to_idx": self.key_to_idx,
         }
-        self.meta_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        self.meta_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
 
 class EmbeddingCanonicalizer:
@@ -222,7 +270,9 @@ class EmbeddingCanonicalizer:
         encoding_format = (
             getattr(settings, "encoding_format", None) if settings is not None else None
         ) or "float"
-        dimensions = getattr(settings, "embedding_dimensions", None) if settings is not None else None
+        dimensions = (
+            getattr(settings, "embedding_dimensions", None) if settings is not None else None
+        )
         return f"{model}::{encoding_format}::{dimensions or 'native'}"
 
     def _cache_key(self, text: str) -> str:
@@ -246,16 +296,19 @@ class EmbeddingCanonicalizer:
             return " | ".join(parts)
         labels = {"type": "实体类型", "name": "实体名", "description": "定义"}
         chunks: list[str] = []
-        for field in self.encode_fields:
-            value = values.get(field, "")
+        for field_name in self.encode_fields:
+            value = values.get(field_name, "")
             if not value:
                 continue
-            label = labels.get(field, field)
+            label = labels.get(field_name, field_name)
             chunks.append(f"{label}：{value}")
         return "；".join(chunks) if chunks else None
 
     def _embed_texts_resolved(
-        self, texts: list[str], cache_json: dict[str, list[float]], cache_bin: _EmbeddingBinaryCache | None
+        self,
+        texts: list[str],
+        cache_json: dict[str, list[float]],
+        cache_bin: _EmbeddingBinaryCache | None,
     ) -> list[list[float]]:
         """Return embedding vectors, same order as `texts`."""
         out: list[list[float]] = []
@@ -287,7 +340,8 @@ class EmbeddingCanonicalizer:
                 out[i] = [float(x) for x in vec]
         return out
 
-    def build_canonical_map(self, entities: list[Entity]) -> dict[str, str]:
+    @staticmethod
+    def _build_rows(entities: list[Entity]) -> list[tuple[str, str, int, str]]:
         # Dedupe (name, type), sum frequency, first non-empty description
         agg_freq: dict[tuple[str, str], int] = defaultdict(int)
         agg_desc: dict[tuple[str, str], str] = {}
@@ -305,12 +359,49 @@ class EmbeddingCanonicalizer:
         rows: list[tuple[str, str, int, str]] = []
         for (name, type_), freq in sorted(agg_freq.items()):
             rows.append((name, type_, freq, agg_desc.get((name, type_), "")))
+        return rows
 
+    def build_candidates(self, entities: list[Entity]) -> list[EntityMergeCandidate]:
+        """Return embedding-similar entity pairs without deciding whether to merge."""
+        rows = self._build_rows(entities)
+        return self._find_candidates(rows)
+
+    def build_canonical_map(self, entities: list[Entity]) -> dict[str, str]:
+        """Legacy embedding-only canonicalization used when LLM recheck is disabled."""
+        rows = self._build_rows(entities)
         if not rows:
             return {}
 
         n = len(rows)
         mapping: dict[str, str] = {r[0]: r[0] for r in rows}
+        index_by_name: dict[str, int] = {
+            name: i for i, (name, _type, _freq, _desc) in enumerate(rows)
+        }
+        uf = _UnionFind(n)
+
+        for candidate in self._find_candidates(rows):
+            left_idx = index_by_name.get(candidate.left)
+            right_idx = index_by_name.get(candidate.right)
+            if left_idx is not None and right_idx is not None:
+                uf.union(left_idx, right_idx)
+
+        members_by_root: dict[int, list[int]] = defaultdict(list)
+        for i in range(n):
+            members_by_root[uf.find(i)].append(i)
+
+        for _root, mems in members_by_root.items():
+            candidates = [rows[i] for i in mems]
+            candidates.sort(key=lambda r: (-r[2], len(r[0]), r[0]))
+            canonical = candidates[0][0]
+            for i in mems:
+                mapping[rows[i][0]] = canonical
+
+        return mapping
+
+    def _find_candidates(self, rows: list[tuple[str, str, int, str]]) -> list[EntityMergeCandidate]:
+        if not rows:
+            return []
+
         cache_json: dict[str, list[float]] = {}
         cache_bin: _EmbeddingBinaryCache | None = None
         if self.cache_path:
@@ -337,13 +428,13 @@ class EmbeddingCanonicalizer:
                         self.cache_path,
                     )
 
-        uf = _UnionFind(n)
-
         buckets: dict[str, list[int]] = defaultdict(list)
         for i, (name, type_, _freq, _desc) in enumerate(rows):
             bkey = type_ if self.bucket_by_type else "_all"
             buckets[bkey].append(i)
 
+        candidates: list[EntityMergeCandidate] = []
+        seen_pairs: set[tuple[str, str]] = set()
         for _bkey, indices in buckets.items():
             if len(indices) < 2:
                 continue
@@ -364,7 +455,9 @@ class EmbeddingCanonicalizer:
             norms = np.linalg.norm(mat, axis=1, keepdims=True)
             mat = mat / np.maximum(norms, np.float32(1e-12))
             if faiss is None:
-                raise ImportError("faiss is required for embedding canonicalization. Install faiss-cpu.")
+                raise ImportError(
+                    "faiss is required for embedding canonicalization. Install faiss-cpu."
+                )
             index = faiss.IndexFlatIP(mat.shape[1])
             index.add(mat)
             top_k = max(2, min(self.faiss_top_k, m))
@@ -375,18 +468,23 @@ class EmbeddingCanonicalizer:
                     if b < 0 or b <= a:
                         continue
                     if float(scores[a, rank]) >= self.similarity_threshold:
-                        uf.union(valid[a], valid[b])
-
-        members_by_root: dict[int, list[int]] = defaultdict(list)
-        for i in range(n):
-            members_by_root[uf.find(i)].append(i)
-
-        for _root, mems in members_by_root.items():
-            candidates = [rows[i] for i in mems]
-            candidates.sort(key=lambda r: (-r[2], len(r[0]), r[0]))
-            canonical = candidates[0][0]
-            for i in mems:
-                mapping[rows[i][0]] = canonical
+                        left = rows[valid[a]]
+                        right = rows[valid[b]]
+                        pair_key = tuple(sorted((left[0], right[0])))
+                        if pair_key in seen_pairs:
+                            continue
+                        seen_pairs.add(pair_key)
+                        candidates.append(
+                            EntityMergeCandidate(
+                                left=left[0],
+                                right=right[0],
+                                left_type=left[1],
+                                right_type=right[1],
+                                left_frequency=left[2],
+                                right_frequency=right[2],
+                                score=float(scores[a, rank]),
+                            )
+                        )
 
         if self.cache_path is not None:
             if self.cache_format == "binary" and cache_bin is not None:
@@ -397,15 +495,181 @@ class EmbeddingCanonicalizer:
                     json.dumps(cache_json, ensure_ascii=False, indent=2), encoding="utf-8"
                 )
 
-        return mapping
+        candidates.sort(key=lambda c: (-c.score, c.left, c.right))
+        return candidates
+
+
+class EntityMergeJudge:
+    """LLM rechecker for ambiguous embedding candidates.
+
+    The judge output is treated as an untrusted classification and is validated by
+    KGMerger before any merge decision is applied.
+    """
+
+    VALID_DECISIONS = {"merge", "keep_separate", "unsure"}
+
+    def __init__(
+        self,
+        task_name: str,
+        config_path: Path | None,
+        processor: Any = None,
+        require_supporting_evidence: bool = True,
+    ):
+        self.task_name = task_name
+        self.processor = (
+            processor
+            if processor is not None
+            else TextTaskProcessor(task_name, config_path=config_path)
+        )
+        self.require_supporting_evidence = require_supporting_evidence
+
+    def judge(
+        self,
+        candidate: EntityMergeCandidate,
+        left_context: dict[str, Any],
+        right_context: dict[str, Any],
+    ) -> EntityMergeDecision:
+        prompt, allowed_evidence_ids = self._build_prompt(candidate, left_context, right_context)
+        try:
+            response = self.processor.run_text(prompt)
+        except Exception as exc:
+            logger.warning(
+                "Entity merge LLM recheck failed for %s/%s: %s",
+                candidate.left,
+                candidate.right,
+                exc,
+            )
+            return EntityMergeDecision(
+                left=candidate.left,
+                right=candidate.right,
+                decision="unsure",
+                method="llm_recheck",
+                reason_code="LLM_REQUEST_FAILED",
+                reason=str(exc),
+                embedding_score=candidate.score,
+            )
+
+        raw = self._parse_json_response(response.text)
+        if not isinstance(raw, dict):
+            return EntityMergeDecision(
+                left=candidate.left,
+                right=candidate.right,
+                decision="unsure",
+                method="llm_recheck",
+                reason_code="LLM_INVALID_JSON",
+                embedding_score=candidate.score,
+            )
+
+        decision = str(raw.get("decision", "")).strip().lower()
+        if decision not in self.VALID_DECISIONS:
+            decision = "unsure"
+
+        allowed_names = {candidate.left, candidate.right}
+        canonical_raw = raw.get("canonical_name")
+        canonical_name = str(canonical_raw).strip() if canonical_raw is not None else None
+        if decision == "merge" and canonical_name not in allowed_names:
+            decision = "unsure"
+            canonical_name = None
+
+        supporting_ids = self._clean_evidence_ids(raw.get("supporting_evidence_ids"))
+        conflict_ids = self._clean_evidence_ids(raw.get("conflict_evidence_ids"))
+        if not set(supporting_ids).issubset(allowed_evidence_ids):
+            decision = "unsure"
+            supporting_ids = [eid for eid in supporting_ids if eid in allowed_evidence_ids]
+        if not set(conflict_ids).issubset(allowed_evidence_ids):
+            conflict_ids = [eid for eid in conflict_ids if eid in allowed_evidence_ids]
+        if decision == "merge" and conflict_ids:
+            decision = "unsure"
+            canonical_name = None
+        if decision == "merge" and self.require_supporting_evidence and not supporting_ids:
+            decision = "unsure"
+            canonical_name = None
+
+        return EntityMergeDecision(
+            left=candidate.left,
+            right=candidate.right,
+            decision=decision,
+            method="llm_recheck",
+            reason_code=str(raw.get("reason_code", "LLM_RECHECK")).strip() or "LLM_RECHECK",
+            canonical_name=canonical_name if decision == "merge" else None,
+            reason=str(raw.get("reason", "")).strip(),
+            embedding_score=candidate.score,
+            supporting_evidence_ids=supporting_ids,
+            conflict_evidence_ids=conflict_ids,
+        )
+
+    def _build_prompt(
+        self,
+        candidate: EntityMergeCandidate,
+        left_context: dict[str, Any],
+        right_context: dict[str, Any],
+    ) -> tuple[str, set[str]]:
+        payload = {
+            "task": "判断两个计算机网络知识图谱实体 term 是否指向同一个实体。",
+            "decision_rules": [
+                "只能根据给定 evidence 判断，不要使用自报置信度。",
+                "merge 表示两个 term 在所有三元组中可互换且语义不变。",
+                "keep_separate 表示二者相关但不是同一实体，或存在对比/包含/依赖等反证。",
+                "unsure 表示证据不足，不能安全合并。",
+                "canonical_name 只能从 allowed_canonical_names 中选择。",
+            ],
+            "allowed_decisions": ["merge", "keep_separate", "unsure"],
+            "allowed_canonical_names": [candidate.left, candidate.right],
+            "left": left_context,
+            "right": right_context,
+            "output_schema": {
+                "decision": "merge|keep_separate|unsure",
+                "canonical_name": "string or null",
+                "reason_code": "short_code",
+                "reason": "简短中文原因",
+                "supporting_evidence_ids": ["evidence id list"],
+                "conflict_evidence_ids": ["evidence id list"],
+            },
+        }
+        allowed_ids = set()
+        for side in (left_context, right_context):
+            for desc in side.get("descriptions", []):
+                if isinstance(desc, dict) and isinstance(desc.get("id"), str):
+                    allowed_ids.add(desc["id"])
+            for triple in side.get("triples", []):
+                if isinstance(triple, dict) and isinstance(triple.get("id"), str):
+                    allowed_ids.add(triple["id"])
+        return json.dumps(payload, ensure_ascii=False, indent=2), allowed_ids
+
+    @staticmethod
+    def _clean_evidence_ids(raw: Any) -> list[str]:
+        if not isinstance(raw, list):
+            return []
+        cleaned: list[str] = []
+        for item in raw:
+            if not isinstance(item, str):
+                continue
+            item = item.strip()
+            if item and item not in cleaned:
+                cleaned.append(item)
+        return cleaned
+
+    @staticmethod
+    def _parse_json_response(text: str) -> dict[str, Any] | None:
+        text = text.strip()
+        fence_match = re.search(r"```(?:json)?\s*\n(.*?)```", text, re.DOTALL)
+        if fence_match:
+            text = fence_match.group(1).strip()
+        try:
+            raw = json.loads(text)
+        except json.JSONDecodeError:
+            logger.warning("Failed to parse entity merge LLM JSON response")
+            return None
+        return raw if isinstance(raw, dict) else None
 
 
 class KGMerger:
     """Merge raw extraction results into a deduplicated knowledge graph."""
 
-    def __init__(self, alias_map: dict[str, str] | None = None):
+    def __init__(self, alias_map: dict[str, str] | None = None, merge_judge_processor: Any = None):
         if alias_map:
             ALIAS_MAP.update(alias_map)
+        self._merge_judge_processor = merge_judge_processor
 
     def merge_directory(
         self,
@@ -425,6 +689,7 @@ class KGMerger:
 
         all_entities: list[Entity] = []
         all_triples: list[Triple] = []
+        entity_contexts: dict[str, _EntityContext] = {}
 
         for f in tqdm(
             raw_files,
@@ -435,30 +700,45 @@ class KGMerger:
         ):
             data = json.loads(f.read_text(encoding="utf-8"))
             for e in data.get("entities", []):
-                all_entities.append(
-                    Entity(
-                        name=e["name"],
-                        type=e["type"],
-                        description=e.get("description", ""),
-                    )
+                entity = Entity(
+                    name=e["name"],
+                    type=e["type"],
+                    description=e.get("description", ""),
                 )
-            for t in data.get("triples", []):
-                all_triples.append(
-                    Triple(
-                        head=t["head"],
-                        relation=t["relation"],
-                        tail=t["tail"],
-                        evidence=t.get("evidence", ""),
-                    )
+                all_entities.append(entity)
+                self._record_entity_context(entity_contexts, entity)
+            for idx, t in enumerate(data.get("triples", []), start=1):
+                triple = Triple(
+                    head=t["head"],
+                    relation=t["relation"],
+                    tail=t["tail"],
+                    evidence=t.get("evidence", ""),
+                )
+                all_triples.append(triple)
+                self._record_triple_context(
+                    entity_contexts,
+                    triple,
+                    evidence_id=f"{f.stem}:T{idx}",
+                    source_file=str(data.get("source_file") or f.name),
+                    chunk_index=str(data.get("chunk_index", "")),
                 )
 
+        entity_type_conflicts = self._entity_type_conflicts(all_entities)
         merged_entities = self._merge_entities(all_entities)
+        merge_audit: dict[str, Any] | None = None
         if embedding_config and embedding_config.get("enabled"):
             task_name = str(embedding_config.get("task_name", "entity_embed"))
             encode_fields = list(
                 embedding_config.get("encode_fields", ["type", "name", "description"])
             )
-            threshold = float(embedding_config.get("similarity_threshold", 0.85))
+            recheck_config = dict(embedding_config.get("llm_recheck") or {})
+            recheck_enabled = bool(recheck_config.get("enabled", False))
+            threshold = float(
+                embedding_config.get(
+                    "candidate_threshold" if recheck_enabled else "similarity_threshold",
+                    embedding_config.get("similarity_threshold", 0.85),
+                )
+            )
             bucket_by_type = bool(embedding_config.get("bucket_by_type", True))
             batch_size = int(embedding_config.get("batch_size", 1024))
             emb_cache = embedding_config.get("cache_path")
@@ -480,7 +760,34 @@ class KGMerger:
                 faiss_top_k=faiss_top_k,
                 config_path=config_path,
             )
-            canonical_map = canonicalizer.build_canonical_map(merged_entities)
+            if recheck_enabled:
+                canonical_map, merge_audit = self._build_rechecked_canonical_map(
+                    merged_entities,
+                    all_triples,
+                    entity_contexts,
+                    canonicalizer,
+                    recheck_config,
+                    config_path=config_path,
+                )
+            elif bool(embedding_config.get("direct_merge_without_recheck", False)):
+                logger.warning(
+                    "kgmerge direct embedding merge is enabled without LLM recheck; "
+                    "this can merge related but non-equivalent entities."
+                )
+                canonical_map = canonicalizer.build_canonical_map(merged_entities)
+                merge_audit = {
+                    "strategy": "direct_embedding_merge_without_recheck",
+                    "warning": (
+                        "Unsafe compatibility mode: embedding similarity directly produced "
+                        "the canonical mapping."
+                    ),
+                }
+            else:
+                canonical_map, merge_audit = self._build_rule_only_canonical_map(
+                    merged_entities,
+                    all_triples,
+                    canonicalizer,
+                )
             merged_entities = self._merge_entities(
                 self._apply_entity_mapping(merged_entities, canonical_map)
             )
@@ -514,6 +821,12 @@ class KGMerger:
             ],
             "stats": self._compute_stats(merged_entities, merged_triples),
         }
+        if entity_type_conflicts:
+            if merge_audit is None:
+                merge_audit = {"strategy": "legacy_rule_merge"}
+            merge_audit["entity_type_conflicts"] = entity_type_conflicts
+        if merge_audit is not None:
+            result["merge_audit"] = merge_audit
 
         output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         logger.info(
@@ -523,6 +836,482 @@ class KGMerger:
             output_path,
         )
         return output_path
+
+    @staticmethod
+    def _entity_type_conflicts(entities: list[Entity]) -> list[dict[str, Any]]:
+        types_by_name: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        for entity in entities:
+            if not entity.is_valid():
+                continue
+            canonical = normalize_entity_name(entity.name)
+            if not canonical:
+                continue
+            types_by_name[canonical][entity.type] += entity.frequency
+        conflicts = []
+        for name, counts in sorted(types_by_name.items()):
+            if len(counts) > 1:
+                conflicts.append({"name": name, "types": dict(sorted(counts.items()))})
+        return conflicts
+
+    @staticmethod
+    def _record_entity_context(
+        contexts: dict[str, _EntityContext],
+        entity: Entity,
+    ) -> None:
+        canonical = normalize_entity_name(entity.name)
+        if not canonical:
+            return
+        ctx = contexts.setdefault(canonical, _EntityContext(name=canonical))
+        ctx.frequency += 1
+        if not ctx.type and entity.type:
+            ctx.type = entity.type
+        description = (entity.description or "").strip()
+        if description and description not in ctx.descriptions:
+            ctx.descriptions.append(description)
+
+    @staticmethod
+    def _record_triple_context(
+        contexts: dict[str, _EntityContext],
+        triple: Triple,
+        *,
+        evidence_id: str,
+        source_file: str,
+        chunk_index: str,
+    ) -> None:
+        head = normalize_entity_name(triple.head)
+        tail = normalize_entity_name(triple.tail)
+        triple_payload = {
+            "id": evidence_id,
+            "head": head,
+            "relation": triple.relation,
+            "tail": tail,
+            "evidence": triple.evidence,
+            "source_file": source_file,
+            "chunk_index": chunk_index,
+        }
+        for name in (head, tail):
+            if not name:
+                continue
+            ctx = contexts.setdefault(name, _EntityContext(name=name))
+            if triple_payload not in ctx.triples:
+                ctx.triples.append(triple_payload)
+
+    def _build_rechecked_canonical_map(
+        self,
+        entities: list[Entity],
+        triples: list[Triple],
+        contexts: dict[str, _EntityContext],
+        canonicalizer: EmbeddingCanonicalizer,
+        recheck_config: dict[str, Any],
+        *,
+        config_path: Path | None,
+    ) -> tuple[dict[str, str], dict[str, Any]]:
+        all_candidates = canonicalizer.build_candidates(entities)
+        max_pairs = int(recheck_config.get("max_pairs", 200))
+        llm_budget = max_pairs if max_pairs > 0 else len(all_candidates)
+        context_triples_limit = int(recheck_config.get("context_triples_per_entity", 8))
+        require_supporting = bool(recheck_config.get("require_supporting_evidence", True))
+        allow_truncated_context = bool(
+            recheck_config.get("allow_merge_with_truncated_context", False)
+        )
+        max_cluster_size = int(recheck_config.get("max_cluster_size", 4))
+        require_complete_pairwise = bool(
+            recheck_config.get("require_complete_pairwise_cluster", True)
+        )
+        judge: EntityMergeJudge | None = None
+
+        decisions: list[EntityMergeDecision] = []
+        llm_reviewed_count = 0
+        for candidate in all_candidates:
+            rule_decision = self._rule_decision(candidate, triples, entities)
+            if rule_decision.decision != "needs_llm":
+                decisions.append(rule_decision)
+                continue
+            if llm_reviewed_count >= llm_budget:
+                decisions.append(
+                    EntityMergeDecision(
+                        left=candidate.left,
+                        right=candidate.right,
+                        decision="unsure",
+                        method="llm_recheck_skipped",
+                        reason_code="MAX_PAIRS_EXCEEDED",
+                        reason="LLM 复核预算已用完，该候选未进入合并。",
+                        embedding_score=candidate.score,
+                    )
+                )
+                continue
+
+            if judge is None:
+                judge = EntityMergeJudge(
+                    str(recheck_config.get("task_name", "entity_merge_review")),
+                    config_path=config_path,
+                    processor=self._merge_judge_processor,
+                    require_supporting_evidence=require_supporting,
+                )
+            left_context = self._context_for_llm(
+                candidate.left,
+                contexts,
+                side="L",
+                triples_limit=context_triples_limit,
+            )
+            right_context = self._context_for_llm(
+                candidate.right,
+                contexts,
+                side="R",
+                triples_limit=context_triples_limit,
+            )
+            llm_decision = judge.judge(candidate, left_context, right_context)
+            llm_reviewed_count += 1
+            decisions.append(
+                self._validate_llm_decision(
+                    llm_decision,
+                    candidate,
+                    triples,
+                    entities,
+                    contexts=[left_context, right_context],
+                    allow_truncated_context=allow_truncated_context,
+                )
+            )
+
+        canonical_map, cluster_conflicts = self._mapping_from_merge_decisions(
+            entities,
+            triples,
+            decisions,
+            max_cluster_size=max_cluster_size,
+            require_complete_pairwise=require_complete_pairwise,
+        )
+        audit = {
+            "strategy": "embedding_rules_llm_recheck",
+            "candidate_count": len(all_candidates),
+            "llm_reviewed_candidate_count": llm_reviewed_count,
+            "llm_skipped_candidate_count": len(
+                [d for d in decisions if d.reason_code == "MAX_PAIRS_EXCEEDED"]
+            ),
+            "decisions": [self._decision_to_dict(d) for d in decisions],
+            "cluster_conflicts": cluster_conflicts,
+        }
+        return canonical_map, audit
+
+    def _build_rule_only_canonical_map(
+        self,
+        entities: list[Entity],
+        triples: list[Triple],
+        canonicalizer: EmbeddingCanonicalizer,
+    ) -> tuple[dict[str, str], dict[str, Any]]:
+        candidates = canonicalizer.build_candidates(entities)
+        decisions: list[EntityMergeDecision] = []
+        for candidate in candidates:
+            rule_decision = self._rule_decision(candidate, triples, entities)
+            if rule_decision.decision == "needs_llm":
+                rule_decision.decision = "unsure"
+                rule_decision.method = "rules_only"
+                rule_decision.reason_code = "LLM_RECHECK_DISABLED"
+                rule_decision.reason = "embedding 只召回候选；LLM 复核关闭时不做语义合并。"
+            decisions.append(rule_decision)
+        canonical_map, cluster_conflicts = self._mapping_from_merge_decisions(
+            entities,
+            triples,
+            decisions,
+            max_cluster_size=4,
+            require_complete_pairwise=True,
+        )
+        return canonical_map, {
+            "strategy": "embedding_rules_only",
+            "candidate_count": len(candidates),
+            "decisions": [self._decision_to_dict(d) for d in decisions],
+            "cluster_conflicts": cluster_conflicts,
+        }
+
+    def _rule_decision(
+        self,
+        candidate: EntityMergeCandidate,
+        triples: list[Triple],
+        entities: list[Entity],
+    ) -> EntityMergeDecision:
+        if candidate.left_type != candidate.right_type:
+            return EntityMergeDecision(
+                left=candidate.left,
+                right=candidate.right,
+                decision="keep_separate",
+                method="rules",
+                reason_code="TYPE_MISMATCH",
+                reason="实体类型不一致，禁止自动归并。",
+                embedding_score=candidate.score,
+            )
+        if self._strong_name_equivalence(candidate.left, candidate.right):
+            return EntityMergeDecision(
+                left=candidate.left,
+                right=candidate.right,
+                decision="merge",
+                method="rules",
+                reason_code="STRONG_NAME_EQUIVALENCE",
+                canonical_name=self._select_canonical_name(
+                    [candidate.left, candidate.right],
+                    entities,
+                ),
+                reason="规则判断为强名称等价。",
+                embedding_score=candidate.score,
+            )
+        if self._has_direct_relation_between(candidate.left, candidate.right, triples):
+            return EntityMergeDecision(
+                left=candidate.left,
+                right=candidate.right,
+                decision="keep_separate",
+                method="rules",
+                reason_code="DIRECT_RELATION_SELF_LOOP_RISK",
+                reason="两个实体之间已有关系，合并会产生自环或丢失语义。",
+                embedding_score=candidate.score,
+            )
+        return EntityMergeDecision(
+            left=candidate.left,
+            right=candidate.right,
+            decision="needs_llm",
+            method="rules",
+            reason_code="AMBIGUOUS_REQUIRES_LLM",
+            embedding_score=candidate.score,
+        )
+
+    def _validate_llm_decision(
+        self,
+        decision: EntityMergeDecision,
+        candidate: EntityMergeCandidate,
+        triples: list[Triple],
+        entities: list[Entity],
+        *,
+        contexts: list[dict[str, Any]],
+        allow_truncated_context: bool,
+    ) -> EntityMergeDecision:
+        hard_rule = self._rule_decision(candidate, triples, entities)
+        if hard_rule.decision == "keep_separate":
+            hard_rule.method = "rules_after_llm"
+            return hard_rule
+        if decision.decision != "merge":
+            return decision
+        if decision.canonical_name not in {candidate.left, candidate.right}:
+            decision.decision = "unsure"
+            decision.canonical_name = None
+            decision.reason_code = "INVALID_CANONICAL_NAME"
+            return decision
+        if not allow_truncated_context and any(ctx.get("truncated") for ctx in contexts):
+            decision.decision = "unsure"
+            decision.canonical_name = None
+            decision.reason_code = "TRUNCATED_CONTEXT"
+            decision.reason = "LLM 未看到该实体的完整三元组上下文，合并不落地。"
+            return decision
+        return decision
+
+    def _mapping_from_merge_decisions(
+        self,
+        entities: list[Entity],
+        triples: list[Triple],
+        decisions: list[EntityMergeDecision],
+        *,
+        max_cluster_size: int,
+        require_complete_pairwise: bool,
+    ) -> tuple[dict[str, str], list[dict[str, Any]]]:
+        names = sorted({e.name for e in entities})
+        index_by_name = {name: idx for idx, name in enumerate(names)}
+        uf = _UnionFind(len(names))
+        accepted_pairs: set[frozenset[str]] = set()
+        for decision in decisions:
+            if decision.decision != "merge":
+                continue
+            left_idx = index_by_name.get(decision.left)
+            right_idx = index_by_name.get(decision.right)
+            if left_idx is not None and right_idx is not None:
+                uf.union(left_idx, right_idx)
+                accepted_pairs.add(frozenset((decision.left, decision.right)))
+
+        members_by_root: dict[int, list[str]] = defaultdict(list)
+        for name, idx in index_by_name.items():
+            members_by_root[uf.find(idx)].append(name)
+
+        mapping = {name: name for name in names}
+        conflicts: list[dict[str, Any]] = []
+
+        for members in members_by_root.values():
+            if len(members) < 2:
+                continue
+            conflict = self._cluster_conflict(
+                members,
+                triples,
+                accepted_pairs=accepted_pairs,
+                max_cluster_size=max_cluster_size,
+                require_complete_pairwise=require_complete_pairwise,
+            )
+            if conflict is not None:
+                conflicts.append(conflict)
+                continue
+            preferred: list[str] = []
+            for decision in decisions:
+                if (
+                    decision.decision == "merge"
+                    and decision.canonical_name
+                    and decision.left in members
+                    and decision.right in members
+                ):
+                    preferred.append(decision.canonical_name)
+            canonical = self._select_canonical_name(members, entities, preferred)
+            for name in members:
+                mapping[name] = canonical
+        return mapping, conflicts
+
+    def _cluster_conflict(
+        self,
+        members: list[str],
+        triples: list[Triple],
+        *,
+        accepted_pairs: set[frozenset[str]],
+        max_cluster_size: int,
+        require_complete_pairwise: bool,
+    ) -> dict[str, Any] | None:
+        if max_cluster_size > 0 and len(members) > max_cluster_size:
+            return {
+                "members": members,
+                "reason_code": "CLUSTER_TOO_LARGE",
+                "reason": f"聚类大小 {len(members)} 超过上限 {max_cluster_size}，整组保持分离。",
+            }
+        for i, left in enumerate(members):
+            for right in members[i + 1 :]:
+                if self._strong_name_equivalence(left, right):
+                    continue
+                if require_complete_pairwise and frozenset((left, right)) not in accepted_pairs:
+                    return {
+                        "members": members,
+                        "reason_code": "INCOMPLETE_PAIRWISE_CLUSTER",
+                        "reason": f"{left} 与 {right} 未被直接复核为等价，禁止传递合并。",
+                    }
+                if self._has_direct_relation_between(left, right, triples):
+                    return {
+                        "members": members,
+                        "reason_code": "DIRECT_RELATION_IN_CLUSTER",
+                        "reason": f"{left} 与 {right} 之间存在原始关系，整组保持分离。",
+                    }
+        return None
+
+    @staticmethod
+    def _context_for_llm(
+        name: str,
+        contexts: dict[str, _EntityContext],
+        *,
+        side: str,
+        triples_limit: int,
+    ) -> dict[str, Any]:
+        ctx = contexts.get(name, _EntityContext(name=name))
+        descriptions = [
+            {"id": f"{side}_DESC_{idx}", "text": text}
+            for idx, text in enumerate(ctx.descriptions[:3], start=1)
+        ]
+        selected_triples = KGMerger._select_context_triples(ctx.triples, triples_limit)
+        triples = []
+        for idx, triple in enumerate(selected_triples, start=1):
+            triples.append(
+                {
+                    "id": f"{side}_TRIPLE_{idx}",
+                    "triple": f"{triple['head']} {triple['relation']} {triple['tail']}",
+                    "evidence": triple.get("evidence", ""),
+                    "source_file": triple.get("source_file", ""),
+                    "chunk_index": triple.get("chunk_index", ""),
+                }
+            )
+        return {
+            "name": name,
+            "type": ctx.type,
+            "frequency": ctx.frequency,
+            "total_descriptions": len(ctx.descriptions),
+            "omitted_descriptions": max(0, len(ctx.descriptions) - len(descriptions)),
+            "total_triples": len(ctx.triples),
+            "omitted_triples": max(0, len(ctx.triples) - len(triples)),
+            "truncated": len(ctx.descriptions) > len(descriptions)
+            or len(ctx.triples) > len(triples),
+            "relation_summary": KGMerger._relation_summary(ctx.triples),
+            "descriptions": descriptions,
+            "triples": triples,
+        }
+
+    @staticmethod
+    def _select_context_triples(
+        triples: list[dict[str, str]],
+        limit: int,
+    ) -> list[dict[str, str]]:
+        if limit <= 0 or len(triples) <= limit:
+            return list(triples)
+        by_relation: dict[str, list[dict[str, str]]] = defaultdict(list)
+        for triple in triples:
+            by_relation[triple.get("relation", "")].append(triple)
+        selected: list[dict[str, str]] = []
+        relation_names = sorted(by_relation)
+        while len(selected) < limit and relation_names:
+            next_relation_names: list[str] = []
+            for relation in relation_names:
+                bucket = by_relation[relation]
+                if bucket and len(selected) < limit:
+                    selected.append(bucket.pop(0))
+                if bucket:
+                    next_relation_names.append(relation)
+            relation_names = next_relation_names
+        return selected
+
+    @staticmethod
+    def _relation_summary(triples: list[dict[str, str]]) -> dict[str, int]:
+        summary: dict[str, int] = defaultdict(int)
+        for triple in triples:
+            summary[triple.get("relation", "")] += 1
+        return dict(sorted(summary.items()))
+
+    @staticmethod
+    def _decision_to_dict(decision: EntityMergeDecision) -> dict[str, Any]:
+        payload: dict[str, Any] = {
+            "left": decision.left,
+            "right": decision.right,
+            "decision": decision.decision,
+            "method": decision.method,
+            "reason_code": decision.reason_code,
+            "canonical_name": decision.canonical_name,
+            "reason": decision.reason,
+            "supporting_evidence_ids": decision.supporting_evidence_ids,
+            "conflict_evidence_ids": decision.conflict_evidence_ids,
+        }
+        if decision.embedding_score is not None:
+            payload["embedding_score"] = decision.embedding_score
+        return payload
+
+    @staticmethod
+    def _has_direct_relation_between(left: str, right: str, triples: list[Triple]) -> bool:
+        pair = {left, right}
+        for triple in triples:
+            head = normalize_entity_name(triple.head)
+            tail = normalize_entity_name(triple.tail)
+            if {head, tail} == pair:
+                return True
+        return False
+
+    @staticmethod
+    def _strong_name_equivalence(left: str, right: str) -> bool:
+        if normalize_entity_name(left) == normalize_entity_name(right):
+            return True
+        return _compact_entity_name(left) == _compact_entity_name(right)
+
+    @staticmethod
+    def _select_canonical_name(
+        names: list[str],
+        entities: list[Entity],
+        preferred: list[str] | None = None,
+    ) -> str:
+        preferred_set = set(preferred or [])
+        freq_by_name: dict[str, int] = defaultdict(int)
+        for entity in entities:
+            freq_by_name[entity.name] += entity.frequency
+        candidates = sorted(
+            set(names),
+            key=lambda name: (
+                0 if name in preferred_set else 1,
+                -freq_by_name.get(name, 0),
+                len(name),
+                name,
+            ),
+        )
+        return candidates[0]
 
     @staticmethod
     def _apply_entity_mapping(entities: list[Entity], mapping: dict[str, str]) -> list[Entity]:
@@ -573,7 +1362,7 @@ class KGMerger:
             if len(canonical) < 2:
                 continue
             if canonical in grouped:
-                grouped[canonical].frequency += 1
+                grouped[canonical].frequency += e.frequency
                 if not grouped[canonical].description and e.description:
                     grouped[canonical].description = e.description
             else:
@@ -581,7 +1370,7 @@ class KGMerger:
                     name=canonical,
                     type=e.type,
                     description=e.description,
-                    frequency=1,
+                    frequency=e.frequency,
                 )
         return list(grouped.values())
 

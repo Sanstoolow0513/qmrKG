@@ -5,9 +5,10 @@ from __future__ import annotations
 import json
 import logging
 import re
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterator, Sequence
 
 from tqdm import tqdm
 
@@ -94,6 +95,15 @@ _MODE_TO_PROMPT_KEY: dict[str, str] = {
     "few_shot": "fs",
     "few-shot": "fs",
 }
+
+
+@dataclass(slots=True)
+class _ChunkJob:
+    file_index: int
+    chunks_path: Path
+    chunk_index: int
+    chunk: dict[str, Any]
+    out_path: Path
 
 
 def _load_extract_prompts(config_path: Path | None) -> dict[str, Any]:
@@ -188,13 +198,79 @@ class KGExtractor:
         progress_position: int = 0,
     ) -> list[Path]:
         """Extract from all chunks in a JSON file, saving per-chunk results."""
-        chunks_path = Path(chunks_path)
+        result_paths = self.extract_from_chunks_files(
+            [chunks_path],
+            output_dir,
+            skip_existing=skip_existing,
+            progress_leave=progress_leave,
+            progress_desc=progress_desc,
+            progress_position=progress_position,
+        )
+        return result_paths
+
+    def extract_from_chunks_files(
+        self,
+        chunks_paths: Sequence[Path],
+        output_dir: Path,
+        skip_existing: bool = True,
+        *,
+        progress_leave: bool = True,
+        progress_desc: str = "kgextract",
+        progress_position: int = 0,
+    ) -> list[Path]:
+        """Extract from multiple chunk JSON files through one shared worker pool."""
+        normalized_paths = [Path(path) for path in chunks_paths]
+        if not normalized_paths:
+            return []
+
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        result_maps: list[dict[int, Path]] = []
+        pending_indices_by_file: list[set[int]] = []
+        pending_count = 0
+        skipped_count = 0
+
+        for file_index, chunks_path in enumerate(normalized_paths):
+            result_path_map, pending_indices, file_skipped_count = self._scan_chunks_file(
+                chunks_path,
+                output_dir,
+                skip_existing=skip_existing,
+            )
+            result_maps.append(result_path_map)
+            pending_indices_by_file.append(pending_indices)
+            pending_count += len(pending_indices)
+            skipped_count += file_skipped_count
+
+        self._run_chunk_jobs(
+            self._iter_chunk_jobs(normalized_paths, output_dir, pending_indices_by_file),
+            pending_count,
+            result_maps,
+            progress_leave=progress_leave,
+            progress_desc=progress_desc,
+            progress_position=progress_position,
+        )
+
+        if skipped_count:
+            tqdm.write(f"skipped existing outputs: {skipped_count}")
+
+        result_paths: list[Path] = []
+        for result_path_map in result_maps:
+            result_paths.extend(result_path_map[idx] for idx in sorted(result_path_map))
+        return result_paths
+
+    def _scan_chunks_file(
+        self,
+        chunks_path: Path,
+        output_dir: Path,
+        *,
+        skip_existing: bool,
+    ) -> tuple[dict[int, Path], set[int], int]:
+        """Scan one chunks JSON and record output bookkeeping without retaining chunks."""
+        chunks_path = Path(chunks_path)
         chunks = json.loads(chunks_path.read_text(encoding="utf-8"))
         result_path_map: dict[int, Path] = {}
-        pending: list[tuple[int, dict[str, Any], Path]] = []
+        pending_indices: set[int] = set()
         skipped_count = 0
 
         for chunk in chunks:
@@ -205,35 +281,91 @@ class KGExtractor:
                 skipped_count += 1
                 result_path_map[idx] = out_path
                 continue
-            pending.append((idx, chunk, out_path))
+            pending_indices.add(idx)
 
-        if pending:
-            max_workers = self._resolve_max_workers(len(pending))
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = {
-                    executor.submit(self._extract_and_save_chunk, chunk, out_path): idx
-                    for idx, chunk, out_path in pending
-                }
-                for future in tqdm(
-                    as_completed(futures),
-                    desc=progress_desc,
-                    unit="chunk",
-                    total=len(futures),
-                    dynamic_ncols=True,
-                    leave=progress_leave,
-                    position=progress_position,
-                ):
-                    idx = futures[future]
-                    try:
-                        out_path = future.result()
-                        result_path_map[idx] = out_path
-                    except Exception as e:
-                        logger.error("Failed chunk %d: %s", idx, e)
+        return result_path_map, pending_indices, skipped_count
 
-        if skipped_count:
-            tqdm.write(f"{chunks_path.name} skipped existing outputs: {skipped_count}")
+    def _iter_chunk_jobs(
+        self,
+        chunks_paths: Sequence[Path],
+        output_dir: Path,
+        pending_indices_by_file: Sequence[set[int]],
+    ) -> Iterator[_ChunkJob]:
+        """Yield chunk jobs one file at a time so pending chunks are not all retained."""
+        for file_index, chunks_path in enumerate(chunks_paths):
+            pending_indices = pending_indices_by_file[file_index]
+            if not pending_indices:
+                continue
+            chunks = json.loads(chunks_path.read_text(encoding="utf-8"))
+            for chunk in chunks:
+                idx = chunk.get("chunk_index", 0)
+                if idx not in pending_indices:
+                    continue
+                yield _ChunkJob(
+                    file_index=file_index,
+                    chunks_path=chunks_path,
+                    chunk_index=idx,
+                    chunk=chunk,
+                    out_path=output_dir / f"{chunks_path.stem}_chunk_{idx:04d}.json",
+                )
 
-        return [result_path_map[idx] for idx in sorted(result_path_map)]
+    def _run_chunk_jobs(
+        self,
+        jobs: Iterator[_ChunkJob],
+        total_jobs: int,
+        result_maps: Sequence[dict[int, Path]],
+        *,
+        progress_leave: bool,
+        progress_desc: str,
+        progress_position: int,
+    ) -> None:
+        if total_jobs <= 0:
+            return
+
+        max_workers = self._resolve_max_workers(total_jobs)
+        job_iter = iter(jobs)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures: dict[Any, _ChunkJob] = {}
+
+            def submit_next() -> bool:
+                try:
+                    job = next(job_iter)
+                except StopIteration:
+                    return False
+                futures[executor.submit(self._extract_and_save_chunk, job.chunk, job.out_path)] = (
+                    job
+                )
+                return True
+
+            for _ in range(max_workers):
+                if not submit_next():
+                    break
+
+            with tqdm(
+                total=total_jobs,
+                desc=progress_desc,
+                unit="chunk",
+                dynamic_ncols=True,
+                leave=progress_leave,
+                position=progress_position,
+            ) as pbar:
+                while futures:
+                    done, _ = wait(futures, return_when=FIRST_COMPLETED)
+                    for future in done:
+                        job = futures.pop(future)
+                        try:
+                            out_path = future.result()
+                            result_maps[job.file_index][job.chunk_index] = out_path
+                        except Exception as e:
+                            logger.error(
+                                "Failed %s chunk %d: %s",
+                                job.chunks_path.name,
+                                job.chunk_index,
+                                e,
+                            )
+                        finally:
+                            pbar.update(1)
+                        submit_next()
 
     def _resolve_max_workers(self, pending_count: int) -> int:
         configured = getattr(getattr(self._runner, "settings", None), "max_concurrency", 1)

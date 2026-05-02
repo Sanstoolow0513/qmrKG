@@ -7,8 +7,6 @@ import logging
 import sys
 from pathlib import Path
 
-from tqdm import tqdm
-
 from .config import load_run_config
 from .kg_extractor import KGExtractor
 from .tqdm_logging import setup_logging
@@ -67,43 +65,15 @@ def main(argv: list[str] | None = None) -> int:
         if not chunk_files:
             print(f"No JSON files found in {input_path}", file=sys.stderr)
             return 1
-        total = 0
-        multi_file = len(chunk_files) > 1
-        if multi_file:
-            file_pbar = tqdm(
-                total=len(chunk_files),
-                desc="文件 0/0",
-                unit="file",
-                dynamic_ncols=True,
-                position=0,
-                leave=True,
-            )
-            try:
-                for idx, cf in enumerate(chunk_files, start=1):
-                    file_pbar.set_description_str(f"文件 {idx}/{len(chunk_files)}: {cf.name}")
-                    paths = extractor.extract_from_chunks_file(
-                        cf,
-                        output_dir,
-                        skip_existing=skip,
-                        progress_leave=False,
-                        progress_desc=f"{cf.name} chunk",
-                        progress_position=1,
-                    )
-                    total += len(paths)
-                    file_pbar.update(1)
-            finally:
-                file_pbar.close()
-        else:
-            cf = chunk_files[0]
-            paths = extractor.extract_from_chunks_file(
-                cf,
-                output_dir,
-                skip_existing=skip,
-                progress_leave=True,
-                progress_desc=f"{cf.name} 进度",
-                progress_position=0,
-            )
-            total += len(paths)
+        paths = extractor.extract_from_chunks_files(
+            chunk_files,
+            output_dir,
+            skip_existing=skip,
+            progress_leave=True,
+            progress_desc=f"{len(chunk_files)} file(s) chunk",
+            progress_position=0,
+        )
+        total = len(paths)
         print(f"Extracted {total} chunk(s) from {len(chunk_files)} file(s)")
     else:
         print(f"Input not found: {input_path}", file=sys.stderr)
