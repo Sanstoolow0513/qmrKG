@@ -22,6 +22,7 @@ class CompactFormatter(logging.Formatter):
         "qmrkg.pdf_to_png": "pdf",
         "qmrkg.png_to_text": "ocr",
         "qmrkg.kg_extractor": "kgex",
+        "qmrkg.kg_merger": "kgmerge",
         "openai._base_client": "openai",
     }
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from types import SimpleNamespace
 
 from qmrkg.kg_merger import KGMerger
@@ -9,13 +10,14 @@ from qmrkg.kg_schema import Entity
 
 
 class FakeEmbeddingProcessor:
-    def __init__(self, vectors_by_text: dict[str, list[float]]):
+    def __init__(self, vectors_by_text: dict[str, list[float]], max_concurrency: int = 1):
         self.vectors_by_text = vectors_by_text
         self.calls: list[list[str]] = []
         self.settings = SimpleNamespace(
             model="qwen/qwen3-embedding-8b",
             encoding_format="float",
             embedding_dimensions=1024,
+            max_concurrency=max_concurrency,
         )
 
     def embed(self, inputs: list[str], batch_size: int = 1024) -> list[list[float]]:
@@ -343,6 +345,59 @@ def test_binary_cache_signature_mismatch_reembeds(monkeypatch, tmp_path):
     assert fake.calls != []
 
 
+def test_canonicalizer_embeds_batches_concurrently(monkeypatch):
+    from qmrkg import kg_merger
+
+    monkeypatch.setattr(kg_merger, "tqdm", lambda iterable, **_kwargs: iterable)
+    monkeypatch.setattr(kg_merger, "faiss", SimpleNamespace(IndexFlatIP=FakeFaissIndexFlatIP))
+
+    class BlockingEmbeddingProcessor(FakeEmbeddingProcessor):
+        def __init__(self):
+            super().__init__(
+                {
+                    "实体类型：concept；实体名：A1；定义：a": [1.0, 0.0],
+                    "实体类型：concept；实体名：B1；定义：b": [0.9, 0.1],
+                    "实体类型：concept；实体名：C1；定义：c": [0.0, 1.0],
+                    "实体类型：concept；实体名：D1；定义：d": [0.1, 0.9],
+                },
+                max_concurrency=2,
+            )
+            self._lock = threading.Lock()
+            self._two_started = threading.Event()
+            self._started = 0
+            self._active = 0
+            self.max_active = 0
+
+        def embed(self, inputs: list[str], batch_size: int = 1024) -> list[list[float]]:
+            with self._lock:
+                self._started += 1
+                self._active += 1
+                self.max_active = max(self.max_active, self._active)
+                if self._started >= 2:
+                    self._two_started.set()
+            try:
+                assert self._two_started.wait(timeout=2), "embedding batches did not overlap"
+                return super().embed(inputs, batch_size=batch_size)
+            finally:
+                with self._lock:
+                    self._active -= 1
+
+    fake = BlockingEmbeddingProcessor()
+    canonicalizer = make_canonicalizer(fake, threshold=0.8)
+    entities = [
+        Entity(name="A1", type="concept", description="a", frequency=1),
+        Entity(name="B1", type="concept", description="b", frequency=1),
+        Entity(name="C1", type="concept", description="c", frequency=1),
+        Entity(name="D1", type="concept", description="d", frequency=1),
+    ]
+
+    candidates = canonicalizer.build_candidates(entities)
+
+    assert fake.max_active == 2
+    assert len(fake.calls) == 2
+    assert candidates
+
+
 class FakeMergeJudgeProcessor:
     def __init__(self, response_text: str):
         self.response_text = response_text
@@ -363,6 +418,81 @@ class FakeQueuedMergeJudgeProcessor:
         if not self.response_texts:
             raise AssertionError("no queued LLM response")
         return SimpleNamespace(text=self.response_texts.pop(0))
+
+
+def test_merger_progress_labels_cover_load_embed_and_recheck(monkeypatch, tmp_path):
+    from qmrkg import kg_merger
+
+    progress_descs: list[str | None] = []
+
+    def fake_tqdm(iterable=None, **kwargs):
+        progress_descs.append(kwargs.get("desc"))
+        if iterable is not None:
+            return iterable
+
+        class _FakePbar:
+            def update(self, _n=1): pass
+            def __enter__(self): return self
+            def __exit__(self, *_): pass
+
+        return _FakePbar()
+
+    monkeypatch.setattr(kg_merger, "tqdm", fake_tqdm)
+    monkeypatch.setattr(kg_merger, "faiss", SimpleNamespace(IndexFlatIP=FakeFaissIndexFlatIP))
+    fake_embed = FakeEmbeddingProcessor(
+        {
+            "实体类型：concept；实体名：拥塞控制；定义：避免网络过载": [1.0, 0.0],
+            "实体类型：concept；实体名：拥塞管理；定义：避免网络拥塞": [1.0, 0.0],
+        }
+    )
+    monkeypatch.setattr(
+        kg_merger,
+        "EmbeddingTaskProcessor",
+        lambda task_name, config_path=None: fake_embed,
+    )
+    judge = FakeMergeJudgeProcessor(
+        json.dumps(
+            {
+                "decision": "unsure",
+                "canonical_name": None,
+                "reason_code": "INSUFFICIENT_EVIDENCE",
+                "reason": "证据不足。",
+                "supporting_evidence_ids": [],
+                "conflict_evidence_ids": [],
+            },
+            ensure_ascii=False,
+        )
+    )
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    (raw_dir / "chunk.json").write_text(
+        json.dumps(
+            {
+                "entities": [
+                    {"name": "拥塞控制", "type": "concept", "description": "避免网络过载"},
+                    {"name": "拥塞管理", "type": "concept", "description": "避免网络拥塞"},
+                ],
+                "triples": [],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+
+    KGMerger(merge_judge_processor=judge).merge_directory(
+        raw_dir,
+        tmp_path / "merged.json",
+        embedding_config={
+            "enabled": True,
+            "candidate_threshold": 0.8,
+            "cache_path": None,
+            "llm_recheck": {"enabled": True},
+        },
+    )
+
+    assert "kgmerge load" in progress_descs
+    assert "kgmerge embed" in progress_descs
+    assert "kgmerge recheck" in progress_descs
 
 
 def test_merger_llm_recheck_merges_validated_candidate(monkeypatch, tmp_path):

@@ -1,11 +1,11 @@
 """CLI for merging raw triples into a deduplicated knowledge graph."""
 
 import argparse
-import logging
 from pathlib import Path
 
 from .config import load_run_config
 from .kg_merger import KGMerger
+from .tqdm_logging import setup_logging
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -23,11 +23,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     run_cfg = load_run_config(args.config)["kg_merge"]
 
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-        datefmt="%H:%M:%S",
-    )
+    setup_logging(False)
 
     embedding_config = dict(run_cfg.get("embedding") or {})
     merger = KGMerger()

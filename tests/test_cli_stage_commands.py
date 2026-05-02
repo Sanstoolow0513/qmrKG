@@ -488,6 +488,50 @@ def test_qmrkg_list_shows_available_commands(capsys):
     assert "kgneo4j" in out
 
 
+def test_kgmerge_uses_tqdm_compatible_logging(monkeypatch, capsys, tmp_path):
+    import qmrkg.cli_kg_merge as cli_kg_merge
+
+    raw_dir = tmp_path / "raw"
+    output_path = tmp_path / "merged" / "merged.json"
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          kg_merge:
+            input_dir: "{raw_dir}"
+            output: "{output_path}"
+            embedding:
+              enabled: false
+        """,
+    )
+    calls: dict[str, object] = {}
+
+    def fake_setup_logging(verbose: bool = False) -> None:
+        calls["verbose"] = verbose
+
+    class StubMerger:
+        def merge_directory(self, raw_dir_arg, output_arg, embedding_config=None, config_path=None):
+            calls["raw_dir"] = Path(raw_dir_arg)
+            calls["output"] = Path(output_arg)
+            calls["embedding_config"] = embedding_config
+            calls["config_path"] = config_path
+            return Path(output_arg)
+
+    monkeypatch.setattr(cli_kg_merge, "setup_logging", fake_setup_logging)
+    monkeypatch.setattr(cli_kg_merge, "KGMerger", StubMerger)
+
+    exit_code = cli_kg_merge.main(["--config", str(config_path)])
+
+    out = capsys.readouterr().out
+    assert exit_code == 0
+    assert calls["verbose"] is False
+    assert calls["raw_dir"] == raw_dir
+    assert calls["output"] == output_path
+    assert calls["config_path"] == config_path
+    assert calls["embedding_config"]["enabled"] is False
+    assert f"Merged triples saved to: {output_path}" in out
+
+
 def test_kgmdcombine_merges_book_subdir_pages(tmp_path, monkeypatch):
     """kgmdcombine must merge *_page_*.md in each book folder to markdown_dir/{book}.md."""
     import qmrkg.cli_kg_md_combine as cli_kg

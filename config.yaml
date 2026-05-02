@@ -404,7 +404,7 @@ run:
     input_dir: "data/triples/raw"
     output: "data/triples/merged/merged_triples.json"
     embedding:
-      enabled: false
+      enabled: true
       task_name: "entity_embed"
       encoding_template: "structured_zh"
       encode_fields: ["type", "name", "description"]
@@ -418,7 +418,7 @@ run:
       cache_format: "binary"
       cache_path: "data/triples/merged/.embed_cache.json"
       llm_recheck:
-        enabled: false
+        enabled: true
         task_name: "entity_merge_review"
         max_pairs: 200
         context_triples_per_entity: 8

@@ -7,6 +7,7 @@ import json
 import logging
 import re
 from collections import defaultdict
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, as_completed, wait
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -328,7 +329,38 @@ class EmbeddingCanonicalizer:
                 pending_idx.append(i)
                 pending_text.append(text)
         if pending_text:
-            new_vecs = self.processor.embed(pending_text, batch_size=self.batch_size)
+            new_vecs: list[list[float]] = []
+            batches = [
+                pending_text[start : start + self.batch_size]
+                for start in range(0, len(pending_text), self.batch_size)
+            ]
+            batch_results: list[list[list[float]] | None] = [None] * len(batches)
+            max_workers = self._resolve_max_workers(len(batches))
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(self.processor.embed, batch, batch_size=self.batch_size): i
+                    for i, batch in enumerate(batches)
+                }
+                completed = as_completed(futures)
+                for future in tqdm(
+                    completed,
+                    desc="kgmerge embed",
+                    unit="batch",
+                    total=len(futures),
+                    dynamic_ncols=True,
+                ):
+                    batch_index = futures[future]
+                    vectors = future.result()
+                    if len(vectors) != len(batches[batch_index]):
+                        raise ValueError(
+                            "embedding response length mismatch: expected "
+                            f"{len(batches[batch_index])}, got {len(vectors)}"
+                        )
+                    batch_results[batch_index] = vectors
+            for vectors in batch_results:
+                if vectors is None:
+                    raise RuntimeError("embedding batch did not complete")
+                new_vecs.extend(vectors)
             for j, i in enumerate(pending_idx):
                 text = pending_text[j]
                 vec = new_vecs[j]
@@ -339,6 +371,12 @@ class EmbeddingCanonicalizer:
                     cache_json[key] = [float(x) for x in vec]
                 out[i] = [float(x) for x in vec]
         return out
+
+    def _resolve_max_workers(self, pending_batch_count: int) -> int:
+        configured = getattr(getattr(self.processor, "settings", None), "max_concurrency", 1)
+        if not isinstance(configured, int) or configured <= 0:
+            configured = 1
+        return max(1, min(pending_batch_count, configured))
 
     @staticmethod
     def _build_rows(entities: list[Entity]) -> list[tuple[str, str, int, str]]:
@@ -693,7 +731,7 @@ class KGMerger:
 
         for f in tqdm(
             raw_files,
-            desc="kgmerge",
+            desc="kgmerge load",
             unit="file",
             total=len(raw_files),
             dynamic_ncols=True,
@@ -918,11 +956,16 @@ class KGMerger:
         require_complete_pairwise = bool(
             recheck_config.get("require_complete_pairwise_cluster", True)
         )
-        judge: EntityMergeJudge | None = None
-
         decisions: list[EntityMergeDecision] = []
+        llm_jobs: list[tuple[EntityMergeCandidate, dict, dict]] = []
         llm_reviewed_count = 0
-        for candidate in all_candidates:
+        for candidate in tqdm(
+            all_candidates,
+            desc="kgmerge rules",
+            unit="pair",
+            total=len(all_candidates),
+            dynamic_ncols=True,
+        ):
             rule_decision = self._rule_decision(candidate, triples, entities)
             if rule_decision.decision != "needs_llm":
                 decisions.append(rule_decision)
@@ -941,13 +984,6 @@ class KGMerger:
                 )
                 continue
 
-            if judge is None:
-                judge = EntityMergeJudge(
-                    str(recheck_config.get("task_name", "entity_merge_review")),
-                    config_path=config_path,
-                    processor=self._merge_judge_processor,
-                    require_supporting_evidence=require_supporting,
-                )
             left_context = self._context_for_llm(
                 candidate.left,
                 contexts,
@@ -960,18 +996,73 @@ class KGMerger:
                 side="R",
                 triples_limit=context_triples_limit,
             )
-            llm_decision = judge.judge(candidate, left_context, right_context)
+            llm_jobs.append((candidate, left_context, right_context))
             llm_reviewed_count += 1
-            decisions.append(
-                self._validate_llm_decision(
-                    llm_decision,
-                    candidate,
-                    triples,
-                    entities,
-                    contexts=[left_context, right_context],
-                    allow_truncated_context=allow_truncated_context,
-                )
+
+        if llm_jobs:
+            judge = EntityMergeJudge(
+                str(recheck_config.get("task_name", "entity_merge_review")),
+                config_path=config_path,
+                processor=self._merge_judge_processor,
+                require_supporting_evidence=require_supporting,
             )
+            max_workers = self._resolve_recheck_max_workers(recheck_config, judge, len(llm_jobs))
+            llm_slots: list[EntityMergeDecision | None] = [None] * len(llm_jobs)
+
+            job_iter = iter(enumerate(llm_jobs))
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                _futures: dict[Any, int] = {}
+
+                def _submit_next_job() -> None:  # pragma: no cover - closure
+                    try:
+                        idx, (cand, lctx, rctx) = next(job_iter)
+                    except StopIteration:
+                        return
+                    _futures[
+                        executor.submit(
+                            self._recheck_single_pair,
+                            judge,
+                            cand,
+                            lctx,
+                            rctx,
+                            triples,
+                            entities,
+                            allow_truncated_context=allow_truncated_context,
+                        )
+                    ] = idx
+
+                for _ in range(max_workers):
+                    _submit_next_job()
+
+                with tqdm(
+                    total=len(llm_jobs),
+                    desc="kgmerge recheck",
+                    unit="pair",
+                    dynamic_ncols=True,
+                ) as pbar:
+                    while _futures:
+                        done, _ = wait(_futures, return_when=FIRST_COMPLETED)
+                        for future in done:
+                            idx = _futures.pop(future)
+                            try:
+                                llm_slots[idx] = future.result()
+                            except Exception as exc:
+                                llm_slots[idx] = EntityMergeDecision(
+                                    left=llm_jobs[idx][0].left,
+                                    right=llm_jobs[idx][0].right,
+                                    decision="unsure",
+                                    method="llm_recheck",
+                                    reason_code="LLM_REQUEST_FAILED",
+                                    reason=str(exc),
+                                    embedding_score=llm_jobs[idx][0].score,
+                                )
+                            finally:
+                                pbar.update(1)
+                            _submit_next_job()
+
+            for decision in llm_slots:
+                if decision is not None:
+                    decisions.append(decision)
 
         canonical_map, cluster_conflicts = self._mapping_from_merge_decisions(
             entities,
@@ -992,6 +1083,41 @@ class KGMerger:
         }
         return canonical_map, audit
 
+    @staticmethod
+    def _resolve_recheck_max_workers(
+        recheck_config: dict[str, Any],
+        judge: EntityMergeJudge,
+        pending_count: int,
+    ) -> int:
+        configured = recheck_config.get("max_concurrency")
+        if not (isinstance(configured, int) and configured > 0):
+            settings = getattr(getattr(judge, "processor", None), "settings", None)
+            configured = getattr(settings, "max_concurrency", 1) if settings is not None else 1
+        if not isinstance(configured, int) or configured <= 0:
+            configured = 1
+        return max(1, min(pending_count, configured))
+
+    def _recheck_single_pair(
+        self,
+        judge: EntityMergeJudge,
+        candidate: EntityMergeCandidate,
+        left_context: dict[str, Any],
+        right_context: dict[str, Any],
+        triples: list[Triple],
+        entities: list[Entity],
+        *,
+        allow_truncated_context: bool,
+    ) -> EntityMergeDecision:
+        llm_decision = judge.judge(candidate, left_context, right_context)
+        return self._validate_llm_decision(
+            llm_decision,
+            candidate,
+            triples,
+            entities,
+            contexts=[left_context, right_context],
+            allow_truncated_context=allow_truncated_context,
+        )
+
     def _build_rule_only_canonical_map(
         self,
         entities: list[Entity],
@@ -1000,7 +1126,13 @@ class KGMerger:
     ) -> tuple[dict[str, str], dict[str, Any]]:
         candidates = canonicalizer.build_candidates(entities)
         decisions: list[EntityMergeDecision] = []
-        for candidate in candidates:
+        for candidate in tqdm(
+            candidates,
+            desc="kgmerge rules",
+            unit="pair",
+            total=len(candidates),
+            dynamic_ncols=True,
+        ):
             rule_decision = self._rule_decision(candidate, triples, entities)
             if rule_decision.decision == "needs_llm":
                 rule_decision.decision = "unsure"

@@ -65,7 +65,7 @@ DEFAULT_RUN_CONFIG: dict[str, dict[str, Any]] = {
         "input_dir": "data/triples/raw",
         "output": "data/triples/merged/merged_triples.json",
         "embedding": {
-            "enabled": False,
+            "enabled": True,
             "task_name": "entity_embed",
             "encode_fields": ["type", "name", "description"],
             "candidate_threshold": 0.78,
@@ -75,7 +75,7 @@ DEFAULT_RUN_CONFIG: dict[str, dict[str, Any]] = {
             "batch_size": 1024,
             "cache_path": "data/triples/merged/.embed_cache.json",
             "llm_recheck": {
-                "enabled": False,
+                "enabled": True,
                 "task_name": "entity_merge_review",
                 "max_pairs": 200,
                 "context_triples_per_entity": 8,
