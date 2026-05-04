@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-Core Python pipeline for PDF-to-Knowledge-Graph processing. 24 modules handling document conversion, OCR, chunking, entity extraction, embedding canonicalization, and Neo4j import.
+Core Python pipeline for PDF-to-Knowledge-Graph processing. 25 modules handling document conversion, OCR, chunking, entity extraction, embedding canonicalization, and Neo4j import.
 
 ## STRUCTURE
 
@@ -18,14 +18,15 @@ src/qmrkg/
 ├── kg_extractor.py         # KGExtractor: entity/relation extraction
 ├── kg_merger.py            # KGMerger: triple dedup + embedding canonicalization
 ├── kg_neo4j.py             # KGNeo4jLoader: graph import
+├── evaluation.py           # Evaluation: precision/recall/F1 against gold triples
 ├── kg_schema.py            # Data models (Entity, Triple)
 ├── llm_factory.py          # TaskLLMFactory: rate-limited LLM calls (text+multimodal+embedding)
 ├── llm_config.py           # TaskLLMSettings: YAML + env config
 ├── llm_types.py            # LLM message/response types
-├── rate_limit.py           # RollingWindowRateLimiter
+├── rate_limit.py           # RollingRateLimiter
 ├── config.py               # Pipeline run config loader
 ├── tqdm_logging.py         # Progress bar utilities
-└── cli_*.py                # 9 CLI entry points
+└── cli_*.py                # 10 CLI entry points (incl. kgeval)
 ```
 
 ## WHERE TO LOOK
@@ -42,6 +43,8 @@ src/qmrkg/
 | Neo4j loading | `kg_neo4j.py` | Cypher-based bulk import |
 | LLM orchestration | `llm_factory.py` | Factory for text/multimodal/embedding tasks |
 | Configuration | `llm_config.py` | YAML parsing + env overrides |
+| Rate limiting | `rate_limit.py` | `RollingRateLimiter` (NOTE: not `RollingWindowRateLimiter`) |
+| Evaluation | `evaluation.py` | Precision, recall, F1 against gold triples |
 | Run defaults | `config.py` | Pipeline stage defaults |
 
 ## KEY CLASSES
@@ -60,7 +63,8 @@ src/qmrkg/
 | `EmbeddingTaskProcessor` | llm_factory.py | Embedding generation tasks |
 | `TaskLLMSettings` | llm_config.py | Configuration management |
 | `RunConfig` | config.py | Pipeline stage default settings |
-| `RollingWindowRateLimiter` | rate_limit.py | Per-task rate limiting |
+| `RollingRateLimiter` | rate_limit.py | Per-task rate limiting |
+| `TripleEvaluator` | evaluation.py | Merged triple evaluation against gold |
 
 ## CONVENTIONS
 
@@ -81,7 +85,7 @@ src/qmrkg/
 - CLI commands catch and log errors with user-friendly messages
 
 ### Rate Limiting
-All LLM calls use `RollingWindowRateLimiter`:
+All LLM calls use `RollingRateLimiter`:
 ```python
 async with self.rate_limiter.acquire():
     response = await self._call_llm(...)
@@ -90,7 +94,7 @@ async with self.rate_limiter.acquire():
 ## ANTI-PATTERNS (DO NOT)
 
 - ❌ **Don't call OpenAI directly** - always use `llm_factory.py`
-- ❌ **Don't skip rate limiting** - all LLM calls must use `RollingWindowRateLimiter`
+- ❌ **Don't skip rate limiting** - all LLM calls must use `RollingRateLimiter`
 - ❌ **Don't hardcode paths** - use `pathlib.Path` everywhere
 - ❌ **Don't use `os.path`** - use `Path` methods instead
 - ❌ **Don't exceed 100 char lines** - black/ruff enforces this
@@ -127,3 +131,5 @@ uv run pytest tests/test_llm_factory.py -v
 - **Extraction Modes:** zero-shot / few-shot via `extract.prompts` in config.yaml
 - **Embedding Canonicalization:** Optional, configured in `kg_merge.embedding` (config.yaml)
 - **kgmdcombine:** OCR outputs per-page files; kgmdcombine merges them into book-level MD before chunking
+- **Evaluation:** `kgeval` CLI → `evaluation.py` → precision/recall/F1 against gold triples
+- **Rate limiter class:** `RollingRateLimiter` (not `RollingWindowRateLimiter` as stated in older docs)

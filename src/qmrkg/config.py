@@ -53,16 +53,16 @@ DEFAULT_RUN_CONFIG: dict[str, dict[str, Any]] = {
     },
     "kg_extract": {
         "input": "data/chunks",
-        "output_dir": "data/triples/raw",
+        "output_dir": None,
         "mode": "fs",
         "no_skip": False,
-        "review": True,
+        "review": False,
         "strict_evidence": True,
         "keep_dropped": True,
         "extractor_version": "kgextract_v2",
     },
     "kg_merge": {
-        "input_dir": "data/triples/raw",
+        "input_dir": "data/triples/raw-fs",
         "output": "data/triples/merged/merged_triples.json",
         "embedding": {
             "enabled": True,

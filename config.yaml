@@ -392,16 +392,16 @@ run:
 
   kg_extract:
     input: "data/chunks"
-    output_dir: "data/triples/raw"
+    output_dir: null
     mode: "fs"
     no_skip: false
-    review: true
+    review: false
     strict_evidence: true
     keep_dropped: true
     extractor_version: "kgextract_v2"
 
   kg_merge:
-    input_dir: "data/triples/raw"
+    input_dir: "data/triples/raw-fs"
     output: "data/triples/merged/merged_triples.json"
     embedding:
       enabled: true

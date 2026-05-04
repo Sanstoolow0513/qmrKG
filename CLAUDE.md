@@ -33,7 +33,7 @@ PDF/PPT → pdftopng → PNG → pngtotext → per-page MD (data/markdown/<book>
 **所有** LLM 调用都必须经 `src/qmrkg/llm_factory.py` 的 `TextTaskProcessor` / `MultimodalTaskProcessor` / `EmbeddingTaskProcessor`。不要直接 `import openai` 调用接口——工厂负责：
 
 - 按任务名（`ocr` / `extract` / `ner` / `re`）从 `config.yaml` 读取 provider、prompt、超时、重试
-- 通过 `rate_limit.py` 的 `RollingWindowRateLimiter` 做 per-task RPM + 并发限流
+- 通过 `rate_limit.py` 的 `RollingRateLimiter` 做 per-task RPM + 并发限流
 - 校验 modality（`text` 任务收到 image 会 `ValueError`）
 - 校验 thinking 开关（`provider.supports_thinking=false` 时不允许 `request.thinking.enabled=true`）
 

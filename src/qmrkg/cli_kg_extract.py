@@ -14,6 +14,14 @@ from .tqdm_logging import setup_logging
 logger = logging.getLogger(__name__)
 
 _VALID_MODES = {"fs", "zs", "few-shot", "zero-shot", "few_shot", "zero_shot"}
+_OUTPUT_MODE_KEYS = {
+    "fs": "fs",
+    "few-shot": "fs",
+    "few_shot": "fs",
+    "zs": "zs",
+    "zero-shot": "zs",
+    "zero_shot": "zs",
+}
 
 
 def build_parser(_run_cfg: dict[str, object] | None = None) -> argparse.ArgumentParser:
@@ -26,17 +34,30 @@ def build_parser(_run_cfg: dict[str, object] | None = None) -> argparse.Argument
     return parser
 
 
+def _default_output_dir(mode: str, review_enabled: bool) -> Path:
+    mode_key = _OUTPUT_MODE_KEYS[mode]
+    suffix = f"{mode_key}-recheck" if review_enabled else mode_key
+    return Path("data/triples") / f"raw-{suffix}"
+
+
+def _resolve_output_dir(configured_output_dir: object, mode: str, review_enabled: bool) -> Path:
+    if configured_output_dir not in (None, ""):
+        return Path(str(configured_output_dir))
+    return _default_output_dir(mode, review_enabled)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     run_cfg = load_run_config(args.config)["kg_extract"]
 
     input_path = Path(str(run_cfg["input"]))
-    output_dir = Path(str(run_cfg["output_dir"]))
     mode = str(run_cfg["mode"])
     if mode not in _VALID_MODES:
         valid = ", ".join(sorted(_VALID_MODES))
         print(f"Error: run.kg_extract.mode must be one of: {valid}", file=sys.stderr)
         return 1
+    review_enabled = bool(run_cfg["review"])
+    output_dir = _resolve_output_dir(run_cfg["output_dir"], mode, review_enabled)
 
     setup_logging(False)
     logger.info("kgextract mode: %s", mode)
@@ -45,7 +66,7 @@ def main(argv: list[str] | None = None) -> int:
     extractor = KGExtractor(
         config_path=args.config,
         mode=mode,
-        enable_review=bool(run_cfg["review"]),
+        enable_review=review_enabled,
         strict_evidence=bool(run_cfg["strict_evidence"]),
         keep_dropped=bool(run_cfg["keep_dropped"]),
         extractor_version=str(run_cfg["extractor_version"]),

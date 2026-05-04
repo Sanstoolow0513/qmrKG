@@ -129,6 +129,78 @@ def test_main_default_mode_fs(monkeypatch, tmp_path, capsys) -> None:
     assert "kgextract mode: fs" in capsys.readouterr().out
 
 
+def test_main_defaults_output_dir_to_fs_recheck_when_review_enabled(
+    monkeypatch, tmp_path, capsys
+) -> None:
+    import qmrkg.cli_kg_extract as cli
+
+    calls: dict = {}
+
+    class StubExtractor:
+        def __init__(self, **kwargs):
+            pass
+
+        def extract_from_chunks_file(self, chunks_path, output_dir, **kwargs):
+            calls["output_dir"] = Path(output_dir)
+            return []
+
+    monkeypatch.setattr(cli, "KGExtractor", StubExtractor)
+
+    chunks = tmp_path / "chunks.json"
+    chunks.write_text("[]", encoding="utf-8")
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          kg_extract:
+            input: "{chunks}"
+            mode: "fs"
+            review: true
+        """,
+    )
+
+    exit_code = cli.main(["--config", str(config_path)])
+
+    assert exit_code == 0
+    assert calls["output_dir"] == Path("data/triples/raw-fs-recheck")
+    capsys.readouterr()
+
+
+def test_main_defaults_output_dir_to_fs_when_review_disabled(monkeypatch, tmp_path, capsys) -> None:
+    import qmrkg.cli_kg_extract as cli
+
+    calls: dict = {}
+
+    class StubExtractor:
+        def __init__(self, **kwargs):
+            pass
+
+        def extract_from_chunks_file(self, chunks_path, output_dir, **kwargs):
+            calls["output_dir"] = Path(output_dir)
+            return []
+
+    monkeypatch.setattr(cli, "KGExtractor", StubExtractor)
+
+    chunks = tmp_path / "chunks.json"
+    chunks.write_text("[]", encoding="utf-8")
+    config_path = write_config(
+        tmp_path,
+        f"""
+        run:
+          kg_extract:
+            input: "{chunks}"
+            mode: "fs"
+            review: false
+        """,
+    )
+
+    exit_code = cli.main(["--config", str(config_path)])
+
+    assert exit_code == 0
+    assert calls["output_dir"] == Path("data/triples/raw-fs")
+    capsys.readouterr()
+
+
 def test_main_batches_directory_chunk_files(monkeypatch, tmp_path, capsys) -> None:
     import qmrkg.cli_kg_extract as cli
 
