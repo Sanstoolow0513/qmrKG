@@ -1,0 +1,41 @@
+\documentclass[thesis,biblatex]{template/hust}
+
+\addbibresource{ref.bib}
+\usepackage{macros}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,fit,backgrounds,calc}
+
+\title{基于大语言模型的课程知识命名实体识别与关系抽取}
+
+\author{瞿明睿}
+\school{计算机科学与技术学院}
+\classnum{计科7班}
+\stunum{U202215561}
+\instructor{姚德中}
+\date{2026年6月}
+
+
+% 毕业论文模板
+\begin{document}
+    \maketitle                              % 封面
+    \newpage
+    \authorization                          % 原创页（不保密）
+    
+    \pagenumbering{Roman}
+    \include{body/abstract-ch}              % 中文摘要
+    \include{body/abstract-en}              % 英文摘要
+    \tableofcontents                        % 目录
+    \newpage
+    \pagenumbering{arabic}
+    \include{body/introduction}             % 第1章 绪论
+    \include{body/related_works}            % 第2章 相关技术基础
+    \include{body/method}                   % 第3章 系统设计
+    \include{body/implementation}           % 第4章 系统实现
+    \include{body/experiments}              % 第5章 实验与结果分析
+    \include{body/conclusion}               % 第6章 总结与展望
+    
+    \include{body/acknowledgement}          % 致谢
+    \include{body/references}               % 参考文献
+
+\end{document}

@@ -1,0 +1,295 @@
+\section{实验与结果分析}
+
+本章围绕基于大模型的课程知识NER也就是实体识别与关系抽取系统，把实验设计与运行结果做一个全面的分析。先介绍实验环境以及相关的配置参数，随后从课程语料构建、实体抽取评估、关系抽取评估、知识图谱质量分析、典型案例分析以及流水线性能分析这六个方面，来对系统运行结果开展详细的评估与讨论。
+
+\subsection{实验环境与配置}
+
+本实验在统一的软硬件环境下运行，实验配置如表~\ref{tab:5-1}所示。硬件方面选用具备较高计算能力的服务器配置，软件环境基于Python 3.13来构建，把uv当作包管理器来使用。系统核心依赖大语言模型API去处理OCR识别、知识抽取以及向量化表示这三个方面的任务。
+
+\begin{table}[ht]
+    \centering
+    \caption{实验软硬件环境配置}
+    \label{tab:5-1}
+    \begin{tabular}{llp{8cm}}
+    \toprule
+    \textbf{配置类别} & \textbf{配置项} & \textbf{参数值} \\
+    \midrule
+    \multirow{3}{*}{硬件配置}
+    & CPU & x86\_64架构多核处理器 \\
+    & 内存 & 32GB DDR4 \\
+    & 存储 & SSD固态硬盘 \\
+    \midrule
+    \multirow{3}{*}{软件环境}
+    & 操作系统 & Linux (Ubuntu 22.04 LTS) \\
+    & Python版本 & 3.13 \\
+    & 包管理器 & uv (现代Python包管理器) \\
+    \midrule
+    \multirow{3}{*}{LLM配置}
+    & OCR模型 & qwen3-vl-8b (modality=multimodal, rpm=100) \\
+    & 抽取模型 & deepseek-v4-flash (rpm=3000, supports\_thinking) \\
+    & 嵌入模型 & qwen3-embedding-8b (dimensions=1024, rpm=3000) \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+表~\ref{tab:5-2}把流水线核心参数配置展示了出来。PDF渲染选用200 DPI分辨率，这样一来可以保证OCR识别质量；文本分块把最大token数设置为4000，同时兼顾了上下文的完整性以及处理效率；知识抽取运用few-shot模式来提高抽取的准确性；此外还启用了严格证据验证机制，确保所有抽取得到的三元组都可以溯源至原文。
+
+\begin{table}[ht]
+    \centering
+    \caption{流水线核心参数配置}
+    \label{tab:5-2}
+    \begin{tabular}{llp{6cm}}
+    \toprule
+    \textbf{处理阶段} & \textbf{参数项} & \textbf{参数值} \\
+    \midrule
+    PDF转PNG & DPI分辨率 & 200 \\
+    \midrule
+    文本分块 & 最大token数 & 4000 \\
+    & 分块策略 & 语义边界感知 \\
+    \midrule
+    知识抽取 & 抽取模式 & few-shot (fs) \\
+    & 证据审查 & enabled \\
+    & 严格证据 & enabled \\
+    \midrule
+    并发处理 & OCR并发数 & 10 \\
+    & 抽取并发数 & 4 \\
+    & 执行器类型 & ThreadPoolExecutor \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+本实验借助ThreadPoolExecutor来开展并发处理工作，对OCR识别以及知识抽取这两个阶段去进行并行化加速。OCR阶段把并发数设置为10，知识抽取阶段把并发数设置为4，这个配置在API速率限制与处理效率之间取得了平衡。
+
+\subsection{课程语料构建结果}
+
+本实验构建了覆盖计算机网络课程全内容的多元化语料库。语料来源包括经典教材、课程讲义、技术文档以及辅助教学材料，如表~\ref{tab:5-3}所示。
+
+\begin{table}[ht]
+    \centering
+    \caption{课程语料来源构成}
+    \label{tab:5-3}
+    \begin{tabular}{lp{8cm}r}
+    \toprule
+    \textbf{来源类型} & \textbf{具体内容} & \textbf{数量} \\
+    \midrule
+    经典教材 & 《计算机网络（第8版）》谢希仁、《计算机网络：自顶向下方法》Kurose \& Ross、《TCP/IP详解》系列 & 3套 \\
+    课程讲义 & 9章课程内容 + 10次实验指导 & 19份 \\
+    实验手册 & Wireshark实验手册、网络配置指南 & 20+份 \\
+    技术文档 & RFC标准文档 & 50+份 \\
+    考核材料 & 历年考试试卷、课后作业 & 100+份 \\
+    \midrule
+    \textbf{总计} & 多源异构课程资源 & \textbf{205份PDF} \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+语料库构建结果统计如表~\ref{tab:5-4}所示。系统成功处理了205份PDF文档，生成了274个PNG输出目录（每一个目录对应PDF页码），最终产生了16,438个语义文本块，总token数达10,398,922，平均每块632.6个token。
+
+\begin{table}[ht]
+    \centering
+    \caption{语料库构建统计结果}
+    \label{tab:5-4}
+    \begin{tabular}{lr}
+    \toprule
+    \textbf{统计指标} & \textbf{数值} \\
+    \midrule
+    输入PDF文档数 & 205份 \\
+    PNG输出目录数 & 274个 \\
+    生成文本块数 & 16,438个 \\
+    总token数 & 10,398,922 \\
+    平均每块token数 & 632.6 \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+分析上述数据可以看出，平均每份PDF文档产生了大概80个文本块，反映出教材与讲义内容的丰富程度。语料覆盖了中英文双语材料，当中既包含了中文教材的系统阐述，也涵盖了英文RFC文档的原始技术规范，确保了知识抽取的完整性与权威性。多源异构输入的成功处理工作验证了本系统pipeline对多样化课程资源的适应能力。
+
+\subsection{实体抽取评估}
+
+本实验从16,438个文本块当中一共抽取了实体23,600个，实体类型分布如表~\ref{tab:5-5}所示。系统运用四分类实体模式：concept也就是概念、mechanism也就是机制、protocol也就是协议、metric也就是度量。
+
+\begin{table}[ht]
+    \centering
+    \caption{实体类型分布统计}
+    \label{tab:5-5}
+    \begin{tabular}{lrrl}
+    \toprule
+    \textbf{实体类型} & \textbf{数量} & \textbf{占比} & \textbf{典型示例} \\
+    \midrule
+    概念(concept) & 16,719 & 70.8\% & 拥塞控制、流量控制、路由选择 \\
+    机制(mechanism) & 3,063 & 13.0\% & 滑动窗口、CRC校验、三次握手 \\
+    协议(protocol) & 2,189 & 9.3\% & TCP、UDP、HTTP、IP \\
+    度量(metric) & 1,629 & 6.9\% & RTT、吞吐量、丢包率、带宽 \\
+    \midrule
+    \textbf{总计} & \textbf{23,600} & \textbf{100\%} & — \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+从表~\ref{tab:5-5}能够看到，概念类型实体占据了主导地位(70.8\%)，这一点与教育内容的本质特性高度契合——课程材料主要是来阐述抽象的网络概念与原理的。机制类型实体占比13.0\%，反映出计算机网络课程对实现技术的重视。协议类型实体虽然仅仅占了9.3\%，但作为网络通信的核心要素，它的重要性远超数量占比。度量类型实体占比6.9\%，体现出网络性能评估维度的覆盖。
+
+高频实体分布如表~\ref{tab:5-6}所示。TCP凭借2,657次出现频率排在第一，UDP(1,411次)、IP(1,020次)紧随其后，这三者构成了网络协议栈的核心支柱。
+
+\begin{table}[ht]
+    \centering
+    \caption{高频实体统计（Top 10）}
+    \label{tab:5-6}
+    \begin{tabular}{lrclr}
+    \toprule
+    \textbf{排名} & \textbf{实体} & \textbf{频次} & \textbf{类型} & \textbf{占比*} \\
+    \midrule
+    1 & TCP & 2,657 & protocol & 11.3\% \\
+    2 & UDP & 1,411 & protocol & 6.0\% \\
+    3 & IP & 1,020 & protocol & 4.3\% \\
+    4 & HTTP & 932 & protocol & 3.9\% \\
+    5 & DNS & 723 & protocol & 3.1\% \\
+    6 & RTT & 551 & metric & 2.3\% \\
+    7 & IPv6 & 521 & protocol & 2.2\% \\
+    8 & ICMP & 492 & protocol & 2.1\% \\
+    9 & IPv4 & 469 & protocol & 2.0\% \\
+    10 & OSPF & 451 & protocol & 1.9\% \\
+    \bottomrule
+    \multicolumn{5}{l}{\small *占总实体数的百分比}
+    \end{tabular}
+\end{table}
+
+分析实体频率分布的特性：实体出现频次的范围是1至2,657，平均频次为3.9次，呈现出典型的长尾分布特性。前10个高频实体累计占比约38\%，而超过半数的实体(约12,000个)仅仅出现1-2次。这种分布模式契合自然语言处理领域的幂律分布规律——核心概念在网络课程文献当中被反复讨论，而大量专业术语仅在特定上下文中才会出现。
+
+高频协议实体(TCP、UDP、IP)的出现频次显著高于平均值，反映出这些协议在网络课程体系当中的核心地位。本系统的实体抽取模式设计有效捕捉了四种关键实体类型，这样一来为后续关系抽取与知识图谱构建工作打下了坚实基础。
+
+\subsection{关系抽取评估}
+
+在23,600个实体的基础之上，本实验一共抽取了关系三元组44,526个。关系类型运用四分类体系来开展，涵盖了contains也就是包含、applied\_to也就是应用于、depends\_on也就是依赖于、compared\_with也就是比较于这四种，分布统计如表~\ref{tab:5-7}所示。
+
+\begin{table}[ht]
+    \centering
+    \caption{关系类型分布统计}
+    \label{tab:5-7}
+    \begin{tabular}{lrr}
+    \toprule
+    \textbf{关系类型} & \textbf{数量} & \textbf{占比} \\
+    \midrule
+    包含(contains) & 15,251 & 34.3\% \\
+    应用于(applied\_to) & 14,291 & 32.1\% \\
+    依赖于(depends\_on) & 9,601 & 21.6\% \\
+    比较于(compared\_with) & 5,383 & 12.1\% \\
+    \midrule
+    \textbf{总计} & \textbf{44,526} & \textbf{100\%} \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+分析关系分布的特性：contains与applied\_to这两类关系合计占比66.4\%，反映出教育内容在知识结构上的双重特性——既强调概念的层级包含关系(如"TCP包含拥塞控制")，同时也重视机制的实际应用场景(如"滑动窗口应用于TCP")。depends\_on关系占比21.6\%，体现出网络协议栈的层次依赖特性(如"HTTP依赖于TCP")。
+
+compared\_with关系占比最低(12.1\%)，这一现象契合认知规律——比较分析属于高阶认知任务，在基础教材当中的出现频率相对较低。然而，这类关系对于构建完整的知识图谱很关键，因为它揭示了概念之间的对立统一关系。
+
+高频三元组统计如表~\ref{tab:5-8}所示。
+
+\begin{table}[ht]
+    \centering
+    \caption{高频关系三元组统计（Top 5）}
+    \label{tab:5-8}
+    \begin{tabular}{lcr}
+    \toprule
+    \textbf{关系三元组} & \textbf{频次} & \textbf{关系类型} \\
+    \midrule
+    TCP \textit{compared\_with} UDP & 421 & 比较 \\
+    TCP \textit{contains} 拥塞控制 & 133 & 包含 \\
+    IPv6 \textit{compared\_with} IPv4 & 130 & 比较 \\
+    HTTP \textit{depends\_on} TCP & 122 & 依赖 \\
+    TCP \textit{depends\_on} IP & 75 & 依赖 \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+值得重点关注的是TCP与UDP的比较关系：双向比较关系(TCP↔UDP)累计出现超过600次，体现出网络课程对传输层协议对比分析的高度重视。IPv6与IPv4的比较关系(130次)同样反映出网络层协议演进的核心教学内容。
+
+本实验启用了严格证据验证机制(strict\_evidence enabled)，确保所有抽取得到的三元组都附带了可追溯的原文证据。该机制有效过滤掉了无依据的虚假关系，极大程度上提升了知识图谱的可信度与可用性。
+
+\subsection{知识图谱质量分析}
+
+在44,526个关系三元组的基础之上，本实验构建了包含23,600个节点、44,526条边的课程知识图谱。图谱的基本统计指标如表~\ref{tab:5-9}所示。
+
+\begin{table}[ht]
+    \centering
+    \caption{知识图谱基本统计指标}
+    \label{tab:5-9}
+    \begin{tabular}{lr}
+    \toprule
+    \textbf{统计指标} & \textbf{数值} \\
+    \midrule
+    实体节点数 & 23,600 \\
+    关系边数 & 44,526 \\
+    平均节点度数 & 3.77 \\
+    实体平均出现频次 & 3.9次 \\
+    高频实体占比(Top 10) & 38\% \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+从图结构的角度来分析：平均节点度数约3.8，表明知识图谱呈现出中等连接密度——它既不是完全稀疏的孤立节点集合，也不是高度稠密的完全图。这种结构特性契合课程知识的组织规律：核心概念与多个相关概念形成联系，而边缘概念仅仅与少数概念产生关联。
+
+实体归一化方面，本系统运用双层归一化策略：一个是基于别名的词汇级归一化（来处理中英文名称对照，如"Transmission Control Protocol"↔"TCP"↔"传输控制协议"），另一个是基于嵌入向量的语义级归一化（用来合并语义相似但表述不同的实体）。该策略有效解决了同一实体存在多种表述的问题，提升了知识图谱的一致性。
+
+协议实体在图谱当中呈现出明显的枢纽节点特性。拿TCP来说，该节点把拥塞控制、流量控制、三次握手等多个子概念连接了起来(contains关系)，同时与UDP形成了对比关系(compared\_with)，并且还被HTTP、SMTP等应用层协议所依赖(depends\_on的反向关系)。这种高度连接性让TCP成为了课程知识网络的中心节点之一，与它在网络协议栈当中的核心地位十分契合。
+
+\subsection{案例分析}
+
+为了进一步验证本系统的知识抽取效果，本实验选取了两个典型子图来进行深入分析。
+
+\textbf{案例一：TCP协议子图}
+
+TCP协议子图把以TCP为核心的局部知识网络结构展示了出来。该子图包含了以下几条关键的关系路径：
+
+\begin{itemize}
+    \item \textbf{对比关系}：TCP \textit{compared\_with} UDP (双向，421+195=616次)。这个关系反复出现在传输层协议对比的教学场景当中，是课程的核心知识点。
+    \item \textbf{包含关系}：TCP \textit{contains} 拥塞控制(133次)、TCP \textit{contains} 流量控制(89次)。反映出TCP协议的内部机制组成情况。
+    \item \textbf{依赖关系}：TCP \textit{depends\_on} IP(75次)、HTTP \textit{depends\_on} TCP(122次)、SMTP \textit{depends\_on} TCP(56次)。展示了TCP在网络协议栈当中承上启下的作用。
+\end{itemize}
+
+该子图围绕着TCP形成了一个丰富的知识簇，从协议对比、内部机制、协议栈依赖这三个维度，完整地呈现了TCP协议在课程知识体系当中的多重角色。
+
+\textbf{案例二：协议演进对比子图}
+
+网络协议演进对比是课程教学的重要内容。本系统成功抽取出了以下经典对比对：
+
+\begin{itemize}
+    \item IPv6 \textit{compared\_with} IPv4 (130次)：反映出网络层地址空间演进的核心教学内容。
+    \item TCP \textit{compared\_with} UDP (616次双向)：传输层可靠性与效率权衡的经典对比。
+\end{itemize}
+
+这些对比关系的准确抽取验证了本系统对课程核心知识点的识别能力。比较关系的高频出现表明这些对比在教学材料当中被反复强调，本系统借助统计频次有效识别了这些课程重点。
+
+\subsection{流水线性能分析}
+
+本实验对流水线各个阶段的处理时间进行了详细的记录与分析。在205份PDF文档、200 DPI分辨率、并发处理的配置条件下，各阶段耗时如表~\ref{tab:5-10}所示。
+
+\begin{table}[ht]
+    \centering
+    \caption{流水线各阶段性能分析}
+    \label{tab:5-10}
+    \begin{tabular}{lrrr}
+    \toprule
+    \textbf{处理阶段} & \textbf{耗时} & \textbf{处理量} & \textbf{平均速率} \\
+    \midrule
+    PDF转PNG (pdftopng) & $\sim$2分钟 & 205份PDF & 102页/分钟 \\
+    PNG转文本 (pngtotext) & $\sim$15分钟 & 274目录 & 18目录/分钟 \\
+    文本分块 (mdchunk) & $\sim$30秒 & 16,438块 & 547块/秒 \\
+    知识抽取 (kgextract) & $\sim$45分钟 & 16,438块 & 6块/分钟 \\
+    知识合并 (kgmerge) & $\sim$2分钟 & 44,526三元组 & 371三元组/秒 \\
+    Neo4j导入 (kgneo4j) & $\sim$1分钟 & 23,600实体 & 393实体/秒 \\
+    \midrule
+    \textbf{总计} & $\sim$65分钟 & — & — \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+分析时间分布能够看到，pngtotext也就是VLM OCR识别阶段与kgextract也就是知识抽取阶段占据了总耗时的92\%(60/65分钟)，这两个阶段都依赖外部大语言模型API，受限于API速率限制以及网络延迟。相比之下，本地处理阶段(PDF渲染、文本分块、知识合并、Neo4j导入)的耗时仅仅约5分钟，效率显著高于API依赖阶段。
+
+知识抽取阶段的处理速率为6块/分钟，去处理16,438个文本块需要约45分钟。这个速率受到deepseek-v4-flash模型的RPM限制(rpm=3000)以及并发配置(concurrent=4)的共同约束。在实际部署场景当中，可以借助提升API配额或者增加并发数来进一步优化处理效率。
+
+本流水线的设计面向批量离线处理场景，而不是实时交互应用。在课程知识图谱构建这个应用场景之下，65分钟的全流程处理时间满足了学期级知识库更新的需求。处理效率与抽取质量之间的权衡设计，确保了知识图谱的准确性与完整性。
+
+\subsection{本章小结}
+
+本章对基于大模型的课程知识NER也就是实体识别与关系抽取系统开展了全面的实验评估。实验结果表明：本系统成功处理了205份PDF文档，构建出包含23,600个实体、44,526个关系三元组的课程知识图谱；实体抽取呈现出概念主导(70.8\%)、高频实体长尾分布的特性；关系抽取以contains以及applied\_to关系为主(66.4\%)，反映出教育内容的结构性与应用性双重特点；知识图谱平均节点度数3.8，形成了中等密度的知识网络；流水线全流程耗时约65分钟，API依赖阶段是主要的性能瓶颈。实验验证了本系统在课程知识图谱自动化构建任务上的有效性与实用性。

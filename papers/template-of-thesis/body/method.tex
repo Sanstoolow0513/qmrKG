@@ -1,0 +1,428 @@
+\section{基于大模型的课程知识抽取系统设计}
+
+知识图谱构建得好坏，很大程度上有赖于从非结构化文本里把实体和关系抽出来时是不是足够准确和一致，而课程教材在这方面又有层级结构深、专业术语密集、中英文混用这样一些很特别的挑战。本章先从系统的总体架构谈起，接着依次去介绍文档预处理、文本分块、NER也就是实体识别、关系抽取、知识融合以及图存储与可视化这几个核心模块的设计思路，当中会着重把每个设计选择的缘由和所做的权衡讲清楚。
+
+\subsection{总体架构设计}\label{sec:arch}
+
+\subsubsection{七阶段流水线架构}
+
+课程知识抽取系统选用七阶段串行流水线架构，借助这个架构把原始教材文档逐步转化为可以开展交互的知识图谱。七个阶段依次是：文档转图、OCR 识别、文本分块、三元组抽取、三元组合并、图数据库导入以及前端可视化，如图\ref{fig:3-1}所示。
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[
+        node distance=0.6cm and 0.3cm,
+        stage/.style={
+            rectangle, rounded corners=3pt, draw=blue!60!black, fill=blue!8,
+            minimum height=1cm, minimum width=2.1cm, align=center,
+            font=\small, text=black!85
+        },
+        data/.style={
+            rectangle, rounded corners=2pt, draw=orange!70!black, fill=orange!10,
+            minimum height=0.7cm, minimum width=1.6cm, align=center,
+            font=\footnotesize, text=black!80
+        },
+        arr/.style={-{stealth}, thick, draw=gray!70!black},
+        darr/.style={-{stealth}, draw=gray!60!black}
+    ]
+    % Stages
+    \node[stage] (s1) {文档转图\\{\scriptsize PyMuPDF}};
+    \node[stage, right=of s1] (s2) {OCR 识别\\{\scriptsize VLM}};
+    \node[stage, right=of s2] (s3) {文本分块\\{\scriptsize tiktoken}};
+    \node[stage, right=of s3] (s4) {三元组抽取\\{\scriptsize LLM}};
+    \node[stage, right=of s4] (s5) {三元组合并\\{\scriptsize 别名+嵌入}};
+    \node[stage, right=of s5] (s6) {图数据库\\{\scriptsize Neo4j}};
+    \node[stage, right=of s6] (s7) {可视化\\{\scriptsize Force Graph}};
+
+    % Data nodes
+    \node[data, below=0.5cm of s1] (d1) {PNG};
+    \node[data, below=0.5cm of s2] (d2) {Markdown};
+    \node[data, below=0.5cm of s3] (d3) {JSON\\{\scriptsize Chunks}};
+    \node[data, below=0.5cm of s4] (d4) {Raw\\{\scriptsize Triples}};
+    \node[data, below=0.5cm of s5] (d5) {Merged\\{\scriptsize Triples}};
+
+    % Input
+    \node[left=0.8cm of s1, font=\small, text=black!70] (input) {PDF/PPT};
+
+    % Arrows: input → stages
+    \draw[arr] (input) -- (s1);
+    \draw[arr] (s1) -- (s2);
+    \draw[arr] (s2) -- (s3);
+    \draw[arr] (s3) -- (s4);
+    \draw[arr] (s4) -- (s5);
+    \draw[arr] (s5) -- (s6);
+    \draw[arr] (s6) -- (s7);
+
+    % Arrows: stages → data
+    \draw[darr] (s1) -- (d1);
+    \draw[darr] (s2) -- (d2);
+    \draw[darr] (s3) -- (d3);
+    \draw[darr] (s4) -- (d4);
+    \draw[darr] (s5) -- (d5);
+
+    % Data labels
+    \node[below=0.15cm of d1, font=\tiny, text=gray!70] {data/png/};
+    \node[below=0.15cm of d2, font=\tiny, text=gray!70] {data/markdown/};
+    \node[below=0.15cm of d3, font=\tiny, text=gray!70] {data/chunks/};
+    \node[below=0.15cm of d4, font=\tiny, text=gray!70] {data/triples/raw/};
+    \node[below=0.15cm of d5, font=\tiny, text=gray!70] {data/triples/merged/};
+    \end{tikzpicture}
+    \caption{七阶段流水线总体架构}\label{fig:3-1}
+\end{figure}
+
+之所以选用七阶段串行架构，缘由如下：
+
+（1）\textbf{关注点分离}。每个阶段都拥有明确的输入契约和输出契约，职责单一。比如说，文档转图阶段只负责把 PDF/PPT 渲染为 PNG 图像，不关心后续 OCR 要怎么去处理；OCR 阶段只负责图像到文本的转换，不关心文本该怎么去分块。这样一来，各阶段就可以独立进行设计、独立开展测试、独立演进。
+
+（2）\textbf{模块化与可替换性}。每个阶段对应一个独立的 CLI 命令（比如 \texttt{pdftopng}、\texttt{pngtotext}、\texttt{mdchunk} 等），阶段之间借助文件系统里的中间产物即 PNG、Markdown、JSON 来进行数据的传递。这样一来，任何阶段都可以换成不同的实现，只要输入输出格式没变就行。比如 OCR 阶段可以从 VLM 切换为传统 OCR 引擎，而不需要去改动上下游的代码。
+
+（3）\textbf{独立扩展与容错}。由于中间产物会持久化存储在 \texttt{data/} 目录下，流水线天然拥有断点续跑的能力。要是某个阶段因为 API 限流或者网络故障中断了，重新运行那个阶段就能从上一次中断的地方接着跑，不需要从头开始。另外，不同阶段对计算资源的需求差异还挺大的——OCR 阶段需要 GPU 加速的多模态推理，而分块阶段只需要 CPU 计算——独立的阶段让按需分配资源这件事得以实现。
+
+\subsubsection{LLM 工厂模式}
+
+系统里好几个阶段都需要去调用大语言模型，涉及的任务包括 OCR、实体抽取、关系审核以及实体嵌入，而且各阶段对模型能力、速率限制和提示词策略的要求各不相同。所以，系统设计了 LLM 工厂模式也就是 TaskLLMFactory，它的核心设计思想是\textbf{任务作用域的配置隔离}。
+
+每个任务即 \texttt{ocr}、\texttt{extract}、\texttt{entity\_embed} 等，会借助 \texttt{llm\_profile} 字段引用一个预定义的模型配置档案也就是 Profile，档案当中包含了模型名称、API 端点、模态（text/multimodal/embedding）、请求超时、重试策略还有速率限制参数。凭借这样的设计，切换模型只需要在配置文件里改一下 Profile 引用就行了，完全不用去动任何代码。
+
+速率限制这块运用了滑动窗口算法也就是 RollingRateLimiter，维护 60 秒时间窗口里的请求计数，一旦达到 RPM 上限就阻塞等待。并发控制依靠信号量即 Semaphore 来实现，确保同时运行的 LLM 请求数不会超过 \texttt{max\_concurrency}。不同任务的速率限制参数可以独立去配置：OCR 任务选用 \texttt{qwen3-vl-8b} 模型，设成 RPM 100、并发 10；抽取任务选用 \texttt{deepseek\_v4\_flash} 模型，设成 RPM 3000、并发 3000，以此来契合不同模型的配额和吞吐特性。
+
+\subsection{文档预处理设计}
+
+\subsubsection{多格式文档输入}
+
+课程教材的原始格式多种多样，包括 PDF 讲义、PPT 课件以及 PPTX 演示文稿。系统需要去把这些异构格式统一转成 PNG 图像序列，这样才能为后续的 VLM OCR 提供标准化的视觉输入。
+
+对于 PDF 文件，系统选用 PyMuPDF 也就是 \texttt{fitz} 库来进行页面的渲染。选择 PyMuPDF 而不是 \texttt{pdf2image}（底层用的是 Poppler）的缘由有三个：其一，PyMuPDF 不需要系统级安装 Poppler 依赖，部署起来更轻量；其二，PyMuPDF 的渲染速度比 Poppler 快得多，批量处理几百页教材的时候优势很明显；其三，PyMuPDF 提供了精确的 DPI 控制和矩阵变换接口，方便去调整输出的质量。渲染参数设成 DPI=200，对应的缩放因子为 $zoom = 200/72 \approx 2.78$，在文字清晰度和文件体积之间取得了一个比较好的平衡。
+
+对于 PPT/PPTX 文件，系统运用 LibreOffice 的无头模式也就是 headless，先把它们转成临时的 PDF，再借助 PDF 渲染器来做统一的处理。做出这个设计选择是出于这样的考量：LibreOffice 对 Microsoft Office 格式的兼容性比别的开源方案更好，而且转换后的 PDF 把原始幻灯片的版式和字体信息都保留下来了，这样就保证了 VLM OCR 阶段能拿到高质量的视觉输入。
+
+\subsubsection{基于视觉语言模型的 OCR 设计}
+
+传统的 OCR 引擎比如 Tesseract，对中文教材里面的数学公式、网络拓扑图、表格这些复杂版面元素的识别能力是比较有限的。系统选用了多模态视觉语言模型即 VLM 来充当 OCR 的核心引擎，具体运用的是 Qwen3-VL-8B 模型，借助 PPIO API 以 OpenAI 兼容接口来进行调用。
+
+用到 VLM 来做 OCR，设计上的优势有几方面：（1）模型拥有视觉理解的能力，可以识别出图表里的文字标注还有网络拓扑结构当中的节点标签；（2）模型原生就支持中文文本识别，不需要额外去进行语言包的配置；（3）模型可以依据版面特征推断出标题的层级，输出结构化的 Markdown 格式，从而为后续的分块阶段提供标题树信息。
+
+OCR 提示词的设计遵循了这样几条原则：输出必须为有效的 Markdown；保持原文语言不翻译；保留阅读顺序和换行；对标题行运用 \texttt{\#} 标记并且遵循层级规则即 \texttt{\#} 一级、\texttt{\#\#} 二级、\texttt{\#\#\#} 三级；对中文教材里常见的章节结构词比如"第X章""第X节"进行标题化的处理。每一页的 OCR 结果会保存成独立的 Markdown 文件，然后借助 \texttt{kgmdcombine} 阶段按页码顺序把它们合并为一本完整的教材级 Markdown 文档，从而确保跨页内容的连贯性。
+
+\subsection{文本分块设计}
+
+\subsubsection{分块问题的提出}
+
+大语言模型存在上下文窗口的限制，通常是 4K--8K tokens。一整本计算机网络教材可能会有好几十万 tokens 的内容，没法一次性喂给 LLM。所以，需要把教材级 Markdown 文档拆分成合适大小的文本块，每个块在 Token 预算内要包含足够的上下文信息，好让 LLM 可以从中准确地把实体和关系识别出来。
+
+分块策略面临的核心矛盾在于：块太大了会超出 Token 预算，块太小了又会丢失上下文从而导致抽取质量的下降。另外，课程教材有着比较鲜明的层级结构，即章、节、小节，在标题边界处进行切分能够最大程度地保持语义完整性，要是在段落中间去切的话，则可能破坏实体之间的关联信息。
+
+\subsubsection{Token 计数与预算分配}
+
+系统选用 tiktoken 库的 \texttt{cl100k\_base} 编码来进行精确的 Token 计数。选择这个编码而不是字符数或词数计数的缘由是：\texttt{cl100k\_base} 是 GPT-4 系列模型所使用的分词器，和实际 LLM 调用的 Token 计量方式一致，从而避免了因为计数偏差导致的截断或者浪费。
+
+Token 预算设为 $T_{max} = 4000$。之所以这样定，是这样考虑的：LLM 的有效上下文窗口大约是 8K tokens，其中需要预留大约 2K tokens 给系统提示词（包括 Schema 定义、抽取指南、Few-shot 示例等）以及模型输出（候选实体和三元组的 JSON），剩下大概 6K tokens 里面取 4000 作为文本块的上限，留出约 2K tokens 的安全余量来应对 Token 计数的微小偏差。
+
+\subsubsection{递归标题感知分块算法}
+
+分块算法的核心思想是\textbf{优先在标题边界进行切分，只在没有标题可分的情况下才退到段落级别去切}。算法首先把 Markdown 文档解析成标题树，然后自顶向下递归地处理每个子树。要是某个子树的 Token 总数没有超出预算，那就把它整体当作一个块输出；要是超出了预算并且还有子标题，就递归下降到子标题层接着处理；要是超出了预算但又没有子标题可分，那就在段落级别上进行累积切分。
+
+算法的伪代码如算法\ref{al:3-1}所示。
+
+\begin{algorithm}[ht]
+    \caption{递归标题感知分块算法}\label{al:3-1}
+    \begin{algorithmic}[1]
+        \Require Markdown 文档 $M$，最大 Token 数 $T_{max}$
+        \Ensure 分块列表 $C = [c_1, c_2, \ldots, c_n]$
+        \State 清洗 $M$：去除 YAML 前置元数据、页码标记、页眉页脚等 OCR 伪影
+        \State 构建标题树 $H \gets \text{parse\_headers}(M)$，使用栈式解析 \texttt{\#} 标记
+        \State $C \gets \text{chunk\_recursive}(H, T_{max})$
+        \State \Return $C$
+        \\
+        \Function{chunk\_recursive}{node, $T_{max}$}
+            \If{$\text{token\_count}(node.content) \leq T_{max}$}
+                \State \Return $\{node\}$ \Comment{子树整体作为一个块}
+            \ElsIf{$node$ 存在子标题节点}
+                \State $result \gets []$
+                \For{each 子标题节点 $child \in node.children$}
+                    \State $result \gets result \cup \text{chunk\_recursive}(child, T_{max})$
+                \EndFor
+                \State \Return $result$
+            \Else
+                \State $chunks \gets []$，$current \gets []$，$tokens \gets 0$
+                \For{each 段落 $p \in node.paragraphs$}
+                    \If{$tokens + \text{token\_count}(p) > T_{max}$ \textbf{and} $current \neq \emptyset$}
+                        \State $chunks \gets chunks \cup \{current\}$
+                        \State $current \gets [p]$，$tokens \gets \text{token\_count}(p)$
+                    \Else
+                        \State $current \gets current \cup \{p\}$，$tokens \gets tokens + \text{token\_count}(p)$
+                    \EndIf
+                \EndFor
+                \State \Return $chunks$
+            \EndIf
+        \EndFunction
+    \end{algorithmic}
+\end{algorithm}
+
+这个算法有几个关键的设计决策：（1）标题层级信息会保留在每个输出块的元数据即 $titles$ 字段中，给下游的抽取阶段提供上下文的定位信息；（2）清洗步骤放在分块之前执行，以免 OCR 伪影比如页码、页眉污染文本块的内容；（3）段落级累积切分作为兜底手段，确保即便是没有标题结构的长文本也能被正确分块。
+
+图\ref{fig:3-2}展示了递归标题感知分块的大致过程。
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[
+        level 1/.style={sibling distance=4.2cm, level distance=1.5cm},
+        level 2/.style={sibling distance=2.2cm, level distance=1.3cm},
+        hdr/.style={rectangle, rounded corners=2pt, draw=blue!60!black, fill=blue!10,
+            minimum height=0.6cm, minimum width=1.8cm, font=\footnotesize, align=center},
+        chunk/.style={rectangle, rounded corners=2pt, draw=green!60!black, fill=green!8,
+            minimum height=0.6cm, minimum width=1.6cm, font=\footnotesize, align=center},
+        overflow/.style={rectangle, rounded corners=2pt, draw=red!70!black, fill=red!8,
+            minimum height=0.6cm, minimum width=1.6cm, font=\footnotesize, align=center},
+        edge from parent/.style={draw, -{stealth}, thick}
+    ]
+    \node[hdr] {教材 Markdown}
+        child { node[hdr] {\# 第1章}
+            child { node[chunk] {Chunk 1\\{\scriptsize $\leq T_{max}$}} }
+            child { node[hdr] {\#\# 1.1 节}
+                child { node[chunk] {Chunk 2\\{\scriptsize $\leq T_{max}$}} }
+                child { node[overflow] {Chunk 3\\{\scriptsize 段落级切分}} }
+            }
+        }
+        child { node[hdr] {\# 第2章}
+            child { node[chunk] {Chunk 4\\{\scriptsize $\leq T_{max}$}} }
+            child { node[chunk] {Chunk 5\\{\scriptsize $\leq T_{max}$}} }
+        };
+    \end{tikzpicture}
+    \caption{递归标题感知分块过程示意}\label{fig:3-2}
+\end{figure}
+
+\subsection{实体识别设计}
+
+实体识别是知识图谱构建的一个基础环节，它的目标是从课程文本里把属于预定义类型的命名实体给识别出来。跟通用的 NER 任务不太一样，课程知识 NER 需要去处理领域特定的实体类型，而且实体的边界往往会跨越好几个词汇，比如"三次握手""慢启动算法"这样的。
+
+\subsubsection{实体类型 Schema 设计}
+
+系统定义了四种实体类型，涵盖了计算机网络课程当中的核心知识元素。类型定义如表\ref{tab:3-1}所示。
+
+\begin{table}[ht]
+    \centering
+    \caption{实体类型 Schema 定义}\label{tab:3-1}
+    \begin{tabular}{llll}
+    \toprule
+    \textbf{类型标识} & \textbf{中文名称} & \textbf{定义} & \textbf{示例} \\
+    \midrule
+    protocol & 协议 & 网络通信中遵循的规则或标准 & TCP, HTTP, DNS, ARP, OSPF \\
+    concept & 概念术语 & 计算机网络中的核心概念或术语 & 拥塞控制, 子网掩码, 路由表, 分层模型 \\
+    mechanism & 机制算法 & 具体的机制、算法或流程 & 三次握手, 慢启动, CSMA/CD, 滑动窗口 \\
+    metric & 性能指标 & 网络性能的度量指标 & 吞吐量, RTT, 丢包率, 带宽, 时延 \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+Schema 的设计遵循了下面几条原则：（1）\textbf{互斥性}——这四种类型在语义上是互不重叠的，协议跟机制的区别在于前者是通信标准而后者是操作流程，概念跟指标的区别在于前者是抽象术语而后者是可量化的度量；（2）\textbf{完备性}——四种类型覆盖了计算机网络教材里绝大多数知识元素，从协议标准到性能度量构成了一个完整的知识维度；（3）\textbf{可操作性}——每种类型都配有明确的判定规则和典型示例，这样可以降低 LLM 抽取时的歧义。
+
+\subsubsection{提示词工程设计}
+
+系统设计了两套抽取模式：零样本也就是 Zero-shot 模式，以及少样本也就是 Few-shot 模式。两种模式共用同一套 Schema 定义，不过在提示词的策略上是有些差别的。
+
+\textbf{零样本模式}的设计拿到了 SLIMER\cite{slimer_2024} 思路的启发，简单来说就是在提示词里给出详细的实体类型定义、边界规则和抽取指南，但不提供任何标注示例。零样本提示词包含这几个核心组件：（1）Schema 定义——四种实体类型的名称、定义以及示例；（2）抽取规则——只从给定的文本里去抽、不编造实体、使用原文里的名称；（3）输出格式约束——严格 JSON 输出，包含实体列表和三元组列表。零样本模式的好处在于不需要人工标注数据，很适合快速启动和 Schema 调试阶段。
+
+\textbf{少样本模式}在零样本的基础上加了四个标注示例，分别覆盖四种关系类型即 \texttt{compared\_with}、\texttt{contains}、\texttt{depends\_on}、\texttt{applied\_to}，同时还附带有负面示例和粒度规则。这一设计借鉴了 GPT-RE\cite{gpt_re_2023} 的少样本检索增强思路还有 GoLLIE\cite{gollie_2023} 的指令微调策略。少样本模式的设计缘由是这样的：（1）标注示例可以很明显地提升 LLM 对 Schema 的理解，减少类型混淆，比如把"TCP 拥塞控制"整体标成单一实体，而不是拆成 TCP（protocol）和拥塞控制（concept）；（2）负面示例即"不抽过泛词：计算机、网络、系统"这样的规则，可以有效抑制 LLM 的过度抽取倾向；（3）粒度规则即"优先拆分协议+概念复合短语"，可以提升跨文档抽取的一致性。
+
+\subsubsection{实体描述生成}
+
+每个被抽出来的实体除了名称和类型之外，还要求 LLM 去生成一段简短的描述即 description 字段。比如说，实体"TCP"的描述是"传输控制协议"，”慢启动算法“的描述是"拥塞窗口逐步增长机制"。实体描述的引入有双重考量：（1）给下游的知识融合阶段带去语义信息——当两个名称不同但语义相同的实体需要合并时，描述信息能辅助去做判断；（2）给知识图谱的交互式浏览提供可读的节点信息，从而提升用户的体验。
+
+\subsection{关系抽取设计}
+
+关系抽取是在实体识别的基础上，去识别实体之间的语义关联，最终形成结构化的知识三元组即 (head, relation, tail)。关系抽取的质量会直接决定知识图谱的连通性和可用性。
+
+\subsubsection{关系类型系统设计}
+
+系统定义了四种关系类型，每种都附带了头尾实体类型的约束条件，如表\ref{tab:3-2}所示。
+
+\begin{table}[ht]
+    \centering
+    \caption{关系类型 Schema 定义}\label{tab:3-2}
+    \begin{tabular}{llll}
+    \toprule
+    \textbf{关系类型} & \textbf{中文名称} & \textbf{定义} & \textbf{头→尾类型约束} \\
+    \midrule
+    contains & 包含关系 & A 在结构或概念上包含 B & any $\to$ any \\
+    depends\_on & 依赖关系 & A 在功能上依赖 B & mechanism/concept $\to$ mechanism/protocol \\
+    compared\_with & 对比关系 & A 与 B 在功能或性能上可比较 & protocol $\leftrightarrow$ protocol, concept $\leftrightarrow$ concept \\
+    applied\_to & 应用关系 & A 被应用于 B 的场景 & mechanism $\to$ protocol/concept \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+关系类型系统在设计上的考量是这样的：（1）\texttt{contains} 不设类型约束，是因为包含关系在课程知识里到处都有，比如"TCP 包含三次握手""OSI 模型包含物理层"，要是约束太严反而会漏掉有效的关系；（2）\texttt{depends\_on} 把头实体限定为 mechanism 或 concept，因为依赖关系通常描述的是机制或概念对其他知识元素的依赖；（3）\texttt{compared\_with} 限定为同类型实体之间的对比，比如 TCP 和 UDP、OSI 和 TCP/IP，这样可以避开跨类型的无意义对比；（4）\texttt{applied\_to} 把头实体限定为 mechanism，因为"应用"关系描述的是机制或算法被应用到特定协议或概念场景。
+
+\subsubsection{两阶段抽取架构}
+
+系统运用了"提议—审核"也就是 Propose-Review 的两阶段抽取架构，如图\ref{fig:3-3}所示。
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[
+        node distance=0.8cm,
+        box/.style={rectangle, rounded corners=3pt, draw=blue!60!black, fill=blue!8,
+            minimum height=0.9cm, minimum width=2.8cm, align=center, font=\small},
+        gate/.style={diamond, draw=orange!70!black, fill=orange!10,
+            minimum width=1.8cm, minimum height=1.2cm, align=center, font=\small,
+            inner sep=1pt},
+        result/.style={rectangle, rounded corners=2pt, draw=green!60!black, fill=green!8,
+            minimum height=0.7cm, minimum width=1.6cm, align=center, font=\footnotesize},
+        drop/.style={rectangle, rounded corners=2pt, draw=red!60!black, fill=red!8,
+            minimum height=0.7cm, minimum width=1.6cm, align=center, font=\footnotesize},
+        arr/.style={-{stealth}, thick, draw=gray!70!black}
+    ]
+    \node[box] (propose) {阶段一：提议\\{\scriptsize LLM 抽取候选三元组}};
+    \node[box, right=1.5cm of propose] (review) {阶段二：审核\\{\scriptsize LLM 验证三元组质量}};
+    \node[gate, right=1.5cm of review] (evidence) {证据\\门控};
+    \node[result, above right=0.6cm and 0.8cm of evidence] (keep) {保留};
+    \node[result, right=0.8cm of evidence] (revise) {修正};
+    \node[drop, below right=0.6cm and 0.8cm of evidence] (drop) {丢弃};
+
+    \draw[arr] (propose) -- (review);
+    \draw[arr] (review) -- (evidence);
+    \draw[arr] (evidence) -- node[above left, font=\scriptsize] {keep} (keep);
+    \draw[arr] (evidence) -- node[above, font=\scriptsize] {revise} (revise);
+    \draw[arr] (evidence) -- node[below left, font=\scriptsize] {drop} (drop);
+
+    % Input
+    \node[left=1.2cm of propose, font=\small, text=black!70] (input) {文本块 + Schema};
+    \draw[arr] (input) -- (propose);
+    \end{tikzpicture}
+    \caption{两阶段抽取与证据门控流程}\label{fig:3-3}
+\end{figure}
+
+\textbf{阶段一（提议）}：LLM 接收文本块和完整的 Schema 定义（实体类型、关系类型、抽取规则），以及跟模式对应的提示词（零样本或少样本），然后输出候选实体列表和三元组列表。这个阶段的重心放在召回率上——尽可能多地去识别文本里存在的实体和关系，允许带上一定程度上的噪声。
+
+\textbf{阶段二（审核）}：用一次独立的 LLM 调用对每个候选三元组逐一进行严格的验证。审核提示词要求 LLM 逐项检查下面几个条件：（1）关系类型是不是预定义的那四种之一；（2）证据字段即 evidence 是不是文本块里的连续原文子串，而且逐字一致；（3）头实体和尾实体是不是都出现在了证据字段当中；（4）有没有自环即 head = tail 的情况；（5）是不是引入了文本块里不存在的新实体或新关系。每个三元组的审核结果包含 $decision$（keep/revise/drop）和 $reason\_code$（比如 SUPPORTED、EVIDENCE\_NOT\_IN\_CHUNK、HEAD\_NOT\_IN\_EVIDENCE 等等）。
+
+两阶段架构的设计缘由，主要是来自对 LLM 输出质量的实际观察：单次 LLM 调用经常夹带幻觉输出——模型可能会编造出文本里不存在的实体、生成不匹配的证据、或者构造出逻辑上站不住脚的关系。审核阶段充当了质量门控的角色，凭借严格的证据验证规则去过滤掉不可靠的三元组。这个设计思路跟 SAC-KG\cite{sac_kg_2024} 里提出的"自我评估"机制有相似之处，但本系统又进一步引入了\textbf{证据门控}机制。
+
+\subsubsection{证据门控机制}
+
+证据门控是本系统在关系抽取方面的一个核心创新设计。每个三元组都必须附带一个 evidence 字段，并且该字段必须是输入文本块里的\textbf{连续原文子串}，同时头实体和尾实体都得出现在这个子串当中。这个约束给每个抽出来的关系提供了一个可验证的文本依据，这样一来，三元组的正确性就可以借助字符串匹配来进行自动化的检验了。
+
+证据门控的设计缘由包括这几个方面：（1）\textbf{可验证性}——凭借把 evidence 跟原文做子串匹配，可以自动化地验证三元组的正确性，不需要人工逐一去审核；（2）\textbf{可追溯性}——每个关系都有明确的文本出处，用户可以在知识图谱里点击关系去查看原始证据，这样一来可信度就提高了；（3）\textbf{幻觉抑制}——强制要求 evidence 为原文子串，从根本上杜绝了 LLM 编造文本里不存在的关系，因为编造的 evidence 是没有办法借助子串匹配来通过验证的。
+
+证据门控的验证流程是这样的：审核阶段输出的三元组会经过严格的证据检查——对每个三元组，系统在原始文本块里搜索 evidence 子串，找到了就保留，找不到了就丢弃或者要求进行修正。这个机制确保了最终入库的每一条三元组都有扎实的文本依据。
+
+\subsection{知识融合设计}
+
+从多个文本块里独立抽取出来的实体和三元组，不可避免地会有重复和变体。比如说，"TCP""TCP 协议""传输控制协议"指的都是同一个实体，”三次握手“在不同的块里可能会被标成 mechanism 或 concept。知识融合这一阶段的目标，就是把这些冗余和变体统一成规范的知识表示。
+
+\subsubsection{实体规范化策略}
+
+系统运用了两级实体规范化策略：别名规范化也就是 Level 1，以及基于嵌入的语义规范化也就是 Level 2。
+
+\textbf{Level 1：别名规范化}。别名映射表维护了中英文缩写跟全称的对应关系，比如"传输控制协议"对应到"TCP"、"往返时延"对应到"RTT"，同时用正则表达式把实体名称末尾的类型后缀给剥离掉，像"协议""算法""机制""方法""技术""方式"这些。别名规范化处理常见的缩写和全称变体效率很高，但没办法把所有的变体都覆盖到——举个例子，"滑动窗口机制"跟"滑动窗口"在别名表里说不定就没有对应的条目。
+
+\textbf{Level 2：基于嵌入的语义规范化}。对于那些别名表覆盖不到的长尾变体，系统运用了借助嵌入向量来做语义匹配的方法。具体的流程如算法\ref{al:3-2}所示。
+
+\begin{algorithm}[ht]
+    \caption{基于 FAISS 的嵌入实体规范化}\label{al:3-2}
+    \begin{algorithmic}[1]
+        \Require 实体列表 $E$，相似度阈值 $\theta$，编码模板 $T$
+        \Ensure 规范化实体集合 $E'$
+        \State 按实体类型分桶（可选）：$E_{type} \gets \{e \in E \mid e.type = type\}$
+        \For{each 桶 $B$}
+            \State 对每个实体 $e \in B$，构建编码文本：$T(e) \gets$ "实体类型：\{$e.type$\}；实体名：\{$e.name$\}；定义：\{$e.description$\}"
+            \State 调用 Embedding API 获取向量 $v_e$
+            \State 构建 FAISS IndexFlatIP 索引（余弦相似度，内积归一化）
+            \State 对每个实体查询 $top\_k$ 最相似实体
+            \State 使用并查集（UnionFind）合并相似度 $\geq \theta$ 的实体对
+            \State 选择规范代表名：频率最高 $\to$ 名称最短 $\to$ 字典序最小
+        \EndFor
+        \State \Return $E'$
+    \end{algorithmic}
+\end{algorithm}
+
+嵌入规范化在设计上参考了 EDC\cite{edc_2024} 的实体消解思路和 KGGen\cite{kggen_2025} 的知识图谱构建方法。选择 FAISS 来当向量索引的缘由是这样：（1）FAISS 提供了高效的近似最近邻搜索，很适合用来处理大规模的实体集合；（2）IndexFlatIP 索引支持内积相似度搜索，配合向量归一化就能实现余弦相似度的计算；（3）FAISS 的批量查询接口跟系统的并发设计是兼容的。
+
+相似度阈值 $\theta$ 设成了 0.85。确定这个数值靠的是下面的考量：阈值太低了会把语义不同的实体错误地合并在一起，比如"拥塞控制"和"流量控制"；阈值太高了又没办法把真正的同义变体合并起来，比如"TCP 协议"和"TCP"。0.85 在实验里拿到的平衡效果还是比较好的。
+
+两级规范化的设计缘由在于是\textbf{效率和覆盖率的互补}：别名表处理高频变体速度快、确定性高，但覆盖率受限于人工维护的程度；嵌入方法覆盖长尾变体的能力强，但计算成本比较高并且存在误合并的风险。两者搭配在一起，实现了一个"快速路径+深度路径"的混合策略。
+
+图\ref{fig:3-4}展示了实体规范化的完整流程。
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[
+        node distance=0.7cm,
+        box/.style={rectangle, rounded corners=3pt, draw=blue!60!black, fill=blue!8,
+            minimum height=0.8cm, minimum width=2.4cm, align=center, font=\small},
+        proc/.style={rectangle, rounded corners=2pt, draw=teal!70!black, fill=teal!8,
+            minimum height=0.7cm, minimum width=2.2cm, align=center, font=\footnotesize},
+        arr/.style={-{stealth}, thick, draw=gray!70!black}
+    ]
+    \node[box] (input) {原始实体列表};
+    \node[proc, below=of input] (alias) {Level 1：别名规范化\\{\scriptsize 别名映射表 + 后缀剥离}};
+    \node[proc, below=of alias] (embed) {Level 2：嵌入语义匹配\\{\scriptsize FAISS + UnionFind}};
+    \node[box, below=of embed] (output) {规范化实体集合};
+
+    % Side annotations
+    \node[right=1.2cm of alias, font=\scriptsize, text=black!60, align=left] {TCP 协议 $\to$ TCP\\传输控制协议 $\to$ TCP};
+    \node[right=1.2cm of embed, font=\scriptsize, text=black!60, align=left] {滑动窗口机制 $\sim$ 滑动窗口\\（$\cos \geq 0.85$ 合并）};
+
+    \draw[arr] (input) -- (alias);
+    \draw[arr] (alias) -- (embed);
+    \draw[arr] (embed) -- (output);
+    \end{tikzpicture}
+    \caption{两级实体规范化流程}\label{fig:3-4}
+\end{figure}
+
+\subsubsection{三元组合并与去重}
+
+实体规范化做完之后，系统就对三元组进行合并和去重。合并的策略是：以规范化之后的（$head$, $relation$, $tail$）三元组作为键来分组，对同一键下的三元组累加 $frequency$ 频次，并且把所有唯一的 $evidences$ 证据文本都收集起来。合并完了之后还需要过滤掉下面这些无效的三元组：（1）自环三元组即 $head = tail$ 的情况；（2）头实体或尾实体不在有效实体集合里的三元组。
+
+频次信息被保留下来有双重价值：（1）在知识图谱可视化当中，频次可以拿来映射节点的大小，高频的实体在图上会更加引人注目；（2）频次还可以当作实体重要性的量化指标，辅助后续的知识检索和推荐。
+
+\subsection{图存储与可视化设计}
+
+\subsubsection{Neo4j 图数据库 Schema 设计}
+
+知识图谱的存储选用了 Neo4j 图数据库。Schema 设计如图\ref{fig:3-5}所示，包含四类节点标签和四种关系类型。
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.2cm and 2cm,
+        entity/.style={rectangle, rounded corners=4pt, draw=#1!70!black, fill=#1!15,
+            minimum height=1cm, minimum width=2.2cm, align=center, font=\small\bfseries},
+        rel/.style={-{stealth}, thick, draw=gray!60!black},
+        rel_label/.style={font=\scriptsize, text=black!70, fill=white, inner sep=1pt}
+    ]
+    % Entity nodes
+    \node[entity=blue] (proto) {Protocol\\{\scriptsize name, desc, freq}};
+    \node[entity=teal, below=of proto] (conc) {Concept\\{\scriptsize name, desc, freq}};
+    \node[entity=orange, below=of conc] (mech) {Mechanism\\{\scriptsize name, desc, freq}};
+    \node[entity=violet, below=of mech] (met) {Metric\\{\scriptsize name, desc, freq}};
+
+    % Relations
+    \draw[rel] (proto) -- node[rel_label, above] {CONTAINS} (conc);
+    \draw[rel] (conc) -- node[rel_label, above] {DEPENDS\_ON} (mech);
+    \draw[rel] (proto.east) to[bend left=30] node[rel_label, right] {COMPARED\_WITH} (proto.east);
+    \draw[rel] (mech) -- node[rel_label, above] {APPLIED\_TO} (conc);
+
+    % Self-referencing COMPARED_WITH
+    \draw[rel] (proto.west) to[bend left=40] node[rel_label, left] {COMPARED\_WITH} (proto.west);
+    \draw[rel] (conc.west) to[bend left=40] node[rel_label, left] {COMPARED\_WITH} (conc.west);
+    \end{tikzpicture}
+    \caption{Neo4j 图数据库 Schema}\label{fig:3-5}
+\end{figure}
+
+每类节点存储的属性有以下这些：$name$（规范名称，作为唯一约束）、$description$（实体描述）、$frequency$（出现频次）。每种关系类型存储 $frequency$（关系出现频次）以及 $evidences$（证据文本列表）。
+
+查询策略选用的是\textbf{诱导子图采样}也就是 Induced Subgraph Sampling：首先按频次从高到低取前 $N$ 个高频节点，然后去查这些节点之间的所有关系，构成诱导子图。这么设计的原因是：完整的知识图谱可能有几千个节点和上万条边，要是直接渲染的话，视觉效果会变得混乱，性能也会下降；诱导子图采样既保留了高频核心实体和它们的关联，又把可视化的规模给控制住了，确保了交互的流畅性。节点的数量上限和关系的数量上限借助环境变量 \texttt{NEO4J\_GRAPH\_NODE\_LIMIT} 和 \texttt{NEO4J\_GRAPH\_REL\_LIMIT} 来进行配置。
+
+\subsubsection{前端可视化架构设计}
+
+前端选用的是 Next.js 16 框架，在 App Router 架构的基础上去搭建。可视化的核心运用了 react-force-graph-2d 库，把 d3-force 引擎当作底层来做力导向的布局计算。
+
+架构设计遵循了下面几条原则：（1）\textbf{对数节点映射}——节点大小按照频次的对数去做映射（半径 2.5--11px），这样能避免高频节点过度放大导致视觉失衡，同时也保证了低频节点依然看得见；（2）\textbf{多边曲线偏移}——当两个节点之间存在多条关系的时候，借助交替偏移曲率即 curvature 的办法，让每条边在视觉上都能区分开来；（3）\textbf{缩放感知标签}——只有当缩放比例超过了 1.4 倍的时候才显示节点的标签，避免缩小的时候标签重叠造成的视觉噪声；（4）\textbf{类型过滤}——提供实体类型和关系类型的复选框过滤功能，让用户能够按照自己的需要去聚焦特定类型的知识元素。
+
+API 路由即 \texttt{/api/graph} 从 Neo4j 里查询诱导子图的数据，返回 JSON 格式的节点数组和边数组。前端的 GraphCanvas 组件接收到数据后去进行力导向布局的渲染，主题配置也就是 graphTheme.ts 为四类实体和四种关系定义了对应的颜色方案，从而确保视觉上的一致性。
+
+\subsection{本章小结}
+
+本章从系统总体架构出发，比较详细地阐述了怎样运用大模型来构建课程知识抽取系统的设计方案。七阶段流水线架构凭借关注点分离，让模块化和可替换性得以实现；文档预处理阶段运用 VLM 去完成质量过关的 OCR；文本分块阶段借助递归标题感知算法，在 Token 预算之内把语义的完整性保留了下来；实体识别和关系抽取阶段则依靠 Schema 定义、两阶段抽取架构还有证据门控机制来保障抽取质量；知识融合阶段综合运用了别名规范化和嵌入语义匹配，把实体去重的问题解决掉；图存储和可视化阶段借助 Neo4j 诱导子图采样加上力导向布局，做到了交互式的知识浏览。各个模块在做设计决策时，说到底，都是把可验证性和可扩展性当作最核心的考量。

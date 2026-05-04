@@ -1,0 +1,154 @@
+\section{系统实现}
+本章藉由前一章系统设计的铺垫，对 QmrKG 知识抽取系统各个模块的实现细节展开说明，覆盖了文档渲染与 OCR、文本分块、知识抽取、知识融合，以及 Neo4j 导入与前端可视化这些核心模块。
+
+\subsection{文档渲染与 OCR 实现}
+
+\subsubsection{PDF 渲染模块}
+
+文档渲染模块负责把输入的 PDF 以及 PowerPoint 文件转换为 PNG 图像，为后续 OCR 阶段提供标准化的图像输入。系统选用 PyMuPDF 库来实现 PDF 页面渲染，借助构建缩放矩阵把 PDF 页面按指定 DPI 转换为像素图像。
+
+具体的渲染参数配置如下：DPI 默认为 200，缩放因子 $zoom = dpi / 72$，输出图像格式是 PNG。对于 PPT/PPTX 文件，系统运用 LibreOffice 无头模式把它先转换成临时 PDF 文件，再借助 PDF 渲染器统一去处理。
+
+\begin{algorithm}[ht]
+    \caption{PDF 文档批量渲染算法}\label{al:4-1}
+    \begin{algorithmic}[1]
+        \Require PDF 文件目录 $D_{pdf}$，输出目录 $D_{png}$，DPI 参数 $dpi$
+        \Ensure PNG 图像文件集合
+        \For{each document $doc \in D_{pdf}$}
+            \If{$doc$ 为 PPT/PPTX 格式}
+                \State 调用 LibreOffice 转换为临时 PDF
+            \EndIf
+            \State $zoom \gets dpi / 72$
+            \State $matrix \gets \text{fitz.Matrix}(zoom, zoom)$
+            \For{each page $p \in doc$}
+                \State $pixmap \gets p.\text{get\_pixmap}(matrix=matrix)$
+                \State 保存 $pixmap$ 为 PNG 至 $D_{png}/doc\_name/$
+            \EndFor
+        \EndFor
+    \end{algorithmic}
+\end{algorithm}
+
+\subsubsection{VLM OCR 实现}
+
+OCR 模块借助多模态视觉语言模型（VLM）来实现图像到文本的转换。系统选用 Qwen3-VL-8B 模型，通过 PPIO API 以 OpenAI 兼容接口进行调用。每张 PNG 图像经 Base64 编码后，和 OCR 提示词一并发送给 VLM。
+
+OCR 提示词以中文撰写，核心要求涵盖以下方面：输出有效 Markdown 格式、保持原语言不翻译、保留阅读顺序与换行、识别标题层级（\texttt{\#}、\texttt{\#\#}、\texttt{\#\#\#}），以及对中国教材中常见章节结构词（如"第X章""第X节"）的标题化处理。
+
+为了提升处理效率，系统运用 ThreadPoolExecutor 来实现并发 OCR，其并发数由配置文件里的 $max\_concurrency$ 参数来管控。每页 OCR 结果保存成独立 Markdown 文件，里面包含了 YAML 前置元数据（模型名称、Token 用量、处理耗时等），之后再借助 $kgmdcombine$ 阶段将各页合并为完整的教材级 Markdown 文档。
+
+\subsection{文本分块实现}
+
+文本分块模块充当 OCR 输出与 LLM 知识抽取之间的关键桥梁。鉴于大语言模型存在上下文窗口上的限制（通常为 4K--8K tokens），完整的教材级 Markdown 没办法直接送入 LLM，需要把它拆分成大小合适的文本块。
+
+系统运用 tiktoken 库来进行精确的 Token 计数，同时还配有离线安全的字符级近似回退方案。分块策略的核心是递归标题感知算法。
+
+\begin{algorithm}[ht]
+    \caption{递归标题感知分块算法}\label{al:4-2}
+    \begin{algorithmic}[1]
+        \Require Markdown 内容 $M$，最大 Token 数 $T_{max}$
+        \Ensure 分块列表 $C$
+        \State 清洗 $M$：去除 YAML 前置、页码、页眉页脚等 OCR 伪影
+        \State 构建标题树 $H \gets \text{parse\_headers}(M)$（栈式解析 \texttt{\#} 标记）
+        \State $C \gets \text{chunk\_recursive}(H, T_{max})$
+        \State \Return $C$
+        \\
+        \Function{chunk\_recursive}{node, $T_{max}$}
+            \If{$\text{token\_count}(node.content) \leq T_{max}$}
+                \State \Return $\{node\}$  \Comment{单个块}
+            \ElsIf{$node$ 有子标题}
+                \State 递归处理每个子标题
+                \State 合并子结果
+            \Else
+                \State 按段落累积，逐段检查 token 预算
+                \State 预算耗尽时输出当前块并开始新块
+            \EndIf
+        \EndFunction
+    \end{algorithmic}
+\end{algorithm}
+
+这个算法的核心思路是尽可能在标题边界处进行切分，从而保持文本的语义完整性。当某个标题子树的内容超出 Token 预算时，递归下降到子标题层；要是没有子标题可分，那么在段落级别做累积切分。每个输出块记录它所归属的标题层级（$titles$ 字段）、Token 数量、源文件这些信息。
+
+\subsection{知识抽取实现}
+
+\subsubsection{LLM 工厂与限流机制}
+
+所有 LLM 调用都借助统一的工厂模式（TaskLLMFactory）来进行管理。工厂依照任务名称（$extract$、$ocr$、$entity\_embed$ 等）从配置文件里加载对应的模型参数、API 密钥以及速率限制策略，返回 TaskLLMRunner 实例。
+
+TaskLLMRunner 将请求执行、重试逻辑以及指数退避策略封装在了一起。一旦遇到 429（速率限制）或 5xx（服务端错误）状态码，会自动执行指数退避重试（首次等待 1s，逐次翻倍，最大重试次数由 $max\_retries$ 配置）。RollingRateLimiter 运用滑动窗口算法，维护 60 秒内的请求计数，当达到 RPM 上限时阻塞等待直到有空余槽位。
+
+\subsubsection{两阶段抽取流程}
+
+知识抽取运用 Propose--Review 也就是"提议—审核"两阶段架构。第一阶段由 LLM 依照系统提示词（含 Schema 定义、实体/关系类型说明、Few-shot 示例等）从文本块中提取候选实体和三元组。第二阶段则借助独立的审核提示词，对每个三元组进行严格验证，确保输出质量。
+
+审核阶段的验证规则包括：
+\begin{enumerate}
+    \item 证据字段（$evidence$）必须是输入文本块中的连续原文子串，逐字一致
+    \item 头实体（$head$）和尾实体（$tail$）均必须出现在 $evidence$ 中
+    \item 关系类型（$relation$）必须属于预定义的四种类型之一
+    \item 不允许出现自环（$head = tail$）
+    \item 不允许引入输入文本中不存在的新实体或新关系
+\end{enumerate}
+
+每个三元组的审核结果包含 $decision$（$keep$ / $revise$ / $drop$）和 $reason\_code$（如 $SUPPORTED$、$EVIDENCE\_NOT\_IN\_CHUNK$、$HEAD\_NOT\_IN\_EVIDENCE$ 等），这个机制有效过滤掉了 LLM 生成过程中所产生的幻觉输出。
+
+\subsubsection{抽取模式与提示词管理}
+
+系统支持两种抽取模式：零样本（Zero-shot）以及少样本（Few-shot）。零样本模式借助详细的 Schema 定义和抽取指南来引导 LLM 的行为；少样本模式在这个基础上还额外给出了 4 个标注示例（涵盖了 $contains$、$depends\_on$、$compared\_with$、$applied\_to$ 四种关系类型）以及负面示例（不应抽取的泛化词、导航词等）。
+
+两种模式共用同一套审核提示词。所有提示词均以中文撰写，存放在 $config.yaml$ 的 $extract.prompts$ 配置段中，支持热更新而无需修改代码。抽取过程运用 ThreadPoolExecutor 并行化，用 $max\_concurrency$ 来管控并发度。
+
+\subsection{知识融合实现}
+
+\subsubsection{实体别名规范化}
+
+从多个文本块中抽取的实体存在大量名称变体，比如"传输控制协议""TCP 协议""TCP"指代的是同一概念。系统借助别名映射表（ALIAS\_MAP）和后缀剥离策略来解决这个问题。
+
+别名映射表维护了 50 余条中英文缩写与全称之间的对应关系（如 \texttt{"传输控制协议" → "TCP"}、\texttt{"往返时延" → "RTT"}），同时还运用正则表达式 \texttt{(协议|算法|机制|方法|技术|方式)\$} 去剥离实体名称末尾的类型后缀。规范化后的名称与类型组成复合键来合并实体，合并过程中保留最高频名称、首个非空描述，并且累加出现频次。
+
+\subsubsection{基于嵌入的实体规范化}
+
+对于别名表无法覆盖的长尾实体，系统运用基于嵌入向量的语义规范化方法。EmbeddingCanonicalizer 把每个实体编码为固定维度的语义向量，然后在向量空间中借助余弦相似度来进行聚类合并。具体流程如算法所示：
+
+\begin{algorithm}[ht]
+    \caption{基于 FAISS 的嵌入实体规范化}\label{al:4-3}
+    \begin{algorithmic}[1]
+        \Require 实体列表 $E$，相似度阈值 $\theta$，编码模板 $T$
+        \Ensure 规范化实体集合
+        \State 按类型分桶：$E_{type} \gets \{e \in E \mid e.type = type\}$（可选）
+        \For{each 桶 $B$}
+            \State 构建编码文本：$T(e) \gets \text{"实体类型：\{e.type\}；实体名：\{e.name\}；定义：\{e.description\}"}$
+            \State 调用 Embedding API 获取向量 $v_e$
+            \State 构建 FAISS IndexFlatIP 索引（余弦相似度，内积归一化）
+            \State 查询每个实体的 $top\_k$ 最相似实体
+            \State 使用并查集（UnionFind）合并相似度 $\geq \theta$ 的实体对
+            \State 选择规范代表名：频率最高 → 名称最短 → 字典序最小
+        \EndFor
+        \State \Return 规范化结果
+    \end{algorithmic}
+\end{algorithm}
+
+嵌入缓存机制（\_EmbeddingBinaryCache）把已计算的嵌入向量序列化成 NumPy 二进制文件（.npy）以及 JSON 元数据文件，避免了重复调用 Embedding API，极大程度上降低了大规模实体规范化所需的时间以及成本。
+
+\subsubsection{三元组合并与去重}
+
+三元组合并运用了与实体合并类似的策略。以规范化后的（$head$, $relation$, $tail$）三元组为键进行分组，累加 $frequency$ 频次并且收集所有 $evidences$ 证据列表。合并后过滤掉自环三元组，以及头尾实体不在有效实体集合中的三元组。
+
+\subsection{Neo4j 图数据库导入与前端可视化实现}
+
+\subsubsection{Cypher 批量导入}
+
+KGNeo4jLoader 运用 neo4j Python 驱动（Bolt 协议）来执行图数据导入。连接参数（$NEO4J\_URI$、$NEO4J\_USER$、$NEO4J\_PASSWORD$）从环境变量里读取。导入时依照实体类型分别创建不同标签的节点（$Protocol$、$Concept$、$Mechanism$、$Metric$），每个节点存储名称、描述以及频次属性。关系按类型去创建对应的有向边（$CONTAINS$、$DEPENDS\_ON$、$COMPARED\_WITH$、$APPLIED\_TO$），并且记录频次和证据文本。
+
+为了防止重复导入，系统借助 Cypher 的 MERGE 语句来实现幂等操作：节点以名称（$name$）为唯一约束进行匹配或创建，关系则以头尾节点对以及关系类型作为匹配条件。
+
+\subsubsection{前端力导向图实现}
+
+前端选用 Next.js 16 框架，借助 App Router 架构来实现。图可视化核心运用 react-force-graph-2d 库，基于 d3-force 引擎来进行力导向布局上的计算。
+
+API 路由（\texttt{/api/graph}）从 Neo4j 查询高频节点以及它的诱导子图（Induced Subgraph），并且支持配置节点采样上限来避免大图性能问题。返回的 JSON 数据包含节点数组（含类型、频次、描述）以及边数组（含关系类型、频次、证据文本）。
+
+GraphCanvas 组件给出了丰富的交互功能：节点大小按频次对数映射（半径 2.5--11px）、力碰撞检测防止重叠、缩放感知的标签显示（缩放到 1.4 倍以上时就显示标签）、多边曲线的交替偏移渲染、以及按实体类型和关系类型做复选框过滤。主题配置（graphTheme.ts）给四类实体以及四类关系分别定义了对应的颜色方案。
+
+\subsection{本章小结}
+
+本章详细描述了 QmrKG 知识抽取系统里各个核心模块的具体实现。文档渲染模块借助 PyMuPDF 以及 LibreOffice 实现了多格式文档的统一处理；OCR 模块通过 VLM API 实现了高质量文本提取；分块模块运用递归标题感知策略保证语义完整性；知识抽取模块依靠两阶段"提议—审核"架构和证据门控机制，有效抑制了幻觉的产生；知识融合模块综合运用别名规范化和嵌入语义规范化去实现实体去重；Neo4j 导入和前端可视化模块则给出了从知识图谱存储到交互式浏览的完整链路。

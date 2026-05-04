@@ -65,7 +65,11 @@ frontend/.nyc_output/
 *.run.xml
 *.synctex.gz
 *.toc
+*.xdv
+.codex
 
 # Local paper/reference library (large, managed outside git)
-papers/
+papers/*
+!papers/refer-submitted/
+!papers/template-of-thesis/
 docs/reports/reference/
