@@ -1,0 +1,556 @@
+{
+  "entities": [
+    {"name": "可靠数据传输", "type": "concept"},
+    {"name": "多媒体应用", "type": "concept"},
+    {"name": "交谈式音频/视频", "type": "concept"},
+    {"name": "运输层协议", "type": "concept"},
+    {"name": "容忍丢失的应用", "type": "concept"},
+    {"name": "隧道", "type": "mechanism"},
+    {"name": "数据报", "type": "concept"},
+    {"name": "HTTP", "type": "protocol"},
+    {"name": "TCP", "type": "protocol"},
+    {"name": "HTML", "type": "concept"},
+    {"name": "JPEG", "type": "concept"},
+    {"name": "socket", "type": "concept"},
+    {"name": "Web page", "type": "concept"},
+    {"name": "RIP", "type": "protocol"},
+    {"name": "距离向量路由算法", "type": "mechanism"},
+    {"name": "跳步数", "type": "metric"},
+    {"name": "通告", "type": "concept"},
+    {"name": "UDP", "type": "protocol"},
+    {"name": "IP", "type": "protocol"},
+    {"name": "DNS", "type": "protocol"},
+    {"name": "QUIC", "type": "protocol"},
+    {"name": "复用/分解", "type": "mechanism"},
+    {"name": "差错检测", "type": "mechanism"},
+    {"name": "拥塞控制", "type": "mechanism"},
+    {"name": "三次握手", "type": "mechanism"},
+    {"name": "连接状态", "type": "concept"},
+    {"name": "实时应用", "type": "concept"},
+    {"name": "connection 1", "type": "concept"},
+    {"name": "connection 2", "type": "concept"},
+    {"name": "throughput", "type": "metric"},
+    {"name": "window", "type": "concept"},
+    {"name": "路由器", "type": "concept"},
+    {"name": "转发表", "type": "mechanism"},
+    {"name": "802.11ax", "type": "protocol"},
+    {"name": "OFDMA", "type": "mechanism"},
+    {"name": "4G LTE", "type": "protocol"},
+    {"name": "子载波间隔", "type": "concept"},
+    {"name": "符号持续时间", "type": "metric"},
+    {"name": "信号的健壮性", "type": "concept"},
+    {"name": "抗干扰性", "type": "concept"},
+    {"name": "组网特性", "type": "concept"},
+    {"name": "大规模天线", "type": "mechanism"},
+    {"name": "5G", "type": "protocol"},
+    {"name": "HFC 网", "type": "concept"},
+    {"name": "光纤", "type": "concept"},
+    {"name": "同轴电缆", "type": "concept"},
+    {"name": "光纤节点", "type": "concept"},
+    {"name": "机顶盒", "type": "concept"},
+    {"name": "电缆调制解调器", "type": "concept"},
+    {"name": "DOCSIS", "type": "protocol"},
+    {"name": "ADSL", "type": "protocol"},
+    {"name": "互联网", "type": "concept"},
+    {"name": "物理层", "type": "concept"},
+    {"name": "机械特性", "type": "concept"},
+    {"name": "电气特性", "type": "concept"},
+    {"name": "功能特性", "type": "concept"},
+    {"name": "过程特性", "type": "concept"},
+    {"name": "传输媒体", "type": "concept"},
+    {"name": "TCP/IP", "type": "protocol"},
+    {"name": "体系结构原则", "type": "concept"},
+    {"name": "分组", "type": "concept"},
+    {"name": "端到端论点", "type": "concept"},
+    {"name": "命运共享", "type": "concept"},
+    {"name": "差错控制", "type": "mechanism"},
+    {"name": "流量控制", "type": "mechanism"},
+    {"name": "分层", "type": "concept"},
+    {"name": "复用", "type": "mechanism"},
+    {"name": "分解", "type": "mechanism"},
+    {"name": "封装", "type": "mechanism"},
+    {"name": "ARPANET 参考模型", "type": "concept"},
+    {"name": "端口号", "type": "concept"},
+    {"name": "INIT chunk", "type": "concept"},
+    {"name": "INIT ACK chunk", "type": "concept"},
+    {"name": "COOKIE ECHO chunk", "type": "concept"},
+    {"name": "ERROR chunk", "type": "concept"},
+    {"name": "ABORT", "type": "concept"},
+    {"name": "association", "type": "concept"},
+    {"name": "Unrecognized Parameter", "type": "concept"}
+  ],
+  "triples": [
+    {
+      "head": "运输层协议",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "可靠数据传输",
+      "tail_type": "concept",
+      "evidence": "运输层协议能够潜在地向应用程序提供的一个重要服务是进程到进程的可靠数据传输。"
+    },
+    {
+      "head": "多媒体应用",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "交谈式音频/视频",
+      "tail_type": "concept",
+      "evidence": "最值得注意的是多媒体应用，如交谈式音频/视频，它们能够承受一定量的数据丢失。"
+    },
+    {
+      "head": "容忍丢失的应用",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "多媒体应用",
+      "tail_type": "concept",
+      "evidence": "这可能被容忍丢失的应用（loss-tolerant application）所接受，最值得注意的是多媒体应用"
+    },
+    {
+      "head": "数据报",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "隧道",
+      "tail_type": "mechanism",
+      "evidence": "移动站点的数据报可以通过新隧道（从目标BS到S-SW）流动"
+    },
+    {
+      "head": "HTTP",
+      "head_type": "protocol",
+      "relation": "depends_on",
+      "tail": "TCP",
+      "tail_type": "protocol",
+      "evidence": "The HTTP client process initiates a TCP connection to the server www.someSchool.edu on port number 80, which is the default port number for HTTP."
+    },
+    {
+      "head": "TCP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "socket",
+      "tail_type": "concept",
+      "evidence": "Associated with the TCP connection, there will be a socket at the client and a socket at the server."
+    },
+    {
+      "head": "HTTP",
+      "head_type": "protocol",
+      "relation": "depends_on",
+      "tail": "socket",
+      "tail_type": "concept",
+      "evidence": "The HTTP client sends an HTTP request message to the server via its socket."
+    },
+    {
+      "head": "Web page",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "HTML",
+      "tail_type": "concept",
+      "evidence": "Let’s suppose the page consists of a base HTML file and 10 JPEG images"
+    },
+    {
+      "head": "Web page",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "JPEG",
+      "tail_type": "concept",
+      "evidence": "Let’s suppose the page consists of a base HTML file and 10 JPEG images"
+    },
+    {
+      "head": "RIP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "距离向量路由算法",
+      "tail_type": "mechanism",
+      "evidence": "- 距离向量路由算法\n  - 距离度量：跳步数 (max = 15 hops), 每条链路1个跳步"
+    },
+    {
+      "head": "RIP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "通告",
+      "tail_type": "concept",
+      "evidence": "每隔30秒，邻居之间交换一次DV，成为通告(advertisement)"
+    },
+    {
+      "head": "距离向量路由算法",
+      "head_type": "mechanism",
+      "relation": "depends_on",
+      "tail": "跳步数",
+      "tail_type": "metric",
+      "evidence": "距离度量：跳步数 (max = 15 hops), 每条链路1个跳步"
+    },
+    {
+      "head": "UDP",
+      "head_type": "protocol",
+      "relation": "depends_on",
+      "tail": "IP",
+      "tail_type": "protocol",
+      "evidence": "除了复用/分解功能及少量的差错检测外，它几乎没有对 IP 增加别的东西。"
+    },
+    {
+      "head": "UDP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "复用/分解",
+      "tail_type": "mechanism",
+      "evidence": "除了复用/分解功能及少量的差错检测外，它几乎没有对 IP 增加别的东西。"
+    },
+    {
+      "head": "UDP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "差错检测",
+      "tail_type": "mechanism",
+      "evidence": "除了复用/分解功能及少量的差错检测外，它几乎没有对 IP 增加别的东西。"
+    },
+    {
+      "head": "DNS",
+      "head_type": "protocol",
+      "relation": "depends_on",
+      "tail": "UDP",
+      "tail_type": "protocol",
+      "evidence": "DNS 是一个通常使用 UDP 的应用层协议的例子。"
+    },
+    {
+      "head": "TCP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "拥塞控制",
+      "tail_type": "mechanism",
+      "evidence": "TCP 有一个拥塞控制机制，以便当源和目的主机间的一条或多条链路变得极度拥塞时来遏制运输层 TCP 发送方。"
+    },
+    {
+      "head": "TCP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "三次握手",
+      "tail_type": "mechanism",
+      "evidence": "TCP 在开始数据传输之前要经过三次握手。"
+    },
+    {
+      "head": "QUIC",
+      "head_type": "protocol",
+      "relation": "depends_on",
+      "tail": "UDP",
+      "tail_type": "protocol",
+      "evidence": "用于谷歌的 Chrome 浏览器中的 QUIC 协议（快速 UDP 因特网连接［IETF QUIC 2020］）的确将 UDP 作为其支撑运输协议并在 UDP 之上的应用层协议中实现可靠性。"
+    },
+    {
+      "head": "TCP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "连接状态",
+      "tail_type": "concept",
+      "evidence": "TCP 需要在端系统中维护连接状态。此连接状态包括接收和发送缓存、拥塞控制参数以及序号与确认号的参数。"
+    },
+    {
+      "head": "实时应用",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "UDP",
+      "tail_type": "protocol",
+      "evidence": "实时应用通常要求最小的发送速率，不希望过分地延迟报文段的传送，且能容忍一些数据丢失，TCP 服务模型并不是特别适合这些应用的需要。如后面所讨论的，这些应用可以使用 UDP"
+    },
+    {
+      "head": "TCP",
+      "head_type": "protocol",
+      "relation": "compared_with",
+      "tail": "UDP",
+      "tail_type": "protocol",
+      "evidence": "为什么应用开发人员宁愿在 UDP 之上构建应用，而不选择在 TCP 上构建应用？答案是否定的，因为有许多应用更适合用 UDP，原因主要以下几点："
+    },
+    {
+      "head": "connection 1",
+      "head_type": "concept",
+      "relation": "compared_with",
+      "tail": "connection 2",
+      "tail_type": "concept",
+      "evidence": "In Figure 5(a), the ratio of the linear decrease on loss between connection 1 and connection 2 is the same - as ratio of the linear increases: unity."
+    },
+    {
+      "head": "throughput",
+      "head_type": "metric",
+      "relation": "depends_on",
+      "tail": "window",
+      "tail_type": "concept",
+      "evidence": "whenever there is a loss, connection 1 decreases its window by twice the amount of connection 2. We see that eventually, after enough losses, and subsequent increases, that connection 1's throughput will go to 0"
+    },
+    {
+      "head": "路由器",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "转发表",
+      "tail_type": "mechanism",
+      "evidence": "路由器 R₁d 知道前缀 X，并将前缀 X 写入转发表。"
+    },
+    {
+      "head": "802.11ax",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "OFDMA",
+      "tail_type": "mechanism",
+      "evidence": "引入曾在 4G LTE 上使用的正交频分多址（OFDMA）技术"
+    },
+    {
+      "head": "4G LTE",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "OFDMA",
+      "tail_type": "mechanism",
+      "evidence": "引入曾在 4G LTE 上使用的正交频分多址（OFDMA）技术"
+    },
+    {
+      "head": "信号的健壮性",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "子载波间隔",
+      "tail_type": "concept",
+      "evidence": "支持较窄的子载波间隔以及增加的符号持续时间，更有利于确保信号的健壮性"
+    },
+    {
+      "head": "信号的健壮性",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "符号持续时间",
+      "tail_type": "metric",
+      "evidence": "支持较窄的子载波间隔以及增加的符号持续时间，更有利于确保信号的健壮性"
+    },
+    {
+      "head": "抗干扰性",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "组网特性",
+      "tail_type": "concept",
+      "evidence": "通过在多 AP 多用户并发场景中引入很多 LTE 领域的组网特性，让信号的抗干扰性大幅提升"
+    },
+    {
+      "head": "5G",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "大规模天线",
+      "tail_type": "mechanism",
+      "evidence": "大规模天线被公认为5G关键技术之一"
+    },
+    {
+      "head": "HFC 网",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "光纤",
+      "tail_type": "concept",
+      "evidence": "HFC 网把原有有线电视网中的同轴电缆主干部分更换为光纤（如图 2-23 所示）。"
+    },
+    {
+      "head": "HFC 网",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "同轴电缆",
+      "tail_type": "concept",
+      "evidence": "在光纤节点光信号被转换为电信号，然后通过同轴电缆传送到每个用户家庭。"
+    },
+    {
+      "head": "HFC 网",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "光纤节点",
+      "tail_type": "concept",
+      "evidence": "光纤从头端连接到光纤节点(fiber node)。在光纤节点光信号被转换为电信号，然后通过同轴电缆传送到每个用户家庭。"
+    },
+    {
+      "head": "HFC 网",
+      "head_type": "concept",
+      "relation": "applied_to",
+      "tail": "互联网",
+      "tail_type": "concept",
+      "evidence": "但为了使用户能够利用 HFC 网接入到互联网"
+    },
+    {
+      "head": "机顶盒",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "同轴电缆",
+      "tail_type": "concept",
+      "evidence": "需要把一个叫作机顶盒(set-top box)的设备连接在同轴电缆和用户的电视机之间。"
+    },
+    {
+      "head": "电缆调制解调器",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "HFC 网",
+      "tail_type": "concept",
+      "evidence": "我们还需要增加一个为 HFC 网使用的调制解调器，它又称为电缆调制解调器(cable modem)。"
+    },
+    {
+      "head": "电缆调制解调器",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "DOCSIS",
+      "tail_type": "protocol",
+      "evidence": "美国的有线电视实验室 CableLabs 制定的电缆调制解调器规约 DOCSIS(Data Over Cable Service Interface Specifications)的第一个版本 DOCSIS 1.0..."
+    },
+    {
+      "head": "HFC 网",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "电缆调制解调器",
+      "tail_type": "concept",
+      "evidence": "用户只要把自己的计算机连接到电缆调制解调器，就可方便地上网了。"
+    },
+    {
+      "head": "物理层",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "机械特性",
+      "tail_type": "concept",
+      "evidence": "物理层的主要任务可以描述为确定与传输媒体的接口有关的一些特性：\n\n1）机械特性。指明接口所用接线器的形状和尺寸、引脚数目和排列、固定和锁定装置等。"
+    },
+    {
+      "head": "物理层",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "电气特性",
+      "tail_type": "concept",
+      "evidence": "2）电气特性。指明在接口电缆的各条线上出现的电压的范围。"
+    },
+    {
+      "head": "物理层",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "功能特性",
+      "tail_type": "concept",
+      "evidence": "3）功能特性。指明某条线上出现的某一电平的电压表示何种意义。"
+    },
+    {
+      "head": "物理层",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "过程特性",
+      "tail_type": "concept",
+      "evidence": "4）过程特性。或称规程特性。指明对于不同功能的各种可能事件的出现顺序。"
+    },
+    {
+      "head": "物理层",
+      "head_type": "concept",
+      "relation": "applied_to",
+      "tail": "传输媒体",
+      "tail_type": "concept",
+      "evidence": "物理层考虑的是如何在连接到各种计算机的传输媒体上传输数据比特流"
+    },
+    {
+      "head": "体系结构原则",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "分组",
+      "tail_type": "concept",
+      "evidence": "1.1 体系结构原则 ……………………………… 2\n1.1.1 分组、连接和数据报 …………………… 2"
+    },
+    {
+      "head": "体系结构原则",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "端到端论点",
+      "tail_type": "concept",
+      "evidence": "1.1 体系结构原则 ……………………………… 2\n1.1.2 端到端论点和命运共享 ………………… 3"
+    },
+    {
+      "head": "体系结构原则",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "命运共享",
+      "tail_type": "concept",
+      "evidence": "1.1 体系结构原则 ……………………………… 2\n1.1.2 端到端论点和命运共享 ………………… 3"
+    },
+    {
+      "head": "体系结构原则",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "差错控制",
+      "tail_type": "mechanism",
+      "evidence": "1.1 体系结构原则 ……………………………… 2\n1.1.3 差错控制和流量控制 …………………… 4"
+    },
+    {
+      "head": "体系结构原则",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "流量控制",
+      "tail_type": "mechanism",
+      "evidence": "1.1 体系结构原则 ……………………………… 2\n1.1.3 差错控制和流量控制 …………………… 4"
+    },
+    {
+      "head": "分层",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "复用",
+      "tail_type": "mechanism",
+      "evidence": "1.2 设计和实现 ……………………………… 5\n1.2.2 分层实现中的复用、分解和封装 ……… 6"
+    },
+    {
+      "head": "分层",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "分解",
+      "tail_type": "mechanism",
+      "evidence": "1.2 设计和实现 ……………………………… 5\n1.2.2 分层实现中的复用、分解和封装 ……… 6"
+    },
+    {
+      "head": "分层",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "封装",
+      "tail_type": "mechanism",
+      "evidence": "1.2 设计和实现 ……………………………… 5\n1.2.2 分层实现中的复用、分解和封装 ……… 6"
+    },
+    {
+      "head": "TCP/IP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "ARPANET 参考模型",
+      "tail_type": "concept",
+      "evidence": "1.3 TCP/IP 协议族结构和协议 ………………… 9\n1.3.1 ARPANET 参考模型 …………………… 9"
+    },
+    {
+      "head": "TCP/IP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "DNS",
+      "tail_type": "protocol",
+      "evidence": "1.3 TCP/IP 协议族结构和协议 ………………… 9\n1.3.4 名称、地址和 DNS …………………… 12"
+    },
+    {
+      "head": "TCP/IP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "端口号",
+      "tail_type": "concept",
+      "evidence": "1.3 TCP/IP 协议族结构和协议 ………………… 9\n1.3.3 端口号 ………………………………… 12"
+    },
+    {
+      "head": "INIT ACK chunk",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "Unrecognized Parameter",
+      "tail_type": "concept",
+      "evidence": "If the receiver of an INIT chunk detects unrecognized parameters and has to report them according to Section 3.2.1, it MUST put the 'Unrecognized Parameter' parameter(s) in the INIT ACK chunk sent in response to the INIT chunk."
+    },
+    {
+      "head": "INIT ACK chunk",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "INIT chunk",
+      "tail_type": "concept",
+      "evidence": "If the receiver of an INIT chunk detects unrecognized parameters and has to report them according to Section 3.2.1, it MUST put the 'Unrecognized Parameter' parameter(s) in the INIT ACK chunk sent in response to the INIT chunk."
+    },
+    {
+      "head": "COOKIE ECHO chunk",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "INIT ACK chunk",
+      "tail_type": "concept",
+      "evidence": "it SHOULD bundle the ERROR chunk containing the 'Unrecognized Parameters' error cause with the COOKIE ECHO chunk sent in response to the INIT ACK chunk."
+    },
+    {
+      "head": "ABORT",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "INIT chunk",
+      "tail_type": "concept",
+      "evidence": "Note that if the receiver of the INIT chunk is NOT going to establish an association (e.g., due to lack of resources), an 'Unrecognized Parameter' would NOT be included with any ABORT being sent to the sender of the INIT."
+    }
+  ]
+}

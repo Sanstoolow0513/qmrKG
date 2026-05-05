@@ -19,7 +19,10 @@ pytest-cache-files*/
 tests/_scratch/
 
 # Data: ignore generated artifacts; keep empty dirs with .gitkeep
-data/
+# Use data/** (not data/) so paths under data/eval/ can be negated and tracked.
+data/**
+!data/eval/
+!data/eval/**
 
 # Config files with sensitive data
 .env

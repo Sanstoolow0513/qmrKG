@@ -1,0 +1,9 @@
+[
+  {
+    "head": "IP地址",
+    "tail": "网络号",
+    "relation": "contains",
+    "issue": "evidence_unverifiable",
+    "agent_evidence": "IP 地址是一种分等级的地址结构。分两个等级的好处是：第一，IP 地址管理机构在分配 IP 地址时只分配网络号"
+  }
+]

@@ -1,0 +1,77 @@
+[
+  {
+    "index": 38,
+    "head": "802.11",
+    "head_type": "protocol",
+    "relation": "compared_with",
+    "tail": "802.3",
+    "tail_type": "protocol",
+    "evidence": "无线与有线 LAN 帧地址部分的区别",
+    "reasons": [
+      "evidence_no_entity_mention"
+    ]
+  },
+  {
+    "index": 41,
+    "head": "Rdt 2.1",
+    "head_type": "protocol",
+    "relation": "compared_with",
+    "tail": "Rdt 2.0",
+    "tail_type": "protocol",
+    "evidence": "Rdt 2.1 vs. Rdt 2.0",
+    "reasons": [
+      "trivial_evidence"
+    ]
+  },
+  {
+    "index": 44,
+    "head": "Rdt 2.1",
+    "head_type": "protocol",
+    "relation": "contains",
+    "tail": "状态",
+    "tail_type": "concept",
+    "evidence": "状态数量翻倍",
+    "reasons": [
+      "evidence_too_short",
+      "generic_entity_tail",
+      "trivial_evidence"
+    ]
+  },
+  {
+    "index": 112,
+    "head": "connection 1",
+    "head_type": "concept",
+    "relation": "compared_with",
+    "tail": "connection 2",
+    "tail_type": "concept",
+    "evidence": "In Figure 5(a), the ratio of the linear decrease on loss between connection 1 and connection 2 is the same - as ratio of the linear increases: unity.",
+    "reasons": [
+      "numbered_entity_head",
+      "numbered_entity_tail"
+    ]
+  },
+  {
+    "index": 134,
+    "head": "体系结构原则",
+    "head_type": "concept",
+    "relation": "contains",
+    "tail": "分组",
+    "tail_type": "concept",
+    "evidence": "1.1 体系结构原则 ……………………………… 2\n1.1.1 分组、连接和数据报 …………………… 2",
+    "reasons": [
+      "generic_entity_tail"
+    ]
+  },
+  {
+    "index": 201,
+    "head": "基于连接的服务",
+    "head_type": "concept",
+    "relation": "contains",
+    "tail": "连接",
+    "tail_type": "concept",
+    "evidence": "当使用服务传送数据时，首先建立连接，然后使用该连接传送数据。",
+    "reasons": [
+      "generic_entity_tail"
+    ]
+  }
+]
