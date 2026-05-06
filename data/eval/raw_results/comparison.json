@@ -1,0 +1,60 @@
+{
+  "meta": {
+    "zs_raw_dir": "data/triples/raw-zs-recheck",
+    "fs_raw_dir": "data/triples/raw-fs-recheck",
+    "gold_path": "data/eval/gold_triples.json",
+    "comparison_at": "2026-05-06T11:02:54.873558Z"
+  },
+  "comparison": {
+    "entity": {
+      "zs_precision": 0.4,
+      "fs_precision": 0.3690205011389522,
+      "delta_precision": -0.03097949886104784,
+      "zs_recall": 0.28619528619528617,
+      "fs_recall": 0.2727272727272727,
+      "delta_recall": -0.013468013468013462,
+      "zs_f1": 0.33366045142296363,
+      "fs_f1": 0.31364956437560504,
+      "delta_f1": -0.020010887047358594
+    },
+    "triple": {
+      "zs_precision": 0.1643835616438356,
+      "fs_precision": 0.1335149863760218,
+      "delta_precision": -0.030868575267813808,
+      "zs_recall": 0.12,
+      "fs_recall": 0.098,
+      "delta_recall": -0.021999999999999992,
+      "zs_f1": 0.13872832369942198,
+      "fs_f1": 0.11303344867358708,
+      "delta_f1": -0.025694875025834896
+    },
+    "relation": {
+      "zs_precision": 0.55,
+      "fs_precision": 0.5384615384615384,
+      "delta_precision": -0.011538461538461608,
+      "zs_recall": 0.8048780487804879,
+      "fs_recall": 0.6829268292682927,
+      "delta_recall": -0.12195121951219512,
+      "zs_f1": 0.6534653465346535,
+      "fs_f1": 0.6021505376344086,
+      "delta_f1": -0.05131480890024487
+    },
+    "attribute_accuracy": {
+      "head_type": {
+        "zs_accuracy": 0.8666666666666667,
+        "fs_accuracy": 0.8493150684931506,
+        "delta": -0.01735159817351606
+      },
+      "tail_type": {
+        "zs_accuracy": 0.7523809523809524,
+        "fs_accuracy": 0.8904109589041096,
+        "delta": 0.13803000652315722
+      },
+      "relation": {
+        "zs_accuracy": 0.8571428571428571,
+        "fs_accuracy": 0.863013698630137,
+        "delta": 0.005870841487279899
+      }
+    }
+  }
+}

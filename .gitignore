@@ -23,7 +23,8 @@ tests/_scratch/
 data/**
 !data/eval/
 !data/eval/**
-
+!data/data-analisys.py
+!data/data-analysis.md
 # Config files with sensitive data
 .env
 

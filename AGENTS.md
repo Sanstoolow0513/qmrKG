@@ -1,7 +1,7 @@
 # QmrKG Project Knowledge Base
 
-**Generated:** 2026-05-03
-**Commit:** 9a9895a
+**Generated:** 2026-05-06
+**Commit:** 6748773
 **Branch:** kgeval-quality-baseline
 
 ## OVERVIEW
@@ -16,7 +16,7 @@ QmrKG is a PDF-to-Knowledge-Graph pipeline for computer networking course materi
 qmrkg/
 ├── src/qmrkg/              # Python pipeline (25 modules)
 │   ├── pipeline.py         # PDFPipeline: PDF → PNG → Markdown
-│   ├── cli_*.py            # 10 CLI entry points (incl. kgeval)
+│   ├── cli_*.py            # 10 CLI entry points (incl. kgeval via cli_eval.py)
 │   ├── evaluation.py       # Evaluation metrics for merged triples
 │   ├── llm_factory.py      # Task-scoped LLM processor (text + multimodal + embedding)
 │   ├── kg_*.py             # Knowledge graph extraction/merge/import
@@ -26,8 +26,10 @@ qmrkg/
 │   ├── app/components/     # GraphVisualizer, GraphCanvas
 │   └── app/api/graph/      # Neo4j graph data API
 ├── data/                   # Runtime data (pdf/png/markdown/chunks/triples)
-├── tests/                  # pytest suite (17 files)
+│   └── eval/               # Evaluation data (gold triples, provenance)
+├── tests/                  # pytest suite (18 files)
 ├── config.yaml             # LLM profiles + prompt config
+├── docs/reports/           # Analysis reports (gold generation, provenance audit)
 └── pyproject.toml          # Python package config
 ```
 
@@ -46,7 +48,9 @@ qmrkg/
 | LLM task factory | `src/qmrkg/llm_factory.py` | Rate limiting, retries |
 | Graph visualization | `frontend/app/page.tsx` | react-force-graph-2d |
 | Evaluation metrics | `src/qmrkg/evaluation.py` | Precision, recall, F1 for merged triples |
-| Test infrastructure | `tests/` → `tests/AGENTS.md` | pytest suite: fixtures, fakes, conventions |
+| Gold triples | `data/eval/gold_triples.json` | Human-annotated gold standard triples |
+| Gold generation | `docs/reports/gold-generation-summary.md` | Methodology for gold triple creation |
+| Test infrastructure | `tests/` → `tests/AGENTS.md` | pytest suite (18 files): fixtures, fakes, conventions |
 
 ## ENTRY POINTS
 
@@ -60,7 +64,7 @@ uv run mdchunk --markdown-dir data/markdown   # → JSON chunks
 uv run kgextract --input data/chunks    # → Raw triples (zs/fs modes)
 uv run kgmerge                          # → Merged triples
 uv run kgneo4j --import data/triples/merged/merged_triples.json  # → Neo4j
-uv run kgeval --pred data/triples/merged/merged_triples.json --gold data/triples/gold_triples.json  # Evaluation
+uv run kgeval --pred data/triples/merged/merged_triples.json --gold data/eval/gold_triples.json  # Evaluation
 uv run qmr                              # Full pipeline (PDF → Neo4j, single command)
 ```
 

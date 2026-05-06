@@ -1,5 +1,8 @@
 # QmrKG Frontend
 
+**Generated:** 2026-05-06
+**Commit:** 6748773
+**Branch:** kgeval-quality-baseline
 **Location:** `frontend/`
 
 ## OVERVIEW

@@ -1,0 +1,61 @@
+{
+  "meta": {
+    "raw_dir": "data/triples/raw-fs-recheck",
+    "gold_path": "data/eval/gold_triples.json",
+    "evaluated_at": "2026-05-06T11:02:54.873413Z",
+    "gold_total_triples": 500,
+    "gold_covered_chunks": 186,
+    "chunks_matched_raw": 176,
+    "chunks_missing_raw": 10,
+    "raw_total_triples": 392
+  },
+  "metrics": {
+    "entity": {
+      "pred_count": 439,
+      "gold_count": 594,
+      "tp": 162,
+      "fp": 277,
+      "fn": 432,
+      "precision": 0.3690205011389522,
+      "recall": 0.2727272727272727,
+      "f1": 0.31364956437560504
+    },
+    "triple": {
+      "pred_count": 367,
+      "gold_count": 500,
+      "tp": 49,
+      "fp": 318,
+      "fn": 451,
+      "precision": 0.1335149863760218,
+      "recall": 0.098,
+      "f1": 0.11303344867358708
+    },
+    "relation": {
+      "pred_count": 52,
+      "gold_count": 41,
+      "tp": 28,
+      "fp": 24,
+      "fn": 13,
+      "precision": 0.5384615384615384,
+      "recall": 0.6829268292682927,
+      "f1": 0.6021505376344086
+    },
+    "attribute_accuracy": {
+      "head_type": {
+        "total": 73,
+        "correct": 62,
+        "accuracy": 0.8493150684931506
+      },
+      "tail_type": {
+        "total": 73,
+        "correct": 65,
+        "accuracy": 0.8904109589041096
+      },
+      "relation": {
+        "total": 73,
+        "correct": 63,
+        "accuracy": 0.863013698630137
+      }
+    }
+  }
+}

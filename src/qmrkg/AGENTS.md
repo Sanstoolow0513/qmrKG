@@ -1,5 +1,8 @@
 # QmrKG Python Package
 
+**Generated:** 2026-05-06
+**Commit:** 6748773
+**Branch:** kgeval-quality-baseline
 **Location:** `src/qmrkg/`
 
 ## OVERVIEW
@@ -26,7 +29,7 @@ src/qmrkg/
 ├── rate_limit.py           # RollingRateLimiter
 ├── config.py               # Pipeline run config loader
 ├── tqdm_logging.py         # Progress bar utilities
-└── cli_*.py                # 10 CLI entry points (incl. kgeval)
+└── cli_*.py                # 10 CLI entry points (incl. kgeval via cli_eval.py)
 ```
 
 ## WHERE TO LOOK

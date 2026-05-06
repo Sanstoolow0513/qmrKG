@@ -1,10 +1,13 @@
 # QmrKG Test Suite
 
+**Generated:** 2026-05-06
+**Commit:** 6748773
+**Branch:** kgeval-quality-baseline
 **Location:** `tests/`
 
 ## OVERVIEW
 
-pytest suite (17 files, ~4,700 lines) covering all pipeline stages and CLI commands. No real API calls — all LLM endpoints are mocked.
+pytest suite (18 files, ~4,900 lines) covering all pipeline stages and CLI commands. No real API calls — all LLM endpoints are mocked.
 
 ## STRUCTURE
 
@@ -22,14 +25,14 @@ tests/
 ├── test_markdown_chunker.py      # Chunker tests (class-based Test* organization)
 ├── test_kg_extractor.py          # KG extraction tests (_RecordingRunner pattern)
 ├── test_kg_merger.py             # Triple merge tests
-├── test_kg_merger_embedding.py   # Embedding canonicalization tests (780 lines)
+├── test_kg_merger_embedding.py   # Embedding canonicalization tests (910 lines)
 ├── test_kg_neo4j.py              # Neo4j import tests (only file using unittest.mock)
 ├── test_kg_schema.py             # Entity/Triple model validation
 ├── test_evaluation.py            # Precision/recall/F1 tests (@parametrize)
 ├── test_config.py                # Config loading
 ├── test_main.py                  # tqdm/logging
 ├── test_cli_eval.py              # kgeval CLI integration
-├── test_cli_kg_extract.py        # kgextract CLI integration
+├── test_cli_kg_extract.py        # kgextract CLI integration (72 lines)
 ├── test_cli_qmr.py               # Full pipeline CLI
 └── test_cli_stage_commands.py    # pdftopng/pngtotext/mdchunk/kgmdcombine CLI (547 lines)
 ```

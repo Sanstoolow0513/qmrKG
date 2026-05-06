@@ -440,3 +440,10 @@ run:
     output_json: null
     output_md: null
     top_errors: 10
+
+  kg_eval_raw:
+    zs_raw_dir: null
+    fs_raw_dir: null
+    gold: null
+    output_json: null
+    output_md: null
