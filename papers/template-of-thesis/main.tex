@@ -19,7 +19,11 @@
 % 毕业论文模板
 \begin{document}
     \maketitle                              % 封面
-    \newpage
+    \hypersetup{pageanchor=false}
+    \thispagestyle{empty}                   % 封面后的空白页
+    \null
+    \clearpage
+    \hypersetup{pageanchor=true}
     \authorization                          % 原创页（不保密）
     
     \pagenumbering{Roman}
