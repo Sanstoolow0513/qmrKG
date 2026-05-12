@@ -1,6 +1,6 @@
 \section{实验与结果分析}
 
-大语言模型评测需要结合任务场景、评价指标和输出可靠性设计评价口径\cite{luowen2024_llm_eval}。本章围绕基于大模型的课程知识实体识别与关系抽取系统，报告实验设计与运行结果。先介绍实验环境与配置参数，随后从课程语料构建、实体抽取评估、关系抽取评估、金标数据核查、零样本与少样本抽取对比、知识图谱质量分析以及典型案例分析等角度，对系统运行结果进行评估与讨论。
+大语言模型评测需要结合任务场景、评价指标和输出可靠性设计评价口径\cite{luowen2024_llm_eval}。本章围绕基于大模型的课程知识实体识别与关系抽取系统，报告实验设计与运行结果。先介绍实验环境与配置参数，随后从课程语料构建、实体抽取评估、关系抽取评估、零样本与少样本抽取对比评估、知识图谱质量分析以及典型案例分析等角度，对系统运行结果进行评估与讨论。
 
 \subsection{实验环境与配置}
 
@@ -206,7 +206,7 @@ TCP与UDP之间的比较关系出现最为频繁：双向比较(TCP↔UDP)累计
 
 本实验启用了严格证据验证机制(strict\_evidence enabled)，所有三元组均附带可追溯的原文证据。该机制过滤了无依据的虚假关系，确保每条三元组均可回溯到源文本。
 
-\subsection{金标数据核查与零样本/少样本对比}
+\subsection{零样本与少样本抽取对比评估}
 
 为了让zero-shot（zs）与few-shot（fs）的抽取结果可以进行公平比较，本实验没有把任一模式的预测结果直接作为金标来源，而是以\texttt{data/chunks}中的原始文本块为回溯对象，构建并复核独立评估集。当前用于评估的金标文件为\texttt{data/eval/gold\_triples.json}，它与\texttt{data/eval/gold\_triples.500\_reviewed.json}内容一致，包含500条关系三元组和594个实体，覆盖88个源文件以及186个源文本块。核查过程中逐条检查了\texttt{source\_file}、\texttt{chunk\_index}与\texttt{evidence}字段：所有源文件均存在，所有chunk索引均有效，500条证据文本均为对应源文本块中的连续原文子串。其中有17条证据最初只是空白折叠后的文本，已替换为带原始换行的精确片段。
 
@@ -221,44 +221,20 @@ TCP与UDP之间的比较关系出现最为频繁：双向比较(TCP↔UDP)累计
     \toprule
     \textbf{模式} & \textbf{Raw文件} & \textbf{Raw三元组} & \textbf{合并三元组} & \textbf{实体P} & \textbf{实体R} & \textbf{实体F1} & \textbf{三元组P} & \textbf{三元组R} & \textbf{三元组F1} \\
     \midrule
-    \texttt{zs-nocheck} & 184 & 418 & 337 & 0.2695 & 0.5168 & 0.3543 & 0.1899 & 0.1280 & 0.1529 \\
-    \texttt{zs-recheck} & 182 & 397 & 314 & 0.2745 & 0.5135 & 0.3578 & 0.1783 & 0.1120 & 0.1376 \\
-    \texttt{fs-nocheck} & 171 & 325 & 290 & 0.2436 & 0.4495 & 0.3160 & 0.1621 & 0.0940 & 0.1190 \\
-    \texttt{fs-recheck} & 176 & 392 & 304 & 0.2604 & 0.4529 & 0.3307 & 0.1579 & 0.0960 & 0.1194 \\
+    \texttt{zs-nocheck} & 184 & 418 & 337 & 26.95\% & 51.68\% & 35.43\% & 18.99\% & 12.80\% & 15.29\% \\
+    \texttt{zs-recheck} & 182 & 397 & 314 & 27.45\% & 51.35\% & 35.78\% & 17.83\% & 11.20\% & 13.76\% \\
+    \texttt{fs-nocheck} & 171 & 325 & 290 & 24.36\% & 44.95\% & 31.60\% & 16.21\% & 9.40\% & 11.90\% \\
+    \texttt{fs-recheck} & 176 & 392 & 304 & 26.04\% & 45.29\% & 33.07\% & 15.79\% & 9.60\% & 11.94\% \\
     \bottomrule
     \end{tabular}
     }
 \end{table}
 
-表~\ref{tab:5-zsfs}显示，在严格三元组匹配口径下，\texttt{zs-nocheck}的三元组F1最高（0.1529），三元组精确率和召回率也高于另外三种设置；\texttt{zs-recheck}的实体F1最高（0.3578）。在few-shot设置内部，启用复核后实体F1从0.3160升至0.3307，三元组召回率从0.0940升至0.0960，但三元组精确率从0.1621降至0.1579，说明复核在保留更多候选关系的同时，也引入了更多未被严格金标命中的三元组。
+表~\ref{tab:5-zsfs}显示，在严格三元组匹配口径下，\texttt{zs-nocheck}的三元组F1最高（15.29\%），三元组精确率和召回率也高于另外三种设置；\texttt{zs-recheck}的实体F1最高（35.78\%）。在few-shot设置内部，启用复核后实体F1从31.60\%升至33.07\%，三元组召回率从9.40\%升至9.60\%，但三元组精确率从16.21\%降至15.79\%，说明复核在保留更多候选关系的同时，也引入了更多未被严格金标命中的三元组。
 
 本实验中的金标是经人工复核的正例参考集，并非对186个源文本块中所有可能正确关系的穷尽标注。因此，表中的精确率应理解为保守的严格重合精确率，不等于完整语义精确率；召回率反映系统对500条已接受金标三元组的严格覆盖能力。在当前提示词和严格匹配条件下，zero-shot输出比few-shot更接近金标标注风格，后续优化应聚焦few-shot示例与金标标注规范的一致性，而非单纯增加示例数量。
 
-\subsection{原始抽取层面的零样本与少样本对比}
-
-上一节借助\texttt{kgmerge}合并后的三元组来评估zs/fs模式在最终知识图谱上的表现，但合并过程引入了实体归一化与去重步骤，可能遮盖了LLM直接抽取质量的差异。为了直接衡量两种提示策略在抽取阶段的原始能力，本实验设计了\textbf{原始抽取层面}的逐块评估方案，使用专用的\texttt{kgevalraw}评测工具，在未经过合并的raw三元组上直接与金标进行逐块对比。
-
-评估方法如下：（1）将500条金标三元组按其来源的\texttt{(source\_file, chunk\_index)}分组；（2）在对应raw抽取目录中定位每个块的三元组文件，从其中的\texttt{entities}列表构建$\{\text{实体名} \rightarrow \text{类型}\}$的查询表；（3）将查询到的\texttt{head\_type}和\texttt{tail\_type}注入raw三元组；（4）在严格精确匹配口径下计算各项指标。假阳性仅统计金标覆盖的186个块中出现的错误预测，假阴性则统计金标中存在但预测缺失的三元组。评估考察的维度如表~\ref{tab:5-raw-dims}所示，涵盖实体、三元组、关系三个层面的F1以及三个关键属性的准确率。
-
-\begin{table}[ht]
-    \centering
-    \caption{原始抽取评估维度说明}
-    \label{tab:5-raw-dims}
-    \small
-    \begin{tabular}{p{1.8cm}p{5.0cm}p{5.2cm}}
-    \toprule
-    \textbf{维度} & \textbf{匹配键} & \textbf{说明} \\
-    \midrule
-    Entity F1 & \texttt{(name, type)} & 实体名称与类型需要完全一致 \\
-    Triple F1 & \texttt{(head, head\_type,} & \multirow{2}{*}{完整三元组严格匹配} \\
-    & \texttt{relation, tail, tail\_type)} & \\
-    Relation F1 & \texttt{(head\_type, relation, tail\_type)} & 忽略实体名，仅考察关系模式 \\
-    head\_type Acc & \texttt{head\_type} & 头实体类型分类准确率 \\
-    tail\_type Acc & \texttt{tail\_type} & 尾实体类型分类准确率 \\
-    relation Acc & \texttt{relation} & 关系标签分类准确率 \\
-    \bottomrule
-    \end{tabular}
-\end{table}
+为了直接衡量两种提示策略在抽取阶段的原始能力，本实验设计了\textbf{原始抽取层面}的逐块评估方案，使用专用的\texttt{kgevalraw}评测工具，在未经过合并的raw三元组上直接与金标进行逐块对比。评估维度涵盖实体层面F1（匹配键：name + type）、三元组层面F1（head、head\_type、relation、tail、tail\_type五字段严格匹配）和关系层面F1（仅匹配head\_type、relation、tail\_type），以及head\_type、tail\_type、relation三个属性的分类准确率。
 
 表~\ref{tab:5-raw-zsfs}展示了zero-shot与few-shot在三个scope层面的精确率、召回率与F1值对比。
 
@@ -270,67 +246,26 @@ TCP与UDP之间的比较关系出现最为频繁：双向比较(TCP↔UDP)累计
     \toprule
     \textbf{Scope} & \textbf{Metric} & \textbf{ZS} & \textbf{FS} & \textbf{$\Delta$ (FS$-$ZS)} \\
     \midrule
-    \multirow{3}{*}{Entity} & Precision & 0.4000 & 0.3690 & $-$0.0310 \\
-    & Recall    & 0.2862 & 0.2727 & $-$0.0135 \\
-    & \textbf{F1} & \textbf{0.3337} & 0.3136 & $-$0.0200 \\
+    \multirow{3}{*}{Entity} & Precision & 40.00\% & 36.90\% & $-$3.10个百分点 \\
+    & Recall    & 28.62\% & 27.27\% & $-$1.35个百分点 \\
+    & \textbf{F1} & \textbf{33.37\%} & 31.36\% & $-$2.00个百分点 \\
     \midrule
-    \multirow{3}{*}{Triple} & Precision & 0.1644 & 0.1335 & $-$0.0309 \\
-    & Recall    & 0.1200 & 0.0980 & $-$0.0220 \\
-    & \textbf{F1} & \textbf{0.1387} & 0.1130 & $-$0.0257 \\
+    \multirow{3}{*}{Triple} & Precision & 16.44\% & 13.35\% & $-$3.09个百分点 \\
+    & Recall    & 12.00\% & 9.80\% & $-$2.20个百分点 \\
+    & \textbf{F1} & \textbf{13.87\%} & 11.30\% & $-$2.57个百分点 \\
     \midrule
-    \multirow{3}{*}{Relation} & Precision & 0.5500 & 0.5385 & $-$0.0115 \\
-    & Recall    & 0.8049 & 0.6829 & $-$0.1220 \\
-    & \textbf{F1} & \textbf{0.6535} & 0.6022 & $-$0.0513 \\
+    \multirow{3}{*}{Relation} & Precision & 55.00\% & 53.85\% & $-$1.15个百分点 \\
+    & Recall    & 80.49\% & 68.29\% & $-$12.20个百分点 \\
+    & \textbf{F1} & \textbf{65.35\%} & 60.22\% & $-$5.13个百分点 \\
     \bottomrule
     \end{tabular}
 \end{table}
 
-表~\ref{tab:5-raw-attr}进一步列出了三个关键属性（头实体类型、尾实体类型、关系标签）的逐项准确率对比。
+属性分类方面，ZS的head\_type准确率（86.67\%）与FS（84.93\%）接近，但FS在tail\_type上显著领先（89.04\% vs 75.24\%，+13.80个百分点），relation准确率两者相当（85.71\% vs 86.30\%）。
 
-\begin{table}[ht]
-    \centering
-    \caption{原始抽取层面属性分类准确率对比}
-    \label{tab:5-raw-attr}
-    \begin{tabular}{lrrr}
-    \toprule
-    \textbf{属性} & \textbf{ZS} & \textbf{FS} & \textbf{$\Delta$ (FS$-$ZS)} \\
-    \midrule
-    head\_type & \textbf{0.8667} & 0.8493 & $-$0.0174 \\
-    tail\_type & 0.7524 & \textbf{0.8904} & +0.1380 \\
-    relation   & 0.8571 & \textbf{0.8630} & +0.0059 \\
-    \bottomrule
-    \end{tabular}
-\end{table}
+覆盖方面，ZS在186个金标块中找到182个对应raw文件（缺失4个），FS找到176个（缺失10个）。
 
-表~\ref{tab:5-raw-cov}给出了两种模式在186个金标文本块上的覆盖情况，用于辅助判断抽取结果的完整性。
-
-\begin{table}[ht]
-    \centering
-    \caption{原始抽取层面金标块覆盖统计}
-    \label{tab:5-raw-cov}
-    \begin{tabular}{lrr}
-    \toprule
-    \textbf{统计项} & \textbf{ZS} & \textbf{FS} \\
-    \midrule
-    金标覆盖块总数 & 186 & 186 \\
-    找到对应raw文件的块数 & 182 & 176 \\
-    缺失raw文件的块数 & 4 & 10 \\
-    金标块内的raw三元组总数 & 397 & 392 \\
-    \bottomrule
-    \end{tabular}
-\end{table}
-
-实验结果显示：
-
-\textbf{（1）Zero-shot在原始抽取质量上整体优于Few-shot。} 在全部三个scope层面的F1指标上，zero-shot均高于few-shot：Entity F1高2.0个百分点（0.3337 vs 0.3136），Triple F1高2.6个百分点（0.1387 vs 0.1130），Relation F1高5.1个百分点（0.6535 vs 0.6022）。这与上一节合并评估的结论一致，zero-shot输出在严格匹配口径下更接近金标标注风格。Few-shot示例可能引入了模式化偏差，使LLM倾向于生成与示例结构相似但偏离金标规范的三元组。Relation F1上5.1个百分点的差距最大，说明few-shot示例的关系分类引导方向与人工标注偏好之间存在错位。
-
-\textbf{（2）Triple F1与Relation F1的悬殊源于实体名称的严格匹配约束。} Relation F1在zero-shot模式下达到0.6535，说明LLM对关系分类具备基本能力；但Triple F1仅0.1387，差距超过50个百分点。这种悬殊来自实体名称的精确匹配约束：LLM抽取时倾向于使用原文中的完整表述（如"传输控制协议"），而金标使用标准化缩写（"TCP"），导致大量语义正确但字符串不匹配的false negative。这不反映LLM的抽取能力不足，而是严格精确匹配在评估实体名称变体时存在固有局限。
-
-\textbf{（3）Few-shot在尾实体类型判断上有明显优势。} 在head\_type、tail\_type和relation三个属性的分类准确率中，few-shot在tail\_type上比zero-shot高13.8个百分点（0.8904 vs 0.7524），这是唯一一项FS明显优于ZS的指标。这一提升可能源于few-shot示例中明确提供了尾实体的标准分类标签，LLM据此模仿了金标的标注习惯。head\_type和relation两个属性的准确率在两种模式下差异不大（差距均小于2个百分点），说明LLM对头实体类型和关系标签的判断受提示策略影响较小。
-
-\textbf{（4）Few-shot的抽取缺失更多。} 表~\ref{tab:5-raw-cov}显示，FS有10个金标块找不到对应的raw抽取文件，而ZS仅4个，即few-shot模式下部分文本块的抽取可能完全失败（模型无有效输出），或输出文件命名不一致导致无法匹配。部署few-shot模式时需要额外的容错处理。
-
-\textbf{（5）与合并评估的互补关系。} 上一节的\texttt{kgmerge}合并评估反映的是经实体归一化与去重后的最终知识图谱质量，而本节原始抽取评估直接衡量LLM在逐块抽取阶段的表现。合并评估更适合衡量系统的端到端可用性（实体归一化弥补了一部分命名变体导致的严格匹配损失），原始抽取评估更直接地反映提示策略本身对LLM抽取行为的影响。zero-shot提示策略在当前课程知识抽取任务中整体优于few-shot，而few-shot在尾实体类型分类等特定属性上的精准度优势，可在后续提示优化中加以利用。
+实验结果显示：（1）Zero-shot在全部三个scope层面的F1指标上均优于few-shot（Entity F1: 33.37\% vs 31.36\%，Triple F1: 13.87\% vs 11.30\%，Relation F1: 65.35\% vs 60.22\%），与合并评估结论一致，说明zero-shot输出更接近金标标注风格。（2）Triple F1与Relation F1差距悬殊（零样本下65.35\% vs 13.87\%），源于实体名称严格匹配：当LLM使用原文完整表述（如"传输控制协议"）而金标使用缩写（"TCP"）时，大量语义正确但字符串不匹配的三元组被计为假阴性。（3）Few-shot仅在tail\_type分类上优于zero-shot（89.04\% vs 75.24\%，+13.80个百分点），但抽取缺失更多（10个vs 4个金标块找不到对应raw文件）。
 
 \subsection{知识图谱质量分析}
 
@@ -353,40 +288,13 @@ TCP与UDP之间的比较关系出现最为频繁：双向比较(TCP↔UDP)累计
     \end{tabular}
 \end{table}
 
-平均节点度数约3.8，知识图谱呈中等连接密度，既非完全稀疏的孤立节点集合，也非高度稠密的完全图。该密度与课程知识的组织规律一致：高频术语与多个概念关联，低频术语仅与少数概念关联。
-
-系统采用双层归一化策略处理实体名称变体：词汇级归一化基于别名表，处理中英文名称对照（如"Transmission Control Protocol"↔"TCP"↔"传输控制协议"）；语义级归一化基于嵌入向量，合并语义相似但字面表述不同的实体。该策略解决了同一实体存在多种表述的问题，提高了图谱中实体名称的一致性。
-
-协议实体在图谱中表现出枢纽特性。以TCP为例，该节点连接了拥塞控制、流量控制、三次握手等多个子概念(contains关系)，同时与UDP形成对比关系(compared\_with)，且被HTTP、SMTP等应用层协议依赖(depends\_on的反向关系)。TCP的高度连接与其在网络协议栈中的实际地位一致。
+平均节点度数约3.8，与课程知识中高频术语多连接、低频术语少连接的组织规律一致。系统通过词汇级别名表和语义级嵌入向量双层归一化处理实体名称变体，并以TCP等高频协议为枢纽连接多个子概念与关系。
 
 \subsection{案例分析}
 
-本实验选取两个典型子图进行分析，以评估系统的知识抽取效果。
-
-\textbf{案例一：TCP协议子图}
-
-TCP协议子图展示了以TCP为核心的局部知识网络。该子图包含以下主要关系：
-
-\begin{itemize}
-    \item \textbf{对比关系}：TCP \textit{compared\_with} UDP (双向，421+195=616次)。该比较反复出现在传输层协议对比的教学内容中，是课程多次讨论的话题。
-    \item \textbf{包含关系}：TCP \textit{contains} 拥塞控制(133次)、TCP \textit{contains} 流量控制(89次)。描述了TCP的内部机制组成。
-    \item \textbf{依赖关系}：TCP \textit{depends\_on} IP(75次)、HTTP \textit{depends\_on} TCP(122次)、SMTP \textit{depends\_on} TCP(56次)。TCP作为传输层协议，承载上层应用（HTTP、SMTP）并依赖下层网络层协议（IP）。
-\end{itemize}
-
-TCP子图覆盖了三个知识维度：协议对比（TCP vs UDP）、内部机制（拥塞控制、流量控制）和协议栈依赖关系（HTTP→TCP、TCP→IP），展示了TCP在课程中的知识广度。
-
-\textbf{案例二：协议演进对比子图}
-
-网络协议演进对比是课程教学的重要内容。本系统抽取出了以下经典对比对：
-
-\begin{itemize}
-    \item IPv6 \textit{compared\_with} IPv4 (130次)：对应网络层地址空间演进的课程内容。
-    \item TCP \textit{compared\_with} UDP (616次双向)：传输层可靠性与效率权衡的经典对比。
-\end{itemize}
-
-系统抽取了上述对比关系，覆盖了课程中反复出现的对比主题。比较关系的高频出现与这些内容在教学材料中的覆盖密度一致，系统通过统计频次识别出了教学重点。
+本节选取两个典型子图进行分析。TCP协议子图包含对比关系（TCP \textit{compared\_with} UDP，双向616次）、包含关系（TCP \textit{contains} 拥塞控制133次、流量控制89次）和依赖关系（HTTP \textit{depends\_on} TCP 122次、TCP \textit{depends\_on} IP 75次），覆盖协议对比、内部机制和协议栈依赖三个知识维度。协议演进对比子图展示了IPv6 \textit{compared\_with} IPv4（130次）等课程核心对比主题，系统通过统计频次有效识别出教学重点。
 
 
 \subsection{本章小结}
 
-本章对基于大模型的课程知识NER系统进行了实验评估。系统处理了205份PDF文档，构建出包含23,600个实体、44,526个关系三元组的课程知识图谱。实体抽取以概念类型为主(70.8\%)，呈长尾分布；关系抽取以contains和applied\_to为主(66.4\%)，反映了教育内容的结构性与应用性双重特点；图谱平均节点度数3.8，形成中等密度的知识网络。在零样本与少样本对比方面，合并评估与原始抽取评估两个层面的结果一致表明：在当前提示词与严格匹配条件下，zero-shot整体表现优于few-shot（合并层面三元组F1为0.1529 vs 0.1194，原始层面三元组F1为0.1387 vs 0.1130），few-shot在尾实体类型分类上具有局部优势。实验表明，本系统能够完成课程知识图谱的自动化构建，全流程可在学期更新周期内运行。
+本章对系统进行了实验评估。系统构建出包含23,600个实体和44,526个关系三元组的课程知识图谱，实体分布以概念类型为主（70.8\%），关系分布以contains和applied\_to为主（66.4\%），平均节点度数3.8。零样本与少样本对比表明，zero-shot在当前提示词与严格匹配条件下整体优于few-shot（合并层面三元组F1: 15.29\% vs 11.94\%，原始层面: 13.87\% vs 11.30\%），few-shot在tail\_type分类上具有局部优势（89.04\% vs 75.24\%）。
