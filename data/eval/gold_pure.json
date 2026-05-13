@@ -1,0 +1,840 @@
+{
+  "meta": {
+    "name": "qmrkg-eval-v1",
+    "schema_version": 1,
+    "source": "converted from data/eval/gold_triples.json",
+    "total_triples": 54
+  },
+  "entities": [
+    {
+      "name": "5层因特网协议栈",
+      "type": "concept"
+    },
+    {
+      "name": "ACK帧",
+      "type": "concept"
+    },
+    {
+      "name": "AP",
+      "type": "concept"
+    },
+    {
+      "name": "A类地址",
+      "type": "concept"
+    },
+    {
+      "name": "B类地址",
+      "type": "concept"
+    },
+    {
+      "name": "CSMA/CA",
+      "type": "protocol"
+    },
+    {
+      "name": "CoAP",
+      "type": "protocol"
+    },
+    {
+      "name": "EMTU_R",
+      "type": "metric"
+    },
+    {
+      "name": "FORM",
+      "type": "concept"
+    },
+    {
+      "name": "GBN",
+      "type": "protocol"
+    },
+    {
+      "name": "GSM",
+      "type": "protocol"
+    },
+    {
+      "name": "HTTP 首部字段",
+      "type": "concept"
+    },
+    {
+      "name": "HTTP头压缩",
+      "type": "mechanism"
+    },
+    {
+      "name": "ICMP",
+      "type": "protocol"
+    },
+    {
+      "name": "ICMPv6",
+      "type": "protocol"
+    },
+    {
+      "name": "IP",
+      "type": "protocol"
+    },
+    {
+      "name": "IPv6",
+      "type": "protocol"
+    },
+    {
+      "name": "IP层",
+      "type": "concept"
+    },
+    {
+      "name": "ISP",
+      "type": "concept"
+    },
+    {
+      "name": "MSC",
+      "type": "concept"
+    },
+    {
+      "name": "MTAs",
+      "type": "concept"
+    },
+    {
+      "name": "OC-3/STS-3",
+      "type": "concept"
+    },
+    {
+      "name": "RA 报文",
+      "type": "protocol"
+    },
+    {
+      "name": "RADIUS鉴别服务器",
+      "type": "concept"
+    },
+    {
+      "name": "RFC 822",
+      "type": "concept"
+    },
+    {
+      "name": "RIP",
+      "type": "protocol"
+    },
+    {
+      "name": "RSS",
+      "type": "concept"
+    },
+    {
+      "name": "RTT",
+      "type": "metric"
+    },
+    {
+      "name": "Register-Stop Timer (RST(S,G))",
+      "type": "mechanism"
+    },
+    {
+      "name": "Register-encapsulated data",
+      "type": "concept"
+    },
+    {
+      "name": "SONET/SDH",
+      "type": "protocol"
+    },
+    {
+      "name": "STM-1",
+      "type": "concept"
+    },
+    {
+      "name": "Signers",
+      "type": "concept"
+    },
+    {
+      "name": "TCP",
+      "type": "protocol"
+    },
+    {
+      "name": "ToS bits",
+      "type": "concept"
+    },
+    {
+      "name": "UDP",
+      "type": "protocol"
+    },
+    {
+      "name": "Uri-Port Option",
+      "type": "concept"
+    },
+    {
+      "name": "XML",
+      "type": "protocol"
+    },
+    {
+      "name": "connection",
+      "type": "concept"
+    },
+    {
+      "name": "effective send MSS",
+      "type": "concept"
+    },
+    {
+      "name": "fragmentation",
+      "type": "concept"
+    },
+    {
+      "name": "frame",
+      "type": "concept"
+    },
+    {
+      "name": "framing",
+      "type": "concept"
+    },
+    {
+      "name": "input",
+      "type": "concept"
+    },
+    {
+      "name": "ms",
+      "type": "metric"
+    },
+    {
+      "name": "multiple classes of service",
+      "type": "concept"
+    },
+    {
+      "name": "packet arrival rate",
+      "type": "metric"
+    },
+    {
+      "name": "slow start",
+      "type": "mechanism"
+    },
+    {
+      "name": "socketpair",
+      "type": "concept"
+    },
+    {
+      "name": "socreate",
+      "type": "mechanism"
+    },
+    {
+      "name": "three-way handshake",
+      "type": "mechanism"
+    },
+    {
+      "name": "throughput",
+      "type": "metric"
+    },
+    {
+      "name": "traffic intensity",
+      "type": "metric"
+    },
+    {
+      "name": "二进制指数后退",
+      "type": "mechanism"
+    },
+    {
+      "name": "二进制指数退避",
+      "type": "mechanism"
+    },
+    {
+      "name": "以太网",
+      "type": "protocol"
+    },
+    {
+      "name": "伪重传",
+      "type": "concept"
+    },
+    {
+      "name": "信道利用率",
+      "type": "metric"
+    },
+    {
+      "name": "停止-等待",
+      "type": "protocol"
+    },
+    {
+      "name": "分析器",
+      "type": "concept"
+    },
+    {
+      "name": "分组平均时延",
+      "type": "metric"
+    },
+    {
+      "name": "前缀",
+      "type": "concept"
+    },
+    {
+      "name": "双绞线",
+      "type": "concept"
+    },
+    {
+      "name": "可靠传输",
+      "type": "concept"
+    },
+    {
+      "name": "同步",
+      "type": "concept"
+    },
+    {
+      "name": "后退N帧",
+      "type": "protocol"
+    },
+    {
+      "name": "吞吐量",
+      "type": "metric"
+    },
+    {
+      "name": "回显请求",
+      "type": "concept"
+    },
+    {
+      "name": "地址映射表",
+      "type": "concept"
+    },
+    {
+      "name": "域名服务器缓存",
+      "type": "mechanism"
+    },
+    {
+      "name": "多路复用",
+      "type": "concept"
+    },
+    {
+      "name": "头部行",
+      "type": "concept"
+    },
+    {
+      "name": "字节填充",
+      "type": "mechanism"
+    },
+    {
+      "name": "寄放模式",
+      "type": "mechanism"
+    },
+    {
+      "name": "导引型传输媒体",
+      "type": "concept"
+    },
+    {
+      "name": "尾部",
+      "type": "concept"
+    },
+    {
+      "name": "帧定界",
+      "type": "concept"
+    },
+    {
+      "name": "异步传输",
+      "type": "concept"
+    },
+    {
+      "name": "拥塞控制",
+      "type": "concept"
+    },
+    {
+      "name": "数据链路层",
+      "type": "concept"
+    },
+    {
+      "name": "无线个人区域网",
+      "type": "concept"
+    },
+    {
+      "name": "根域名服务器",
+      "type": "concept"
+    },
+    {
+      "name": "端到端时延",
+      "type": "concept"
+    },
+    {
+      "name": "自学习",
+      "type": "mechanism"
+    },
+    {
+      "name": "节点时延",
+      "type": "concept"
+    },
+    {
+      "name": "蓝牙",
+      "type": "protocol"
+    },
+    {
+      "name": "语义",
+      "type": "concept"
+    },
+    {
+      "name": "请求头",
+      "type": "concept"
+    },
+    {
+      "name": "请求首部字段",
+      "type": "concept"
+    },
+    {
+      "name": "超高速 WPAN",
+      "type": "concept"
+    },
+    {
+      "name": "路由",
+      "type": "protocol"
+    },
+    {
+      "name": "路由器",
+      "type": "concept"
+    },
+    {
+      "name": "输出端口排队",
+      "type": "concept"
+    },
+    {
+      "name": "输出端口缓冲区溢出",
+      "type": "concept"
+    },
+    {
+      "name": "运输层",
+      "type": "concept"
+    },
+    {
+      "name": "选项",
+      "type": "concept"
+    },
+    {
+      "name": "通信链路",
+      "type": "concept"
+    },
+    {
+      "name": "通告间隔选项",
+      "type": "concept"
+    },
+    {
+      "name": "首部预测",
+      "type": "mechanism"
+    }
+  ],
+  "triples": [
+    {
+      "head": "停止-等待",
+      "head_type": "protocol",
+      "relation": "compared_with",
+      "tail": "后退N帧",
+      "tail_type": "protocol",
+      "evidence": "停止-等待协议：发送窗口大小=1，接收窗口大小=1。后退N帧协议：发送窗口大小>1，接收窗口大小=1。"
+    },
+    {
+      "head": "TCP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "slow start",
+      "tail_type": "mechanism",
+      "evidence": "ignore slow start, assume always data to send"
+    },
+    {
+      "head": "RA 报文",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "通告间隔选项",
+      "tail_type": "concept",
+      "evidence": "这个选项可能被包含在 RA 报文中"
+    },
+    {
+      "head": "GSM",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "MSC",
+      "tail_type": "concept",
+      "evidence": "A VLR is usually co-located with the mobile switching center (MSC)"
+    },
+    {
+      "head": "蓝牙",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "寄放模式",
+      "tail_type": "mechanism",
+      "evidence": "寄放模式: 客户端可以“进入睡眠”（寄放）并稍后唤醒（以节省电池）"
+    },
+    {
+      "head": "路由",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "前缀",
+      "tail_type": "concept",
+      "evidence": "“路由”包括前缀和属性"
+    },
+    {
+      "head": "TCP",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "three-way handshake",
+      "tail_type": "mechanism",
+      "evidence": "the TCP in Bob’s laptop must first perform a three-way handshake (Section 3.5.6) with the TCP in www.google.com"
+    },
+    {
+      "head": "SONET/SDH",
+      "head_type": "protocol",
+      "relation": "contains",
+      "tail": "STM-1",
+      "tail_type": "concept",
+      "evidence": "使北美、日本和欧洲这三个地区三种不同的数字传输体制在 STM-1 等级上获得了统一。"
+    },
+    {
+      "head": "RIP",
+      "head_type": "protocol",
+      "relation": "depends_on",
+      "tail": "IP",
+      "tail_type": "protocol",
+      "evidence": "IP Dynamic Routing Protocol=RIP。这样即把网络中所有路由器的动态路由协议设置为RIP协议。"
+    },
+    {
+      "head": "ICMP",
+      "head_type": "protocol",
+      "relation": "depends_on",
+      "tail": "IP层",
+      "tail_type": "concept",
+      "evidence": "但 ICMP 不是高层协议，而是 IP 层的协议。"
+    },
+    {
+      "head": "CSMA/CA",
+      "head_type": "protocol",
+      "relation": "depends_on",
+      "tail": "二进制指数退避",
+      "tail_type": "mechanism",
+      "evidence": "CSMA/CA 协议的退避算法与 CSMA/CD 协议类似，第 i 次退避在[0,…,(2⁴⁺ᵏ⁻¹)]个时隙中随机选择一个"
+    },
+    {
+      "head": "UDP",
+      "head_type": "protocol",
+      "relation": "applied_to",
+      "tail": "多路复用",
+      "tail_type": "concept",
+      "evidence": "附加上为多路复用 / 多路分解所需的源和目的端口号"
+    },
+    {
+      "head": "以太网",
+      "head_type": "protocol",
+      "relation": "applied_to",
+      "tail": "二进制指数后退",
+      "tail_type": "mechanism",
+      "evidence": "根据 IEEE 802.3 标准的规定，以太网采用二进制指数后退算法处理冲突问题。"
+    },
+    {
+      "head": "CSMA/CA",
+      "head_type": "protocol",
+      "relation": "applied_to",
+      "tail": "ACK帧",
+      "tail_type": "concept",
+      "evidence": "ACK 帧是 CSMA/CA 避免冲突的机制之一，也就是说，只有当发送方收到接收方发回的 ACK 帧后，才确认发出的数据帧已正确到达目的地。"
+    },
+    {
+      "head": "GBN",
+      "head_type": "protocol",
+      "relation": "applied_to",
+      "tail": "信道利用率",
+      "tail_type": "metric",
+      "evidence": "GBN 协议一方面通过连续发送多个帧显著提高了信道利用率"
+    },
+    {
+      "head": "UDP",
+      "head_type": "protocol",
+      "relation": "applied_to",
+      "tail": "fragmentation",
+      "tail_type": "concept",
+      "evidence": "A host that does not implement local fragmentation MUST ensure that the transport layer (for TCP) or the application layer (for UDP) obtains MMS_S from the IP layer and does not send a datagram exceeding MMS_S in size."
+    },
+    {
+      "head": "语义",
+      "head_type": "concept",
+      "relation": "compared_with",
+      "tail": "同步",
+      "tail_type": "concept",
+      "evidence": "“语义”并不包括“同步”。“语义”指出需要发出何种控制信息、完成何种动作以及做出何种响应。但“语义”并没有说明应当在什么时候做这些动作。而“同步”则详细说明这些事件实现的顺序。"
+    },
+    {
+      "head": "A类地址",
+      "head_type": "concept",
+      "relation": "compared_with",
+      "tail": "B类地址",
+      "tail_type": "concept",
+      "evidence": "A类地址: 18.181.0.31 (18<128) B类地址: 171.64.74.155 (128<171<128+64)"
+    },
+    {
+      "head": "OC-3/STS-3",
+      "head_type": "concept",
+      "relation": "compared_with",
+      "tail": "STM-1",
+      "tail_type": "concept",
+      "evidence": "155.520          | OC-3/STS-3 | STM-1      | 155 Mbit/s"
+    },
+    {
+      "head": "选项",
+      "head_type": "concept",
+      "relation": "compared_with",
+      "tail": "IPv6",
+      "tail_type": "protocol",
+      "evidence": "选项(options): 允许，但是从基本首部移出，定义多个选项首部，通过“下一个首部”字段指示"
+    },
+    {
+      "head": "RSS",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "XML",
+      "tail_type": "protocol",
+      "evidence": "RSS 之所以使用 XML 格式，是为了便于计算机处理。"
+    },
+    {
+      "head": "effective send MSS",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "EMTU_R",
+      "tail_type": "metric",
+      "evidence": "the send MSS (that reflects the available reassembly buffer size at the remote host, the EMTU_R [19])"
+    },
+    {
+      "head": "输出端口排队",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "输出端口缓冲区溢出",
+      "tail_type": "concept",
+      "evidence": "输出端口缓冲区溢出会导致分组的排队和丢失！"
+    },
+    {
+      "head": "拥塞控制",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "TCP",
+      "tail_type": "protocol",
+      "evidence": "但 TCP 连接的端点只要迟迟不能收到对方的确认信息，就猜想在当前网络中的某处很可能发生了拥塞"
+    },
+    {
+      "head": "socketpair",
+      "head_type": "concept",
+      "relation": "depends_on",
+      "tail": "socreate",
+      "tail_type": "mechanism",
+      "evidence": "244-261 调用socreate两次，创建两个插口。"
+    },
+    {
+      "head": "导引型传输媒体",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "双绞线",
+      "tail_type": "concept",
+      "evidence": "## 2.3.1 导引型传输媒体\n- 双绞线"
+    },
+    {
+      "head": "5层因特网协议栈",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "运输层",
+      "tail_type": "concept",
+      "evidence": "这些章都围绕 5 层因特网协议栈上面的 4 层而组织，其中一章对应一层"
+    },
+    {
+      "head": "Signers",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "MTAs",
+      "tail_type": "concept",
+      "evidence": "Elements in the mail system that sign messages on behalf of a domain are referred to as Signers. These may be MUAs (Mail User Agents), MSAs (Mail Submission Agents), MTAs (Mail Transfer Agents), or other agents"
+    },
+    {
+      "head": "RFC 822",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "头部行",
+      "tail_type": "concept",
+      "evidence": "RFC 822 : 文本消息格式标准 头部行 (header)"
+    },
+    {
+      "head": "FORM",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "input",
+      "tail_type": "concept",
+      "evidence": "<form action=\"url\" method=\"*>...<input type=submit> <input type=reset></form>"
+    },
+    {
+      "head": "multiple classes of service",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "ToS bits",
+      "tail_type": "concept",
+      "evidence": "history: ToS bits"
+    },
+    {
+      "head": "无线个人区域网",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "超高速 WPAN",
+      "tail_type": "concept",
+      "evidence": "无线个人区域网包括蓝牙系统、ZigBee 和超高速 WPAN。"
+    },
+    {
+      "head": "端到端时延",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "节点时延",
+      "tail_type": "concept",
+      "evidence": "前面的讨论一直集中在节点时延上，即在单台路由器上的时延。我们现在考虑从源到目的地的总时延。"
+    },
+    {
+      "head": "HTTP 首部字段",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "请求首部字段",
+      "tail_type": "concept",
+      "evidence": "HTTP 首部字段根据实际用途被分为以下 4 种类型。...请求首部字段（Request Header Fields）从客户端向服务器端发送请求报文时使用的首部。"
+    },
+    {
+      "head": "ISP",
+      "head_type": "concept",
+      "relation": "contains",
+      "tail": "通信链路",
+      "tail_type": "concept",
+      "evidence": "每个 ISP 是一个由多个分组交换机和多段通信链路组成的网络。"
+    },
+    {
+      "head": "伪重传",
+      "head_type": "concept",
+      "relation": "applied_to",
+      "tail": "TCP",
+      "tail_type": "protocol",
+      "evidence": "图 14-12 描述了一个简化的 TCP 交换过程。在报文段 8 发送完成后 ACK 链路上出现了延迟高峰导致了一次伪重传。"
+    },
+    {
+      "head": "尾部",
+      "head_type": "concept",
+      "relation": "applied_to",
+      "tail": "帧定界",
+      "tail_type": "concept",
+      "evidence": "首部和尾部的一个重要作用就是进行帧定界（即确定帧的界限）。"
+    },
+    {
+      "head": "回显请求",
+      "head_type": "concept",
+      "relation": "applied_to",
+      "tail": "ICMPv6",
+      "tail_type": "protocol",
+      "evidence": "我们看到 ICMPv6 回显请求/应答与 ND 一起使用的结果"
+    },
+    {
+      "head": "分析器",
+      "head_type": "concept",
+      "relation": "applied_to",
+      "tail": "TCP",
+      "tail_type": "protocol",
+      "evidence": "它需要理解 TCP 报文段"
+    },
+    {
+      "head": "framing",
+      "head_type": "concept",
+      "relation": "applied_to",
+      "tail": "frame",
+      "tail_type": "concept",
+      "evidence": "encapsulate datagram into frame, adding header, trailer"
+    },
+    {
+      "head": "可靠传输",
+      "head_type": "concept",
+      "relation": "applied_to",
+      "tail": "数据链路层",
+      "tail_type": "concept",
+      "evidence": "在实际网络中，是否在数据链路层提供可靠传输服务取决于链路特性"
+    },
+    {
+      "head": "AP",
+      "head_type": "concept",
+      "relation": "applied_to",
+      "tail": "RADIUS鉴别服务器",
+      "tail_type": "concept",
+      "evidence": "通过AP的中继, 使用RADIUS鉴别服务器进行身份鉴别"
+    },
+    {
+      "head": "路由器",
+      "head_type": "concept",
+      "relation": "applied_to",
+      "tail": "拥塞控制",
+      "tail_type": "concept",
+      "evidence": "5.3.6 Congestion Control …………………………… 94"
+    },
+    {
+      "head": "Uri-Port Option",
+      "head_type": "concept",
+      "relation": "applied_to",
+      "tail": "CoAP",
+      "tail_type": "protocol",
+      "evidence": "The Uri-Host, Uri-Port, Uri-Path, and Uri-Query Options are used to specify the target resource of a request to a CoAP origin server."
+    },
+    {
+      "head": "域名服务器缓存",
+      "head_type": "mechanism",
+      "relation": "compared_with",
+      "tail": "根域名服务器",
+      "tail_type": "concept",
+      "evidence": "可以有效减少根域名服务器的访问频度"
+    },
+    {
+      "head": "Register-Stop Timer (RST(S,G))",
+      "head_type": "mechanism",
+      "relation": "applied_to",
+      "tail": "Register-encapsulated data",
+      "tail_type": "concept",
+      "evidence": "Period during which a DR stops sending Register-encapsulated data to the RP after receiving a Register-Stop message."
+    },
+    {
+      "head": "HTTP头压缩",
+      "head_type": "mechanism",
+      "relation": "applied_to",
+      "tail": "请求头",
+      "tail_type": "concept",
+      "evidence": "请求头\n:method GET\n:scheme https\n:host example.com\n:path /resource\nuser-agent Mozilla/5.0...\ncustom-hdr some-value"
+    },
+    {
+      "head": "traffic intensity",
+      "head_type": "metric",
+      "relation": "depends_on",
+      "tail": "packet arrival rate",
+      "tail_type": "metric",
+      "evidence": "traffic intensity = La/R, a=average packet arrival rate"
+    },
+    {
+      "head": "字节填充",
+      "head_type": "mechanism",
+      "relation": "contains",
+      "tail": "异步传输",
+      "tail_type": "concept",
+      "evidence": "当 PPP 使用异步传输时，...并使用字节填充。"
+    },
+    {
+      "head": "RTT",
+      "head_type": "metric",
+      "relation": "contains",
+      "tail": "ms",
+      "tail_type": "metric",
+      "evidence": "15ms 端到端传播延迟"
+    },
+    {
+      "head": "自学习",
+      "head_type": "mechanism",
+      "relation": "depends_on",
+      "tail": "地址映射表",
+      "tail_type": "concept",
+      "evidence": "交换机在转发数据帧的过程中学习哪个节点连接哪个接口"
+    },
+    {
+      "head": "首部预测",
+      "head_type": "mechanism",
+      "relation": "depends_on",
+      "tail": "TCP",
+      "tail_type": "protocol",
+      "evidence": "首部预测算法是基于这样的假定：一般情况下，报文段既不会丢失，次序也不会错误，因此，对于给定连接，TCP总能猜到下一个接收报文段的内容。"
+    },
+    {
+      "head": "分组平均时延",
+      "head_type": "metric",
+      "relation": "compared_with",
+      "tail": "吞吐量",
+      "tail_type": "metric",
+      "evidence": "路由选择算法应当能够找出最好的路由，使得分组平均时延最小而网络的吞吐量最大。"
+    },
+    {
+      "head": "throughput",
+      "head_type": "metric",
+      "relation": "applied_to",
+      "tail": "connection",
+      "tail_type": "concept",
+      "evidence": "maximum per-connection throughput: R/2"
+    }
+  ]
+}

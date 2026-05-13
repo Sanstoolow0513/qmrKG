@@ -1,7 +1,7 @@
 # QmrKG Test Suite
 
-**Generated:** 2026-05-06
-**Commit:** 6748773
+**Generated:** 2026-05-13
+**Commit:** d8111eb
 **Branch:** kgeval-quality-baseline
 **Location:** `tests/`
 

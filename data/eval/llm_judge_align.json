@@ -1,0 +1,4010 @@
+[
+  {
+    "gold_name": "/23",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "/23",
+      "23"
+    ]
+  },
+  {
+    "gold_name": "1000BASE-LX",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "1000Base-LX"
+    ]
+  },
+  {
+    "gold_name": "100BASE-T",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "100BASE-T"
+    ]
+  },
+  {
+    "gold_name": "10BASE-2",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "10BASE-2"
+    ]
+  },
+  {
+    "gold_name": "10BASE-T",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "10BASE-T"
+    ]
+  },
+  {
+    "gold_name": "10GBASE-T",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "10GBase-T"
+    ]
+  },
+  {
+    "gold_name": "25",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "/25",
+      "25"
+    ]
+  },
+  {
+    "gold_name": "32 bit destination IP address",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "destination IP address"
+    ]
+  },
+  {
+    "gold_name": "32 bit source IP address",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "404 Not Found",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "404 Not Found",
+      "404 Not Found (status code)"
+    ]
+  },
+  {
+    "gold_name": "40GBASE-T",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "40GBASE-T"
+    ]
+  },
+  {
+    "gold_name": "4G",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "4G"
+    ]
+  },
+  {
+    "gold_name": "4G LTE",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "4G LTE"
+    ]
+  },
+  {
+    "gold_name": "5G",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "5G"
+    ]
+  },
+  {
+    "gold_name": "80",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "80"
+    ]
+  },
+  {
+    "gold_name": "802.11",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "802.11"
+    ]
+  },
+  {
+    "gold_name": "802.11ax",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "802.11ax",
+      "802.11ax (WiFi 6)"
+    ]
+  },
+  {
+    "gold_name": "802.3",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "802.3"
+    ]
+  },
+  {
+    "gold_name": "802.3 以太网标准",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "802.3",
+      "802.3 以太网"
+    ]
+  },
+  {
+    "gold_name": "81",
+    "gold_type": "metric",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "ABORT",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "PRU_ABORT"
+    ]
+  },
+  {
+    "gold_name": "ACK/NAK",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "AES",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "AES"
+    ]
+  },
+  {
+    "gold_name": "AF PHB",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "AF PHB"
+    ]
+  },
+  {
+    "gold_name": "AF_INET",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "AH",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "AH"
+    ]
+  },
+  {
+    "gold_name": "ALL-SYSTEMS",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "ALL-SYSTEMS"
+    ]
+  },
+  {
+    "gold_name": "APNs",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "APNs"
+    ]
+  },
+  {
+    "gold_name": "ARP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "ARP"
+    ]
+  },
+  {
+    "gold_name": "ARP 表",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "ARP表"
+    ]
+  },
+  {
+    "gold_name": "ARPANET",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "ARPA net"
+    ]
+  },
+  {
+    "gold_name": "ARPANET 参考模型",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "ARPANET参考模型"
+    ]
+  },
+  {
+    "gold_name": "ARP表",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "ARP表"
+    ]
+  },
+  {
+    "gold_name": "AS-PATH",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "AS-PATH"
+    ]
+  },
+  {
+    "gold_name": "Ajax",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "Application Data",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Application data",
+      "Application data (message)"
+    ]
+  },
+  {
+    "gold_name": "BBR",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "BBR"
+    ]
+  },
+  {
+    "gold_name": "BDP",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "BGP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "BGP"
+    ]
+  },
+  {
+    "gold_name": "BITS",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "BYPASS",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "BYPASS"
+    ]
+  },
+  {
+    "gold_name": "Bottleneck Bandwidth",
+    "gold_type": "metric",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "BtlBw",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "BtlBw"
+    ]
+  },
+  {
+    "gold_name": "CDMA",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "CDMA"
+    ]
+  },
+  {
+    "gold_name": "CIDR",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "CIDR"
+    ]
+  },
+  {
+    "gold_name": "CIDR机制",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "COOKIE ECHO chunk",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "COOKIE ECHO chunk"
+    ]
+  },
+  {
+    "gold_name": "CRC",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "CRC"
+    ]
+  },
+  {
+    "gold_name": "CRC polynomial",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "CRC"
+    ]
+  },
+  {
+    "gold_name": "CSMA/CD",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "CSMA/CD 以太网",
+      "CSMA/CD 网络",
+      "以太网CSMA/CD介质访问控制"
+    ]
+  },
+  {
+    "gold_name": "Change Cipher Spec",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "ChangeCipherSpec"
+    ]
+  },
+  {
+    "gold_name": "ChangeCipherSpec",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "Content-Length",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "Counter32",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Counter32"
+    ]
+  },
+  {
+    "gold_name": "Cubic",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "CUBIC"
+    ]
+  },
+  {
+    "gold_name": "DATA chunk",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "DATA chunk"
+    ]
+  },
+  {
+    "gold_name": "DCCP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "DCCP"
+    ]
+  },
+  {
+    "gold_name": "DHCP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "DHCP"
+    ]
+  },
+  {
+    "gold_name": "DHCP server",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "DHCP server"
+    ]
+  },
+  {
+    "gold_name": "DHCP 发现报文",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "DHCP发现报文"
+    ]
+  },
+  {
+    "gold_name": "DHCPv6",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "DHCPv6"
+    ]
+  },
+  {
+    "gold_name": "DKIM",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "DKIM"
+    ]
+  },
+  {
+    "gold_name": "DNS",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "域名系统 DNS",
+      "DNS 系统",
+      "DNS protocol"
+    ]
+  },
+  {
+    "gold_name": "DOCSIS",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "DOCSIS"
+    ]
+  },
+  {
+    "gold_name": "DOM",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "DOM"
+    ]
+  },
+  {
+    "gold_name": "DSCP",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "DSCP"
+    ]
+  },
+  {
+    "gold_name": "DUID",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "DUID"
+    ]
+  },
+  {
+    "gold_name": "DV algorithm",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "DV algorithm"
+    ]
+  },
+  {
+    "gold_name": "Destination Network Address",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Destination Network Address"
+    ]
+  },
+  {
+    "gold_name": "DiffServ",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "ECN",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "ECN"
+    ]
+  },
+  {
+    "gold_name": "ENOTCONN",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "ESP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "ESP"
+    ]
+  },
+  {
+    "gold_name": "EWMA",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "EWMA"
+    ]
+  },
+  {
+    "gold_name": "Encrypted Handshake Record",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "EstimatedRTT",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "EstimatedRTT"
+    ]
+  },
+  {
+    "gold_name": "Ethernet",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "Ethernet"
+    ]
+  },
+  {
+    "gold_name": "Ethernet frame",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Ethernet frame"
+    ]
+  },
+  {
+    "gold_name": "FCS",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "FCS"
+    ]
+  },
+  {
+    "gold_name": "FR1",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "FR1"
+    ]
+  },
+  {
+    "gold_name": "FR2",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "FR2"
+    ]
+  },
+  {
+    "gold_name": "FTP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "FTP"
+    ]
+  },
+  {
+    "gold_name": "GBN",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "GBN"
+    ]
+  },
+  {
+    "gold_name": "GET",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "<get>"
+    ]
+  },
+  {
+    "gold_name": "GET method",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "<get>"
+    ]
+  },
+  {
+    "gold_name": "GET-requests",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "<get>"
+    ]
+  },
+  {
+    "gold_name": "General Query",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "General Query"
+    ]
+  },
+  {
+    "gold_name": "Go-Back-N 协议",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "H.323",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "H.323"
+    ]
+  },
+  {
+    "gold_name": "HFC 网",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "HFC网"
+    ]
+  },
+  {
+    "gold_name": "HTML",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "HTML"
+    ]
+  },
+  {
+    "gold_name": "HTTP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "HTTP"
+    ]
+  },
+  {
+    "gold_name": "HTTP 2.0协议",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "HTTP/2",
+      "HTTP 2.0"
+    ]
+  },
+  {
+    "gold_name": "HTTP Server",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "HTTP Server"
+    ]
+  },
+  {
+    "gold_name": "HTTP client",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "HTTP client"
+    ]
+  },
+  {
+    "gold_name": "HTTP header format",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "HTTP request",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "HTTP request"
+    ]
+  },
+  {
+    "gold_name": "HTTP 响应报文",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "HTTP响应报文"
+    ]
+  },
+  {
+    "gold_name": "HTTP 请求报文",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "HTTP请求报文"
+    ]
+  },
+  {
+    "gold_name": "HTTP/1.0",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "HTTP/1.0"
+    ]
+  },
+  {
+    "gold_name": "HTTP/1.1",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "HTTP/1.1"
+    ]
+  },
+  {
+    "gold_name": "HTTP/2.0",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "HTTP 2.0"
+    ]
+  },
+  {
+    "gold_name": "HTTP/3.0",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "HTTP/3.0"
+    ]
+  },
+  {
+    "gold_name": "HTTPS",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "HTTPS"
+    ]
+  },
+  {
+    "gold_name": "ICI",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "ICMP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "ICMP",
+      "icmp (5)"
+    ]
+  },
+  {
+    "gold_name": "ICMP回显回答",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "回显"
+    ]
+  },
+  {
+    "gold_name": "ICMP回显请求",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "请求/应答（ping）"
+    ]
+  },
+  {
+    "gold_name": "IDU",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "IDU"
+    ]
+  },
+  {
+    "gold_name": "IEEE 802.3",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "IEEE 802.3标准",
+      "802.3",
+      "IEEE 802.3 标准以太网",
+      "802.3 Ethernet"
+    ]
+  },
+  {
+    "gold_name": "IGMP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "IGMP"
+    ]
+  },
+  {
+    "gold_name": "IGMPv2",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "IGMPv2"
+    ]
+  },
+  {
+    "gold_name": "INIT ACK chunk",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "INIT ACK chunk"
+    ]
+  },
+  {
+    "gold_name": "INIT chunk",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "INIT chunk"
+    ]
+  },
+  {
+    "gold_name": "IP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "IP",
+      "ip (4)"
+    ]
+  },
+  {
+    "gold_name": "IP address",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "IP address"
+    ]
+  },
+  {
+    "gold_name": "IP datagrams",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "IP 地址",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "IP地址"
+    ]
+  },
+  {
+    "gold_name": "IP 地址空间",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "IP地址空间"
+    ]
+  },
+  {
+    "gold_name": "IP 地址获取",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "IP地址获取"
+    ]
+  },
+  {
+    "gold_name": "IP 数据报",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "IP 数据报"
+    ]
+  },
+  {
+    "gold_name": "IPsec",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "IPsec"
+    ]
+  },
+  {
+    "gold_name": "IPv4",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "IPv4"
+    ]
+  },
+  {
+    "gold_name": "IPv6",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "IPv6"
+    ]
+  },
+  {
+    "gold_name": "IP地址",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "IP地址"
+    ]
+  },
+  {
+    "gold_name": "IP数据报",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "IP 数据报"
+    ]
+  },
+  {
+    "gold_name": "ISP",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "ISP"
+    ]
+  },
+  {
+    "gold_name": "Internet checksum",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "checksum"
+    ]
+  },
+  {
+    "gold_name": "JPEG",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "JPEG"
+    ]
+  },
+  {
+    "gold_name": "JavaScript",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "JavaScript"
+    ]
+  },
+  {
+    "gold_name": "KISS",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "KISS principle"
+    ]
+  },
+  {
+    "gold_name": "Keep-Alive",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "keep-alive"
+    ]
+  },
+  {
+    "gold_name": "L",
+    "gold_type": "metric",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "LCP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "LCP"
+    ]
+  },
+  {
+    "gold_name": "LSA",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "LSA"
+    ]
+  },
+  {
+    "gold_name": "LTE",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "LTE"
+    ]
+  },
+  {
+    "gold_name": "Linux",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Linux"
+    ]
+  },
+  {
+    "gold_name": "MAC address",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "MAC address"
+    ]
+  },
+  {
+    "gold_name": "MAC addresses",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "MAC addresses"
+    ]
+  },
+  {
+    "gold_name": "MAC 协议",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "媒体访问控制"
+    ]
+  },
+  {
+    "gold_name": "MAC 地址",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "MAC地址"
+    ]
+  },
+  {
+    "gold_name": "MAC协议",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "媒体访问控制"
+    ]
+  },
+  {
+    "gold_name": "MAC地址",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "MAC地址"
+    ]
+  },
+  {
+    "gold_name": "MAP",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "MAX-ACCESS",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "MD5",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "MIMO",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "MIMO"
+    ]
+  },
+  {
+    "gold_name": "MLD",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "MLD"
+    ]
+  },
+  {
+    "gold_name": "MLDv2",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "MLDv2"
+    ]
+  },
+  {
+    "gold_name": "MMS",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "MPA",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "MPLS",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "MPLS"
+    ]
+  },
+  {
+    "gold_name": "MPS",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "MPS"
+    ]
+  },
+  {
+    "gold_name": "MSL",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "MSL"
+    ]
+  },
+  {
+    "gold_name": "MSS",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "mss"
+    ]
+  },
+  {
+    "gold_name": "MSS Option",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "MSS Option"
+    ]
+  },
+  {
+    "gold_name": "MTU",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "MTU"
+    ]
+  },
+  {
+    "gold_name": "Mail Server",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "mail server",
+      "Mail Server",
+      "mailserver"
+    ]
+  },
+  {
+    "gold_name": "NAT",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "NAT"
+    ]
+  },
+  {
+    "gold_name": "NAT",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "NAT 转换表",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "NCP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "NCP"
+    ]
+  },
+  {
+    "gold_name": "NIC",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "NIC"
+    ]
+  },
+  {
+    "gold_name": "NSFNET",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "NSFnet"
+    ]
+  },
+  {
+    "gold_name": "Name servers",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "name servers"
+    ]
+  },
+  {
+    "gold_name": "Neighbor Discovery",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "IPv6 Neighbor Discovery",
+      "plain Neighbor Discovery"
+    ]
+  },
+  {
+    "gold_name": "Network Mask",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "network mask"
+    ]
+  },
+  {
+    "gold_name": "New RENO",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "NewReno"
+    ]
+  },
+  {
+    "gold_name": "Next Header",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "OBJECT-TYPE",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "OBJECT-TYPE"
+    ]
+  },
+  {
+    "gold_name": "OFDM",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "OFDM"
+    ]
+  },
+  {
+    "gold_name": "OFDMA",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "OFDMA"
+    ]
+  },
+  {
+    "gold_name": "OSI",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "OSI"
+    ]
+  },
+  {
+    "gold_name": "OSI 参考模型",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "OSI参考模型"
+    ]
+  },
+  {
+    "gold_name": "OSPF",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "OSPF"
+    ]
+  },
+  {
+    "gold_name": "PCI",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "PCI"
+    ]
+  },
+  {
+    "gold_name": "PDN 网关",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "PDN网关",
+      "PDN网关（P-GW）"
+    ]
+  },
+  {
+    "gold_name": "PDU",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "PDU"
+    ]
+  },
+  {
+    "gold_name": "PHB",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "PHB"
+    ]
+  },
+  {
+    "gold_name": "PIM-SM",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "PIM-SM"
+    ]
+  },
+  {
+    "gold_name": "PLPMTUD",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "PLPMTUD"
+    ]
+  },
+  {
+    "gold_name": "PMTUD",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "PMTUD"
+    ]
+  },
+  {
+    "gold_name": "PPP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "PPP"
+    ]
+  },
+  {
+    "gold_name": "Path MTU Discovery",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "Path MTU Discovery"
+    ]
+  },
+  {
+    "gold_name": "Protocol 3 (par)",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "Protocol 6",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "Protocol 6"
+    ]
+  },
+  {
+    "gold_name": "Prune(S,G)",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Prune(*,G)",
+      "Prune (P)"
+    ]
+  },
+  {
+    "gold_name": "PruneEcho(S,G)",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "PruneEcho(*,G)"
+    ]
+  },
+  {
+    "gold_name": "QUIC",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "QUIC"
+    ]
+  },
+  {
+    "gold_name": "Querier",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Querier"
+    ]
+  },
+  {
+    "gold_name": "R2",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "R2"
+    ]
+  },
+  {
+    "gold_name": "RFC 1112",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "RIP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "RIP"
+    ]
+  },
+  {
+    "gold_name": "RSA",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "RSA"
+    ]
+  },
+  {
+    "gold_name": "RSVP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "RSVP"
+    ]
+  },
+  {
+    "gold_name": "RTO",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "RTO"
+    ]
+  },
+  {
+    "gold_name": "RTT",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "RTT"
+    ]
+  },
+  {
+    "gold_name": "RTprop",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "RTprop"
+    ]
+  },
+  {
+    "gold_name": "Rdt 2.0",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "rdt2.0"
+    ]
+  },
+  {
+    "gold_name": "Rdt 2.1",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "rdt2.1"
+    ]
+  },
+  {
+    "gold_name": "Round-trip propagation time",
+    "gold_type": "metric",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "SACK",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "SACK选项"
+    ]
+  },
+  {
+    "gold_name": "SCTP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "SCTP"
+    ]
+  },
+  {
+    "gold_name": "SDU",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "SDU"
+    ]
+  },
+  {
+    "gold_name": "SHA",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "SIP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "SIP"
+    ]
+  },
+  {
+    "gold_name": "SMS",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "SMTP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "SMTP"
+    ]
+  },
+  {
+    "gold_name": "SOCK_STREAM",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "SR",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "SR"
+    ]
+  },
+  {
+    "gold_name": "SS#7",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "SS#7 protocol"
+    ]
+  },
+  {
+    "gold_name": "SSL",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "SSL"
+    ]
+  },
+  {
+    "gold_name": "SSL 3.0",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "SSL 3.0"
+    ]
+  },
+  {
+    "gold_name": "STATUS",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      ":status",
+      "STATUS",
+      "STATUS (command)",
+      "Status"
+    ]
+  },
+  {
+    "gold_name": "STUN",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "STUN"
+    ]
+  },
+  {
+    "gold_name": "SYNTAX",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Syntax"
+    ]
+  },
+  {
+    "gold_name": "SampleRTT",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "SampleRTT"
+    ]
+  },
+  {
+    "gold_name": "Selective Repeat 协议",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "Server Hello",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Server Hello"
+    ]
+  },
+  {
+    "gold_name": "Session ID",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "session IDs"
+    ]
+  },
+  {
+    "gold_name": "Stub resolvers",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "stub resolver"
+    ]
+  },
+  {
+    "gold_name": "T/TCP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "T/TCP"
+    ]
+  },
+  {
+    "gold_name": "T3-rtx timer",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "T3-rtx timer"
+    ]
+  },
+  {
+    "gold_name": "TAO",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "TAO"
+    ]
+  },
+  {
+    "gold_name": "TCP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "TCP",
+      "tcp (6)"
+    ]
+  },
+  {
+    "gold_name": "TCP Reno",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "TCP Reno"
+    ]
+  },
+  {
+    "gold_name": "TCP connection",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "TCP connection"
+    ]
+  },
+  {
+    "gold_name": "TCP throughput equation",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "TCP throughput equation"
+    ]
+  },
+  {
+    "gold_name": "TCP 报文段",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "TCP报文段"
+    ]
+  },
+  {
+    "gold_name": "TCP 拥塞窗口",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "拥塞窗口"
+    ]
+  },
+  {
+    "gold_name": "TCP/IP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "TCP/IP"
+    ]
+  },
+  {
+    "gold_name": "TCP/IP 模型",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "TCP/IP模型"
+    ]
+  },
+  {
+    "gold_name": "TCP/IP协议",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "TCP/IP",
+      "TCP/IP 协议族",
+      "TCP/IP 协议簇"
+    ]
+  },
+  {
+    "gold_name": "TELNET",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "Telnet"
+    ]
+  },
+  {
+    "gold_name": "TFTP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "TFTP"
+    ]
+  },
+  {
+    "gold_name": "TIME_WAIT",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "TIME_WAIT"
+    ]
+  },
+  {
+    "gold_name": "TLS",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "TLS"
+    ]
+  },
+  {
+    "gold_name": "TLS Record Layer",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "TLS Record Layer"
+    ]
+  },
+  {
+    "gold_name": "TTL",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "TTL字段",
+      "TTL field"
+    ]
+  },
+  {
+    "gold_name": "TTL",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "TTL",
+      "TTL（秒）",
+      "TTL（跳数）"
+    ]
+  },
+  {
+    "gold_name": "ToS",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "TOS"
+    ]
+  },
+  {
+    "gold_name": "ToS field",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "TOS field"
+    ]
+  },
+  {
+    "gold_name": "Traceroute",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "traceroute",
+      "Traceroute (Tracert)"
+    ]
+  },
+  {
+    "gold_name": "UDP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "UDP",
+      "udp (7)"
+    ]
+  },
+  {
+    "gold_name": "UDP header",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "UDP header"
+    ]
+  },
+  {
+    "gold_name": "UDP sockets",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "UDP sockets"
+    ]
+  },
+  {
+    "gold_name": "UDP客户–服务器应用程序",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "URLLC",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "URLLC"
+    ]
+  },
+  {
+    "gold_name": "Unix域协议",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "Unix域"
+    ]
+  },
+  {
+    "gold_name": "Unrecognized Parameter",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Unrecognized Parameter"
+    ]
+  },
+  {
+    "gold_name": "VLAN",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "WFQ",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "WFQ"
+    ]
+  },
+  {
+    "gold_name": "Web",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Web"
+    ]
+  },
+  {
+    "gold_name": "Web page",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "web page"
+    ]
+  },
+  {
+    "gold_name": "Web 页面",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Web页面"
+    ]
+  },
+  {
+    "gold_name": "WhatsApp",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "Wireshark",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Wireshark"
+    ]
+  },
+  {
+    "gold_name": "XMLHttpRequest",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "XMPP",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "XMPP"
+    ]
+  },
+  {
+    "gold_name": "access",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "alert type",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "arrived",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "authentication algorithms",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "authoritative data",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "authoritative data"
+    ]
+  },
+  {
+    "gold_name": "bundling",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "bundling"
+    ]
+  },
+  {
+    "gold_name": "checksum",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "checksum"
+    ]
+  },
+  {
+    "gold_name": "cipher suite",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "cipher suite"
+    ]
+  },
+  {
+    "gold_name": "close_notify",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "close_notify"
+    ]
+  },
+  {
+    "gold_name": "congestion control",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "congestion control"
+    ]
+  },
+  {
+    "gold_name": "congestion control mechanism",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "congestion-control mechanism"
+    ]
+  },
+  {
+    "gold_name": "connectionSocket",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "connectionSocket"
+    ]
+  },
+  {
+    "gold_name": "cookie",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "cookie"
+    ]
+  },
+  {
+    "gold_name": "cwnd",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "cwnd"
+    ]
+  },
+  {
+    "gold_name": "datagram socket",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "DatagramSocket"
+    ]
+  },
+  {
+    "gold_name": "datagrams",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "dijkstra算法",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "Dijkstra",
+      "Shortest Path First (SPF)",
+      "Dijkstra calculation"
+    ]
+  },
+  {
+    "gold_name": "distance tables",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "distance tables"
+    ]
+  },
+  {
+    "gold_name": "distance vector (DV) algorithm",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "Distance vector algorithm",
+      "distance vector algorithm",
+      "Distance-Vector Algorithm",
+      "distance-vector algorithm",
+      "Distance Vector algorithm"
+    ]
+  },
+  {
+    "gold_name": "eMBB",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "eMBB"
+    ]
+  },
+  {
+    "gold_name": "encryption",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "end-to-end delay",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "end-to-end delays"
+    ]
+  },
+  {
+    "gold_name": "enumerated type",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "enumerated type"
+    ]
+  },
+  {
+    "gold_name": "errors",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "errors"
+    ]
+  },
+  {
+    "gold_name": "flow control",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "Flow Control"
+    ]
+  },
+  {
+    "gold_name": "fragmentation",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "fragmentation"
+    ]
+  },
+  {
+    "gold_name": "frames out of order",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "header fields",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "header fields",
+      "HEADER.FIELDS (part specifier)"
+    ]
+  },
+  {
+    "gold_name": "htons",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "htons"
+    ]
+  },
+  {
+    "gold_name": "iMessage",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "ipSystemStatsInDelivers",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "ipSystemStatsInDelivers"
+    ]
+  },
+  {
+    "gold_name": "link-local address",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "link-local address"
+    ]
+  },
+  {
+    "gold_name": "longest match principle",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "longest match principle"
+    ]
+  },
+  {
+    "gold_name": "mMTC",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "mMTC"
+    ]
+  },
+  {
+    "gold_name": "multicast group",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "multicast group"
+    ]
+  },
+  {
+    "gold_name": "name server",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "name server"
+    ]
+  },
+  {
+    "gold_name": "out_buf",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "packet loss",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "packet loss"
+    ]
+  },
+  {
+    "gold_name": "ping",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "ping程序",
+      "PING命令",
+      "定期ping"
+    ]
+  },
+  {
+    "gold_name": "ping",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "ping message",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "ping protocol",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "pipelining",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "Pipelining"
+    ]
+  },
+  {
+    "gold_name": "plug-and-play networking",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "plug-and-play protocol",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "poison reverse",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "private key",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "private key"
+    ]
+  },
+  {
+    "gold_name": "protocol 5",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "Protocol 5"
+    ]
+  },
+  {
+    "gold_name": "protocol6",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "Protocol 6"
+    ]
+  },
+  {
+    "gold_name": "public key",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "public key"
+    ]
+  },
+  {
+    "gold_name": "round-trip times",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "round-trip times"
+    ]
+  },
+  {
+    "gold_name": "route_output",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "router queue overflows",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "routing message",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "segmentation",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "segmentation"
+    ]
+  },
+  {
+    "gold_name": "segments",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "segments"
+    ]
+  },
+  {
+    "gold_name": "send",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "SEND"
+    ]
+  },
+  {
+    "gold_name": "server hello",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Server Hello"
+    ]
+  },
+  {
+    "gold_name": "session resumption",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "session resumption"
+    ]
+  },
+  {
+    "gold_name": "signature",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "signature"
+    ]
+  },
+  {
+    "gold_name": "socket",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "socket"
+    ]
+  },
+  {
+    "gold_name": "socket timeout",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "socket timeout"
+    ]
+  },
+  {
+    "gold_name": "solicited-node multicast address",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "source port",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "standard queries",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "stateful fragment checking",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "Stateful Fragment Checking"
+    ]
+  },
+  {
+    "gold_name": "stop-and-wait protocol",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "stop-and-wait protocol"
+    ]
+  },
+  {
+    "gold_name": "stub",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "stub area",
+      "stub areas"
+    ]
+  },
+  {
+    "gold_name": "subnet mask",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "variable length subnet mask"
+    ]
+  },
+  {
+    "gold_name": "thread",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "throughput",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "throughput"
+    ]
+  },
+  {
+    "gold_name": "timeout",
+    "gold_type": "metric",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "transmission delays",
+    "gold_type": "metric",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "trunk",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "trunk端口",
+      "VLAN trunking",
+      "Trunk模式"
+    ]
+  },
+  {
+    "gold_name": "type field",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "unidirectional data flow",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "variant",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "web server",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "web server"
+    ]
+  },
+  {
+    "gold_name": "window",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "window",
+      "Window"
+    ]
+  },
+  {
+    "gold_name": "zero window probe",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "zero window probe"
+    ]
+  },
+  {
+    "gold_name": "zones",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "zones"
+    ]
+  },
+  {
+    "gold_name": "三次握手",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "三次握手"
+    ]
+  },
+  {
+    "gold_name": "下一跳地址",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "下一跳地址解析",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "丢包",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "丢包"
+    ]
+  },
+  {
+    "gold_name": "丢包率",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "丢包率"
+    ]
+  },
+  {
+    "gold_name": "丢弃优先级",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "临时地址",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "临时地址"
+    ]
+  },
+  {
+    "gold_name": "主机号",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "主机号"
+    ]
+  },
+  {
+    "gold_name": "主要功能",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "乘性增",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "乘性增"
+    ]
+  },
+  {
+    "gold_name": "争用期",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "二进制格式",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "互联网",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "互联网",
+      "互联网+"
+    ]
+  },
+  {
+    "gold_name": "交换机",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "交换机"
+    ]
+  },
+  {
+    "gold_name": "交换机",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "交谈式音频/视频",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "以太网",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "以太网",
+      "以太网 (Ethernet)",
+      "以太网 (DIX)"
+    ]
+  },
+  {
+    "gold_name": "以太网交换机",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "以太网协议",
+    "gold_type": "protocol",
+    "matched_pred_names": [
+      "以太网",
+      "Ethernet",
+      "Eth",
+      "以太网 (Ethernet)",
+      "Ethernet protocol",
+      "802.3 Ethernet",
+      "以太网 (DIX)"
+    ]
+  },
+  {
+    "gold_name": "会话层",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "会话层",
+      "会话层 (OSI)"
+    ]
+  },
+  {
+    "gold_name": "传输媒体",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "传输媒体"
+    ]
+  },
+  {
+    "gold_name": "传输层",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "传输层 (OSI)",
+      "传输层 (TCP/IP)"
+    ]
+  },
+  {
+    "gold_name": "传输层协议",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "transport-layer protocol"
+    ]
+  },
+  {
+    "gold_name": "伪首部",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "伪首部"
+    ]
+  },
+  {
+    "gold_name": "体系结构原则",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "信号的健壮性",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "信息共享",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "光纤",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "光纤",
+      "光纤(fiber)"
+    ]
+  },
+  {
+    "gold_name": "光纤节点",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "光纤节点"
+    ]
+  },
+  {
+    "gold_name": "公网IP地址",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "公网IP地址"
+    ]
+  },
+  {
+    "gold_name": "共享多路访问信道",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "共享多路访问信道"
+    ]
+  },
+  {
+    "gold_name": "分片",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "分片"
+    ]
+  },
+  {
+    "gold_name": "分片扩展首部",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "分组",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "分组"
+    ]
+  },
+  {
+    "gold_name": "分组交换",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "packet switching",
+      "分组交换原理"
+    ]
+  },
+  {
+    "gold_name": "分组交换机",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "分组交换机"
+    ]
+  },
+  {
+    "gold_name": "分组数",
+    "gold_type": "metric",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "分组转发",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "分组转发"
+    ]
+  },
+  {
+    "gold_name": "初始阈值",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "拥塞窗口初始阈值",
+      "初始 Threshold 值"
+    ]
+  },
+  {
+    "gold_name": "办公区",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "办公区"
+    ]
+  },
+  {
+    "gold_name": "功能特性",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "功能特性"
+    ]
+  },
+  {
+    "gold_name": "加性增",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "加性增"
+    ]
+  },
+  {
+    "gold_name": "协议",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "协议"
+    ]
+  },
+  {
+    "gold_name": "协议",
+    "gold_type": "metric",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "协议分层",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "协议分层"
+    ]
+  },
+  {
+    "gold_name": "协议号",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "协议数据单元",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "协议数据单元"
+    ]
+  },
+  {
+    "gold_name": "协议集",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "协议集"
+    ]
+  },
+  {
+    "gold_name": "单极归零码",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "占空比",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "占空比"
+    ]
+  },
+  {
+    "gold_name": "卡车",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "即时通讯",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "即时通讯"
+    ]
+  },
+  {
+    "gold_name": "发送速率",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "发送速率"
+    ]
+  },
+  {
+    "gold_name": "可靠数据传输",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "可靠数据传输"
+    ]
+  },
+  {
+    "gold_name": "可靠数据传输服务",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "可靠数据传输服务"
+    ]
+  },
+  {
+    "gold_name": "可靠通信",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "可靠通信"
+    ]
+  },
+  {
+    "gold_name": "同轴电缆",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "同轴电缆"
+    ]
+  },
+  {
+    "gold_name": "响应",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "响应"
+    ]
+  },
+  {
+    "gold_name": "四次握手",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "四次握手"
+    ]
+  },
+  {
+    "gold_name": "域名解析",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "域名解析"
+    ]
+  },
+  {
+    "gold_name": "基于连接的服务",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "基于连接的服务"
+    ]
+  },
+  {
+    "gold_name": "复用/分解",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "复用/分解"
+    ]
+  },
+  {
+    "gold_name": "复用与分用",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "多媒体应用",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "多媒体应用"
+    ]
+  },
+  {
+    "gold_name": "多路复用",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "多路复用/分用"
+    ]
+  },
+  {
+    "gold_name": "多路访问",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "multiple access"
+    ]
+  },
+  {
+    "gold_name": "大规模天线",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "大规模天线"
+    ]
+  },
+  {
+    "gold_name": "头部字段",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "header fields"
+    ]
+  },
+  {
+    "gold_name": "套接字",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "套接字"
+    ]
+  },
+  {
+    "gold_name": "套接字描述符",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "套接字描述符",
+      "套接字描述符(sd)"
+    ]
+  },
+  {
+    "gold_name": "子网",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "子网"
+    ]
+  },
+  {
+    "gold_name": "子网掩码",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "子网掩码"
+    ]
+  },
+  {
+    "gold_name": "子载波间隔",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "子载波间隔"
+    ]
+  },
+  {
+    "gold_name": "字节填充法",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "字节填充法"
+    ]
+  },
+  {
+    "gold_name": "定时关系",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "定时关系"
+    ]
+  },
+  {
+    "gold_name": "实时应用",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "实时应用"
+    ]
+  },
+  {
+    "gold_name": "客户",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "客户"
+    ]
+  },
+  {
+    "gold_name": "客户-服务器",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "客户服务器",
+      "客户–服务器",
+      "客户－服务器"
+    ]
+  },
+  {
+    "gold_name": "家代理",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "家代理"
+    ]
+  },
+  {
+    "gold_name": "容忍丢失的应用",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "宿舍区",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "宿舍区"
+    ]
+  },
+  {
+    "gold_name": "密码学",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "密码学"
+    ]
+  },
+  {
+    "gold_name": "差错控制",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "检测与差错控制"
+    ]
+  },
+  {
+    "gold_name": "差错检测",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "差错检测"
+    ]
+  },
+  {
+    "gold_name": "差错检测",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "差错编码",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "差错编码"
+    ]
+  },
+  {
+    "gold_name": "差错编码",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "帧格式",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "帧格式"
+    ]
+  },
+  {
+    "gold_name": "帧的三个地址",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "帧转发表",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "帧间间隔",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "广播",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "广播"
+    ]
+  },
+  {
+    "gold_name": "广播域",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "广播域"
+    ]
+  },
+  {
+    "gold_name": "序列号",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "序列号"
+    ]
+  },
+  {
+    "gold_name": "应用层",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "应用层 (OSI)",
+      "应用层 (TCP/IP)"
+    ]
+  },
+  {
+    "gold_name": "开放式的网络体系结构",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "快速重传",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "快速重传"
+    ]
+  },
+  {
+    "gold_name": "总线",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "总线"
+    ]
+  },
+  {
+    "gold_name": "慢启动阶段",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "慢启动阶段"
+    ]
+  },
+  {
+    "gold_name": "抗干扰性",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "抗干扰性"
+    ]
+  },
+  {
+    "gold_name": "报文完整性",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "报文完整性"
+    ]
+  },
+  {
+    "gold_name": "报文段",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "报文段",
+      "报文段 (segment)"
+    ]
+  },
+  {
+    "gold_name": "拥塞",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "拥塞"
+    ]
+  },
+  {
+    "gold_name": "拥塞控制",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "拥塞控制"
+    ]
+  },
+  {
+    "gold_name": "拥塞控制机制",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "拥塞控制",
+      "congestion control mechanisms"
+    ]
+  },
+  {
+    "gold_name": "拥塞控制算法",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "拥塞控制算法（Reno）"
+    ]
+  },
+  {
+    "gold_name": "拥塞窗口",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "拥塞窗口 (snd_cwnd)"
+    ]
+  },
+  {
+    "gold_name": "拨号电话线",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "持久连接",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "持久连接"
+    ]
+  },
+  {
+    "gold_name": "持续 HTTP",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "持续"
+    ]
+  },
+  {
+    "gold_name": "持续连接",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "持续"
+    ]
+  },
+  {
+    "gold_name": "指示",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "指示"
+    ]
+  },
+  {
+    "gold_name": "接口",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "接口"
+    ]
+  },
+  {
+    "gold_name": "描述符传递",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "描述符传递"
+    ]
+  },
+  {
+    "gold_name": "握手",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "握手"
+    ]
+  },
+  {
+    "gold_name": "教学区",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "教学区"
+    ]
+  },
+  {
+    "gold_name": "数字经济",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "数据报",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "数据报",
+      "数据报（分组）",
+      "数据报 (datagram)"
+    ]
+  },
+  {
+    "gold_name": "数据报",
+    "gold_type": "protocol",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "数据报套接字",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "数据报插口",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "数据报插口"
+    ]
+  },
+  {
+    "gold_name": "数据报服务",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "数据报服务"
+    ]
+  },
+  {
+    "gold_name": "数据链路层",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "数据链路层",
+      "数据链路层 (OSI)"
+    ]
+  },
+  {
+    "gold_name": "文件传输",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "文件传输"
+    ]
+  },
+  {
+    "gold_name": "文件系统的路径名",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "路径名"
+    ]
+  },
+  {
+    "gold_name": "新一代信息通信基础设施",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "新一代信息通信基础设施"
+    ]
+  },
+  {
+    "gold_name": "无状态协议",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "无线 LAN",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "无线LAN",
+      "无线 LAN"
+    ]
+  },
+  {
+    "gold_name": "无连接服务",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "无连接服务"
+    ]
+  },
+  {
+    "gold_name": "时序",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "时序"
+    ]
+  },
+  {
+    "gold_name": "时延",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "时延"
+    ]
+  },
+  {
+    "gold_name": "有线 LAN",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "有线以太网",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "有线以太网"
+    ]
+  },
+  {
+    "gold_name": "服务原语",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "服务原语"
+    ]
+  },
+  {
+    "gold_name": "服务器",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "服务器"
+    ]
+  },
+  {
+    "gold_name": "服务器推送",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "服务器推送",
+      "服务器推送 (Server Push)"
+    ]
+  },
+  {
+    "gold_name": "本地字节顺序",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "本地字节顺序"
+    ]
+  },
+  {
+    "gold_name": "机密性",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "机密性"
+    ]
+  },
+  {
+    "gold_name": "机械特性",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "机械特性"
+    ]
+  },
+  {
+    "gold_name": "机顶盒",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "机顶盒"
+    ]
+  },
+  {
+    "gold_name": "查询域名对应的IP地址",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "标记",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "标记"
+    ]
+  },
+  {
+    "gold_name": "标识",
+    "gold_type": "metric",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "校验和",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "校验和"
+    ]
+  },
+  {
+    "gold_name": "核心层",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "核心层"
+    ]
+  },
+  {
+    "gold_name": "检查点功能",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "检错码",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "检错码"
+    ]
+  },
+  {
+    "gold_name": "毒性逆转",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "毒性逆转"
+    ]
+  },
+  {
+    "gold_name": "毒性逆转方法",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "毒性逆转"
+    ]
+  },
+  {
+    "gold_name": "永久地址",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "永久地址"
+    ]
+  },
+  {
+    "gold_name": "汇聚层交换机",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "汇聚层交换机"
+    ]
+  },
+  {
+    "gold_name": "汉明距离",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "汉明距离"
+    ]
+  },
+  {
+    "gold_name": "流式套接字",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "流插口",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "流插口"
+    ]
+  },
+  {
+    "gold_name": "流机制",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "流机制"
+    ]
+  },
+  {
+    "gold_name": "流水线",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "流水线"
+    ]
+  },
+  {
+    "gold_name": "流水线机制",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "流水线",
+      "流水",
+      "request pipelining"
+    ]
+  },
+  {
+    "gold_name": "流量控制",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "流量控制"
+    ]
+  },
+  {
+    "gold_name": "物理层",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "物理层",
+      "物理层（PHY）",
+      "物理层 (OSI)"
+    ]
+  },
+  {
+    "gold_name": "状态码",
+    "gold_type": "metric",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "生存时间",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "生存时间(TTL)"
+    ]
+  },
+  {
+    "gold_name": "生存时间",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "生存时间（TTL）"
+    ]
+  },
+  {
+    "gold_name": "用户数据报",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "用户数据报"
+    ]
+  },
+  {
+    "gold_name": "电子邮件",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "Electronic Mail",
+      "Email"
+    ]
+  },
+  {
+    "gold_name": "电气特性",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "电气特性"
+    ]
+  },
+  {
+    "gold_name": "电缆调制解调器",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "电缆调制解调器"
+    ]
+  },
+  {
+    "gold_name": "码元周期",
+    "gold_type": "metric",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "码片序列",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "码片序列"
+    ]
+  },
+  {
+    "gold_name": "硬件共享",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "确认",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "确认（ACK）"
+    ]
+  },
+  {
+    "gold_name": "确认重传",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "确认重传"
+    ]
+  },
+  {
+    "gold_name": "碰撞检测",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "碰撞检测",
+      "碰撞检测（CD）"
+    ]
+  },
+  {
+    "gold_name": "私有IP地址",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "私有IP地址"
+    ]
+  },
+  {
+    "gold_name": "移动 IP",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "端口号",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "端口号"
+    ]
+  },
+  {
+    "gold_name": "端系统",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "端系统",
+      "端系统（主机）"
+    ]
+  },
+  {
+    "gold_name": "符号持续时间",
+    "gold_type": "metric",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "累积 ACK",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "累积 ACK"
+    ]
+  },
+  {
+    "gold_name": "纠错码",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "纵横交换",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "纵横交换"
+    ]
+  },
+  {
+    "gold_name": "组网特性",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "组网特性"
+    ]
+  },
+  {
+    "gold_name": "终端仿真协议",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "网桥",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "网络协议",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "网络号",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "网络号"
+    ]
+  },
+  {
+    "gold_name": "网络字节顺序",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "网络字节顺序"
+    ]
+  },
+  {
+    "gold_name": "网络层",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "网络层 (OSI)",
+      "网络层 (TCP/IP)"
+    ]
+  },
+  {
+    "gold_name": "网络层协议",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "网络电话",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "网络电话"
+    ]
+  },
+  {
+    "gold_name": "网际层",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "网际层"
+    ]
+  },
+  {
+    "gold_name": "自治域内",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "域内"
+    ]
+  },
+  {
+    "gold_name": "虚电路服务",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "虚电路服务"
+    ]
+  },
+  {
+    "gold_name": "触发更新",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "触发更新"
+    ]
+  },
+  {
+    "gold_name": "计数到无穷",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "计数到无穷"
+    ]
+  },
+  {
+    "gold_name": "计算机网络",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "计算机网络"
+    ]
+  },
+  {
+    "gold_name": "语义",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "语义"
+    ]
+  },
+  {
+    "gold_name": "语法",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "语法"
+    ]
+  },
+  {
+    "gold_name": "请求",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "请求"
+    ]
+  },
+  {
+    "gold_name": "请求报文",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "请求报文"
+    ]
+  },
+  {
+    "gold_name": "资源共享",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "资源共享"
+    ]
+  },
+  {
+    "gold_name": "超时",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "timeout"
+    ]
+  },
+  {
+    "gold_name": "超时重传",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "超时重传"
+    ]
+  },
+  {
+    "gold_name": "距离",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "距离",
+      "距离（跳数）",
+      "距离（最短）"
+    ]
+  },
+  {
+    "gold_name": "距离向量算法",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "距离向量",
+      "Distance vector algorithm",
+      "distance vector algorithms",
+      "距离向量（Distance-Vector，DV）"
+    ]
+  },
+  {
+    "gold_name": "距离向量表",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "距离向量表"
+    ]
+  },
+  {
+    "gold_name": "距离向量路由协议",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "距离向量路由"
+    ]
+  },
+  {
+    "gold_name": "距离向量路由算法",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "距离向量",
+      "distance vector",
+      "距离向量 DV",
+      "距离-向量路由",
+      "Distance-Vector Algorithm",
+      "distance-vector algorithm",
+      "距离向量(DV)路由",
+      "DV algorithm"
+    ]
+  },
+  {
+    "gold_name": "路由信息",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "路由信息"
+    ]
+  },
+  {
+    "gold_name": "路由器",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "路由器"
+    ]
+  },
+  {
+    "gold_name": "路由器",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "路由环路",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "路由环路"
+    ]
+  },
+  {
+    "gold_name": "路由聚合",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "路由聚合"
+    ]
+  },
+  {
+    "gold_name": "路由表",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "路由表"
+    ]
+  },
+  {
+    "gold_name": "路由选择算法",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "跳步数",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "跳步数"
+    ]
+  },
+  {
+    "gold_name": "转发表",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "转换表",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "软件共享",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "载波侦听",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "载波侦听"
+    ]
+  },
+  {
+    "gold_name": "边界路由器",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "过程特性",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "过程特性"
+    ]
+  },
+  {
+    "gold_name": "运输协议数据单元",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "运输协议数据单元 TPDU"
+    ]
+  },
+  {
+    "gold_name": "运输层",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "运输层"
+    ]
+  },
+  {
+    "gold_name": "运输层协议",
+    "gold_type": "concept",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "远程 ID",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "远程ID"
+    ]
+  },
+  {
+    "gold_name": "连接建立",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "连接建立"
+    ]
+  },
+  {
+    "gold_name": "连接状态",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "连接状态"
+    ]
+  },
+  {
+    "gold_name": "连通性测试",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "连通性测试"
+    ]
+  },
+  {
+    "gold_name": "适配器",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "适配器"
+    ]
+  },
+  {
+    "gold_name": "选路报文",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "选路报文"
+    ]
+  },
+  {
+    "gold_name": "通信网络",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "通信网络"
+    ]
+  },
+  {
+    "gold_name": "通信链路",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "通信链路"
+    ]
+  },
+  {
+    "gold_name": "通告",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "通告"
+    ]
+  },
+  {
+    "gold_name": "通用转发",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "通用转发"
+    ]
+  },
+  {
+    "gold_name": "通道",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "通道"
+    ]
+  },
+  {
+    "gold_name": "邻居发现",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "邻居发现"
+    ]
+  },
+  {
+    "gold_name": "重传",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "重传"
+    ]
+  },
+  {
+    "gold_name": "重传定时器",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "重传定时器"
+    ]
+  },
+  {
+    "gold_name": "重组",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "重组"
+    ]
+  },
+  {
+    "gold_name": "鉴别",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "鉴别"
+    ]
+  },
+  {
+    "gold_name": "链路层",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "链路层"
+    ]
+  },
+  {
+    "gold_name": "链路层交换机",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "链路层交换机"
+    ]
+  },
+  {
+    "gold_name": "链路费用",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "链路费用"
+    ]
+  },
+  {
+    "gold_name": "长肥管道",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "长肥管道"
+    ]
+  },
+  {
+    "gold_name": "限制路径最大“距离”对策",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "隧道",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "隧道"
+    ]
+  },
+  {
+    "gold_name": "零比特填充法",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "零比特填充法"
+    ]
+  },
+  {
+    "gold_name": "非持久连接",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "非持久连接"
+    ]
+  },
+  {
+    "gold_name": "非持续 HTTP",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "非持续"
+    ]
+  },
+  {
+    "gold_name": "非流水线",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "非流水线"
+    ]
+  },
+  {
+    "gold_name": "面向连接服务",
+    "gold_type": "concept",
+    "matched_pred_names": [
+      "面向连接服务"
+    ]
+  },
+  {
+    "gold_name": "频分多路复用",
+    "gold_type": "mechanism",
+    "matched_pred_names": [
+      "频分多路复用"
+    ]
+  },
+  {
+    "gold_name": "首部检验和",
+    "gold_type": "mechanism",
+    "matched_pred_names": []
+  },
+  {
+    "gold_name": "首部长度",
+    "gold_type": "metric",
+    "matched_pred_names": [
+      "TCP首部长度"
+    ]
+  }
+]

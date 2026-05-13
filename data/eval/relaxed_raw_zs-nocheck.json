@@ -1,0 +1,69 @@
+{
+  "raw_dir": "data/triples/raw-zs-nocheck",
+  "gold_path": "data/eval/gold_triples.json",
+  "chunks_matched": 184,
+  "chunks_missing": 2,
+  "gold_chunks": 186,
+  "pred_triples": 418,
+  "gold_triples": 500,
+  "entity": {
+    "strict": {
+      "tp": 185,
+      "fp": 253,
+      "fn": 409,
+      "precision": 0.4223744292237443,
+      "recall": 0.3114478114478115,
+      "f1": 0.35852713178294576
+    },
+    "name_norm": {
+      "tp": 188,
+      "fp": 248,
+      "fn": 399,
+      "precision": 0.43119266055045874,
+      "recall": 0.3202725724020443,
+      "f1": 0.3675464320625611
+    }
+  },
+  "triple": {
+    "strict": {
+      "tp": 73,
+      "fp": 266,
+      "fn": 427,
+      "precision": 0.2153392330383481,
+      "recall": 0.146,
+      "f1": 0.17401668653158522
+    },
+    "name_norm": {
+      "tp": 73,
+      "fp": 266,
+      "fn": 427,
+      "precision": 0.2153392330383481,
+      "recall": 0.146,
+      "f1": 0.17401668653158522
+    },
+    "substring": {
+      "tp": 87,
+      "fp": 267,
+      "fn": 413,
+      "precision": 0.2457627118644068,
+      "recall": 0.174,
+      "f1": 0.2037470725995316
+    },
+    "head_relation": {
+      "tp": 185,
+      "fp": 263,
+      "fn": 315,
+      "precision": 0.41294642857142855,
+      "recall": 0.37,
+      "f1": 0.3902953586497891
+    }
+  },
+  "relation_level": {
+    "tp": 33,
+    "fp": 7,
+    "fn": 8,
+    "precision": 0.825,
+    "recall": 0.8048780487804879,
+    "f1": 0.8148148148148149
+  }
+}

@@ -326,6 +326,48 @@ extract:
 entity_embed:
   llm_profile: embedding_qwen3_8b
 
+eval_entity_match:
+  llm_profile: deepseek_v4_flash
+  prompt_key: default
+  prompts:
+    default: |
+      你是计算机网络知识图谱的金标对齐评审员。
+
+      给定一个金标实体 gold（包含 name 与 type），以及预测图谱中类型相同的若干候选实体 candidates（每个含 name、description、aliases、sample_triples 等线索）。判断哪些候选实体与 gold 指向"同一现实概念"。
+
+      判定准则：
+      - 同一实体的常见情形：原文/缩写互换（如 TCP / 传输控制协议）、中英互译、外加表面修饰（如 "TCP 协议" 与 "TCP"）、子任务名等价（如 "三次握手" 与 "TCP 三次握手"）。
+      - 不应判等的情形：上位/下位概念（如 "运输层协议" 与 "TCP"）、相关但不同对象（如 "IPv4 地址" 与 "IPv4"）、同名但类型不同。
+      - 候选可能为零、一个或多个；如果都不等价，返回空列表。
+
+      输出必须是严格 JSON，不要输出 Markdown 或解释文字：
+      {
+        "matched_indices": [0-based 候选下标整数列表],
+        "reason": "简短中文原因"
+      }
+
+eval_triple_match:
+  llm_profile: deepseek_v4_flash
+  prompt_key: default
+  prompts:
+    default: |
+      你是计算机网络知识图谱的金标三元组评审员。
+
+      给定金标三元组 gold (head, relation, tail) 与候选预测三元组 candidate (head, relation, tail)。两条三元组在头实体名与尾实体名上已通过实体对齐，可视为指向相同的两个实体。仅判断关系语义是否等价。
+
+      判定准则（关系语义等价）：
+      - contains（包含）与"由...组成 / 包括"互通；若 candidate 用 contains 反向表达 gold 的 contains 也算等价。
+      - depends_on（依赖于）与 "建立在...之上 / 需要..." 互通；不要把 contains 与 depends_on 混算等价。
+      - applied_to（应用于）与 "用于 / 部署到" 互通；不要把 applied_to 与 contains 混算。
+      - compared_with（比较于）双向对称；A compared_with B 与 B compared_with A 等价。
+      - 否则视为不等价。
+
+      输出必须是严格 JSON，不要输出 Markdown 或解释文字：
+      {
+        "equivalent": true|false,
+        "reason": "简短中文原因"
+      }
+
 entity_merge_review:
   llm_profile: deepseek_v4_flash
   prompt_key: default
