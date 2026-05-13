@@ -401,8 +401,8 @@ run:
     extractor_version: "kgextract_v2"
 
   kg_merge:
-    input_dir: "data/triples/raw-fs"
-    output: "data/triples/merged/merged_triples.json"
+    input_dir: "data/triples/raw-fs-recheck"
+    output: "data/triples/merged-fs-recheck/merged_triples.json"
     embedding:
       enabled: true
       task_name: "entity_embed"
@@ -416,7 +416,7 @@ run:
       faiss_top_k: 50
       batch_size: 1024
       cache_format: "binary"
-      cache_path: "data/triples/merged/.embed_cache.json"
+      cache_path: "data/triples/merged-fs-recheck/.embed_cache.json"
       llm_recheck:
         enabled: true
         task_name: "entity_merge_review"
