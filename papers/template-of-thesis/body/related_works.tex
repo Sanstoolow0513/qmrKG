@@ -17,24 +17,24 @@
     \begin{tikzpicture}[
         node distance=0.4cm and 0.6cm,
         layer/.style={
-            rectangle, rounded corners=5pt, draw=blue!60!black, fill=blue!6,
+            rectangle, rounded corners=5pt, draw=black!80, fill=black!3,
             minimum width=8.5cm, minimum height=1.8cm, align=center, font=\small
         },
         subbox/.style={
-            rectangle, rounded corners=3pt, draw=#1!60!black, fill=#1!10,
+            rectangle, rounded corners=3pt, draw=black!70, fill=black!#1,
             minimum height=0.6cm, minimum width=1.9cm, align=center,
-            font=\footnotesize, text=black!80
+            font=\footnotesize, text=black!85
         },
-        arr/.style={-{stealth}, thick, draw=gray!60!black},
-        dash/.style={thick, dashed, draw=gray!50!black, -{stealth}}
+        arr/.style={-{stealth}, thick, draw=black!70},
+        dash/.style={thick, dashed, draw=black!60, -{stealth}}
     ]
-    % Layer 4: Education KG Application
+    % Layer 4: Education KG Application（灰度区分四个层次）
     \node[layer] (l4) {
         \textbf{知识图谱构建与应用}\\[0.2cm]
         \begin{tikzpicture}
-            \node[subbox=teal] (kgpipe) {流水线框架\\{\scriptsize InstructUIE, OneKE}};
-            \node[subbox=teal, right=0.3cm of kgpipe] (kgcanon) {实体规范化\\{\scriptsize EDC, KGGen, SAC-KG}};
-            \node[subbox=teal, right=0.3cm of kgcanon] (kgedu) {教育知识图谱\\{\scriptsize Edu-KG-Pipeline, Graphusion}};
+            \node[subbox=14] (kgpipe) {流水线框架\\{\scriptsize InstructUIE, OneKE}};
+            \node[subbox=14, right=0.3cm of kgpipe] (kgcanon) {实体规范化\\{\scriptsize EDC, KGGen, SAC-KG}};
+            \node[subbox=14, right=0.3cm of kgcanon] (kgedu) {教育知识图谱\\{\scriptsize Edu-KG-Pipeline, Graphusion}};
         \end{tikzpicture}
     };
 
@@ -42,9 +42,9 @@
     \node[layer, below=0.3cm of l4] (l3) {
         \textbf{关系抽取技术}\\[0.2cm]
         \begin{tikzpicture}
-            \node[subbox=orange] (re_few) {少样本RE\\{\scriptsize GPT-RE, Self-Prompting}};
-            \node[subbox=orange, right=0.3cm of re_few] (re_doc) {文档级RE\\{\scriptsize AutoRE, Revisiting-RE}};
-            \node[subbox=orange, right=0.3cm of re_doc] (re_zero) {零样本RE\\{\scriptsize GLiREL, REPaL}};
+            \node[subbox=11] (re_few) {少样本RE\\{\scriptsize GPT-RE, Self-Prompting}};
+            \node[subbox=11, right=0.3cm of re_few] (re_doc) {文档级RE\\{\scriptsize AutoRE, Revisiting-RE}};
+            \node[subbox=11, right=0.3cm of re_doc] (re_zero) {零样本RE\\{\scriptsize GLiREL, REPaL}};
         \end{tikzpicture}
     };
 
@@ -52,9 +52,9 @@
     \node[layer, below=0.3cm of l3] (l2) {
         \textbf{命名实体识别技术}\\[0.2cm]
         \begin{tikzpicture}
-            \node[subbox=violet] (ner_zero) {零样本NER\\{\scriptsize SLIMER, UniversalNER, GLiNER}};
-            \node[subbox=violet, right=0.3cm of ner_zero] (ner_few) {少样本NER\\{\scriptsize GPT-NER, Self-Improving}};
-            \node[subbox=violet, right=0.3cm of ner_few] (ner_code) {代码提示\\{\scriptsize CodeIE, GoLLIE, KnowCoder}};
+            \node[subbox=8] (ner_zero) {零样本NER\\{\scriptsize SLIMER, UniversalNER, GLiNER}};
+            \node[subbox=8, right=0.3cm of ner_zero] (ner_few) {少样本NER\\{\scriptsize GPT-NER, Self-Improving}};
+            \node[subbox=8, right=0.3cm of ner_few] (ner_code) {代码提示\\{\scriptsize CodeIE, GoLLIE, KnowCoder}};
         \end{tikzpicture}
     };
 
@@ -62,10 +62,10 @@
     \node[layer, below=0.3cm of l2] (l1) {
         \textbf{大语言模型基础}\\[0.2cm]
         \begin{tikzpicture}
-            \node[subbox=red] (trans) {Transformer架构\\{\scriptsize 自注意力, 多头注意力}};
-            \node[subbox=red, right=0.3cm of trans] (pretrain) {预训练与ICL\\{\scriptsize GPT系列, 上下文学习}};
-            \node[subbox=red, right=0.3cm of pretrain] (prompt) {提示工程\\{\scriptsize Zero-Shot, Few-Shot, CoT}};
-            \node[subbox=red, right=0.3cm of prompt] (mm) {多模态LLM\\{\scriptsize Qwen-VL, VLM OCR}};
+            \node[subbox=5] (trans) {Transformer架构\\{\scriptsize 自注意力, 多头注意力}};
+            \node[subbox=5, right=0.3cm of trans] (pretrain) {预训练与ICL\\{\scriptsize GPT系列, 上下文学习}};
+            \node[subbox=5, right=0.3cm of pretrain] (prompt) {提示工程\\{\scriptsize Zero-Shot, Few-Shot, CoT}};
+            \node[subbox=5, right=0.3cm of prompt] (mm) {多模态LLM\\{\scriptsize Qwen-VL, VLM OCR}};
         \end{tikzpicture}
     };
 
@@ -75,10 +75,10 @@
     \draw[arr] (l3.north) -- (l4.south);
 
     % Layer labels
-    \node[left=0.5cm of l1, font=\footnotesize, text=gray!60, rotate=90] {基础层};
-    \node[left=0.5cm of l2, font=\footnotesize, text=gray!60, rotate=90] {抽取层};
-    \node[left=0.5cm of l3, font=\footnotesize, text=gray!60, rotate=90] {抽取层};
-    \node[left=0.5cm of l4, font=\footnotesize, text=gray!60, rotate=90] {构建层};
+    \node[left=0.5cm of l1, font=\footnotesize, text=black!60, rotate=90] {基础层};
+    \node[left=0.5cm of l2, font=\footnotesize, text=black!60, rotate=90] {抽取层};
+    \node[left=0.5cm of l3, font=\footnotesize, text=black!60, rotate=90] {抽取层};
+    \node[left=0.5cm of l4, font=\footnotesize, text=black!60, rotate=90] {构建层};
     \end{tikzpicture}
     \caption{课程知识抽取技术路线图}\label{fig:2-1}
 \end{figure}
