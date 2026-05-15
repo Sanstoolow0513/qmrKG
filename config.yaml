@@ -63,10 +63,11 @@ llm:
           enabled: true
       rate_limit:
         rpm: 3000
-        max_concurrency: 3000
+        max_concurrency: 900
 
 ocr:
   llm_profile: qwen3-vl-8b
+  prompt_key: default
 
   prompts:
     default: |
@@ -325,8 +326,82 @@ extract:
 entity_embed:
   llm_profile: embedding_qwen3_8b
 
+eval_entity_match:
+  llm_profile: deepseek_v4_flash
+  prompt_key: default
+  prompts:
+    default: |
+      你是计算机网络知识图谱的金标对齐评审员。
+
+      给定一个金标实体 gold（包含 name 与 type），以及预测图谱中类型相同的若干候选实体 candidates（每个含 name、description、aliases、sample_triples 等线索）。判断哪些候选实体与 gold 指向"同一现实概念"。
+
+      判定准则：
+      - 同一实体的常见情形：原文/缩写互换（如 TCP / 传输控制协议）、中英互译、外加表面修饰（如 "TCP 协议" 与 "TCP"）、子任务名等价（如 "三次握手" 与 "TCP 三次握手"）。
+      - 不应判等的情形：上位/下位概念（如 "运输层协议" 与 "TCP"）、相关但不同对象（如 "IPv4 地址" 与 "IPv4"）、同名但类型不同。
+      - 候选可能为零、一个或多个；如果都不等价，返回空列表。
+
+      输出必须是严格 JSON，不要输出 Markdown 或解释文字：
+      {
+        "matched_indices": [0-based 候选下标整数列表],
+        "reason": "简短中文原因"
+      }
+
+eval_triple_match:
+  llm_profile: deepseek_v4_flash
+  prompt_key: default
+  prompts:
+    default: |
+      你是计算机网络知识图谱的金标三元组评审员。
+
+      给定金标三元组 gold (head, relation, tail) 与候选预测三元组 candidate (head, relation, tail)。两条三元组在头实体名与尾实体名上已通过实体对齐，可视为指向相同的两个实体。仅判断关系语义是否等价。
+
+      判定准则（关系语义等价）：
+      - contains（包含）与"由...组成 / 包括"互通；若 candidate 用 contains 反向表达 gold 的 contains 也算等价。
+      - depends_on（依赖于）与 "建立在...之上 / 需要..." 互通；不要把 contains 与 depends_on 混算等价。
+      - applied_to（应用于）与 "用于 / 部署到" 互通；不要把 applied_to 与 contains 混算。
+      - compared_with（比较于）双向对称；A compared_with B 与 B compared_with A 等价。
+      - 否则视为不等价。
+
+      输出必须是严格 JSON，不要输出 Markdown 或解释文字：
+      {
+        "equivalent": true|false,
+        "reason": "简短中文原因"
+      }
+
+entity_merge_review:
+  llm_profile: deepseek_v4_flash
+  prompt_key: default
+  prompts:
+    default: |
+      你是计算机网络知识图谱的实体归一化复核器。
+
+      判断两个候选 term 是否指向同一个实体。不要输出置信度。
+      只能根据用户消息中的 descriptions/triples 证据判断，并且只能引用给定 evidence id。
+      如果上下文标记 truncated=true，说明仍有未展示的三元组；除非证据极强，否则应输出 unsure。
+
+      决策标准：
+      - merge：两个 term 在三元组中可互换，合并后语义不变。
+      - keep_separate：二者相关但不是同一实体，或存在对比、包含、依赖、应用等反证。
+      - unsure：证据不足，不能安全合并。
+
+      输出必须是严格 JSON，不要输出 Markdown 或解释文字：
+      {
+        "decision": "merge|keep_separate|unsure",
+        "canonical_name": "只能是候选 term 之一，不能合并时为 null",
+        "reason_code": "短原因码",
+        "reason": "简短中文原因",
+        "supporting_evidence_ids": ["支持 merge 的证据 id"],
+        "conflict_evidence_ids": ["支持 keep_separate 的证据 id"]
+      }
+
 run:
+  qmr:
+    from_stage: null
+    to_stage: null
+    no_neo4j: false
+
   pdf_to_png:
+    input_file: null
     pdf_dir: "data/pdf"
     image_dir: "data/png"
     dpi: 200
@@ -335,6 +410,8 @@ run:
     ppt_timeout: 300
 
   png_to_text:
+    input_file: null
+    output: null
     image_dir: "data/png"
     text_dir: "data/markdown"
     recursive: true
@@ -343,6 +420,8 @@ run:
     force_ocr: false
 
   md_chunk:
+    input_file: null
+    output: null
     markdown_dir: "data/markdown"
     chunk_dir: "data/chunks"
     max_tokens: 4000
@@ -355,32 +434,58 @@ run:
 
   kg_extract:
     input: "data/chunks"
-    output_dir: "data/triples/raw"
+    output_dir: null
     mode: "fs"
     no_skip: false
-    review: true
+    review: false
     strict_evidence: true
     keep_dropped: true
-    min_triples: 1
     extractor_version: "kgextract_v2"
 
   kg_merge:
-    input_dir: "data/triples/raw"
-    output: "data/triples/merged/merged_triples.json"
+    input_dir: "data/triples/raw-fs-recheck"
+    output: "data/triples/merged-fs-recheck/merged_triples.json"
     embedding:
-      enabled: false
+      enabled: true
       task_name: "entity_embed"
       encoding_template: "structured_zh"
       encode_fields: ["type", "name", "description"]
       max_desc_chars: 160
+      candidate_threshold: 0.78
       similarity_threshold: 0.85
+      direct_merge_without_recheck: false
       bucket_by_type: true
       faiss_top_k: 50
       batch_size: 1024
       cache_format: "binary"
-      cache_path: "data/triples/merged/.embed_cache.json"
+      cache_path: "data/triples/merged-fs-recheck/.embed_cache.json"
+      llm_recheck:
+        enabled: true
+        task_name: "entity_merge_review"
+        max_pairs: 200
+        context_triples_per_entity: 8
+        require_supporting_evidence: true
+        allow_merge_with_truncated_context: false
+        max_cluster_size: 4
+        require_complete_pairwise_cluster: true
 
   kg_neo4j:
-    import: "data/triples/merged/merged_triples.json"
+    import_file: "data/triples/merged/merged_triples.json"
+    uri: "bolt://localhost:7687"
+    user: "neo4j"
     clear: false
     stats: false
+
+  kg_eval:
+    pred: "data/triples/merged/merged_triples.json"
+    gold: null
+    output_json: null
+    output_md: null
+    top_errors: 10
+
+  kg_eval_raw:
+    zs_raw_dir: null
+    fs_raw_dir: null
+    gold: null
+    output_json: null
+    output_md: null

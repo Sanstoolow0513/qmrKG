@@ -14,9 +14,10 @@ QmrKG is a PDF-to-Knowledge-Graph pipeline for computer networking course materi
 
 ```
 qmrkg/
-├── src/qmrkg/              # Python pipeline (24 modules)
+├── src/qmrkg/              # Python pipeline (28 modules)
 │   ├── pipeline.py         # PDFPipeline: PDF → PNG → Markdown
-│   ├── cli_*.py            # 9 CLI entry points
+│   ├── cli_*.py            # 11 CLI entry points (incl. kgeval / kgevalraw)
+│   ├── evaluation.py       # Evaluation metrics for merged triples
 │   ├── llm_factory.py      # Task-scoped LLM processor (text + multimodal + embedding)
 │   ├── kg_*.py             # Knowledge graph extraction/merge/import
 │   └── *_chunker.py        # Markdown chunking
@@ -25,8 +26,12 @@ qmrkg/
 │   ├── app/components/     # GraphVisualizer, GraphCanvas
 │   └── app/api/graph/      # Neo4j graph data API
 ├── data/                   # Runtime data (pdf/png/markdown/chunks/triples)
-├── tests/                  # pytest suite (15 files)
+│   └── eval/               # Evaluation data (gold triples, provenance)
+├── tests/                  # pytest suite (18 files)
 ├── config.yaml             # LLM profiles + prompt config
+├── docs/reports/           # Analysis reports (gold generation, provenance audit)
+├── docs/superpowers/       # Plan/spec pairs (YYYY-MM-DD-<slug>.md convention)
+├── scripts/                # Ad hoc ops utilities (eval scripts, triple sync)
 └── pyproject.toml          # Python package config
 ```
 
@@ -45,6 +50,12 @@ qmrkg/
 | Neo4j import | `src/qmrkg/kg_neo4j.py` | Bulk loading |
 | LLM task factory | `src/qmrkg/llm_factory.py` | Rate limiting, retries |
 | Graph visualization | `frontend/app/page.tsx` | react-force-graph-2d |
+| Evaluation metrics | `src/qmrkg/evaluation.py` | Precision, recall, F1 for merged triples |
+| Gold triples | `data/eval/gold_triples.json` | Human-annotated gold standard triples |
+| Gold generation | `docs/reports/gold-generation-summary.md` | Methodology for gold triple creation |
+| Plan/spec pairs | `docs/superpowers/plans/` + `specs/` | Date-slug paired workflow docs |
+| Ad hoc scripts | `scripts/eval_relaxed.py`, `scripts/eval_llm_judge.py` | Standalone eval utilities |
+| Test infrastructure | `tests/` → `tests/AGENTS.md` | pytest suite (18 files): fixtures, fakes, conventions |
 
 ## ENTRY POINTS
 
@@ -58,6 +69,8 @@ uv run mdchunk --markdown-dir data/markdown   # → JSON chunks
 uv run kgextract --input data/chunks    # → Raw triples (zs/fs modes)
 uv run kgmerge                          # → Merged triples
 uv run kgneo4j --import data/triples/merged/merged_triples.json  # → Neo4j
+uv run kgeval --pred data/triples/merged/merged_triples.json --gold data/eval/gold_triples.json  # Evaluation
+uv run kgevalraw --config config.yaml   # Raw zs/fs extraction comparison
 uv run qmr                              # Full pipeline (PDF → Neo4j, single command)
 ```
 
@@ -166,8 +179,12 @@ make neo4j-down-v  # Stop and remove volumes
 - **Entity types:** protocol, concept, mechanism, metric
 - **Relation types:** contains, depends_on, compared_with, applied_to
 - **Rate limiting:** Per-task rpm/max_concurrency in config.yaml
+- **Rate limiter class:** `RollingRateLimiter` in `rate_limit.py` (not `RollingWindowRateLimiter`)
 - **Not a monorepo:** Two independent projects (Python CLI + Next.js frontend)
+- **No CI workflows:** Build/test is manual; Makefile only wraps Neo4j Docker lifecycle
 - **Pipeline stages:** PDF → PNG → Markdown (per-page) → kgmdcombine (book MD) → Chunks → Triples → Merged → Neo4j
 - **kgextract modes:** `--mode zero-shot` / `few-shot` switches config.yaml prompts; use separate output dirs
 - **Embedding canonicalization:** kgmerge optionally uses embedding profile for entity dedup
 - **LLM profiles:** qwen3-vl-8b (OCR), deepseek-v4-flash (extract), embedding_qwen3_8b (embed)
+- **Evaluation:** `kgeval` CLI computes precision/recall/F1 against gold triples via `evaluation.py`
+- **kgmdcombine:** Merges per-page MD files from OCR into single book MD before chunking; use `--merge` no longer works (removed from mdchunk)

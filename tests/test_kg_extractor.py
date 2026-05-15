@@ -431,3 +431,45 @@ def test_extract_from_chunks_file_runs_in_parallel(tmp_path):
     result_paths = extractor.extract_from_chunks_file(chunks_path, output_dir, skip_existing=False)
     assert len(result_paths) == 6
     assert runner.max_active >= 2
+
+
+def test_extract_from_chunks_files_runs_across_files_in_parallel(tmp_path):
+    class _SlowRunner:
+        def __init__(self):
+            self.settings = type("Settings", (), {"max_concurrency": 4})()
+            self.active = 0
+            self.max_active = 0
+            self._lock = threading.Lock()
+
+        def run_text(self, prompt: str, *, system_prompt: str | None = None) -> LLMResponse:
+            with self._lock:
+                self.active += 1
+                self.max_active = max(self.max_active, self.active)
+            time.sleep(0.05)
+            with self._lock:
+                self.active -= 1
+            return LLMResponse(
+                text='{"entities": [], "triples": []}',
+                processed_at="2026-01-01T00:00:00Z",
+                duration_seconds=0.0,
+            )
+
+    runner = _SlowRunner()
+    extractor = KGExtractor(runner=runner, enable_review=False)
+    chunks_a = [{"chunk_index": 0, "source_file": "a.md", "titles": [], "content": "a"}]
+    chunks_b = [{"chunk_index": 0, "source_file": "b.md", "titles": [], "content": "b"}]
+    chunks_path_a = tmp_path / "a.json"
+    chunks_path_b = tmp_path / "b.json"
+    chunks_path_a.write_text(json.dumps(chunks_a, ensure_ascii=False), encoding="utf-8")
+    chunks_path_b.write_text(json.dumps(chunks_b, ensure_ascii=False), encoding="utf-8")
+    output_dir = tmp_path / "out"
+
+    result_paths = extractor.extract_from_chunks_files(
+        [chunks_path_a, chunks_path_b],
+        output_dir,
+        skip_existing=False,
+        progress_leave=False,
+    )
+
+    assert [path.name for path in result_paths] == ["a_chunk_0000.json", "b_chunk_0000.json"]
+    assert runner.max_active >= 2

@@ -1,0 +1,305 @@
+\section{课程知识抽取系统设计}
+
+课程教材层级结构深、术语密集、中英文混用，从中抽取实体和关系比通用场景更容易出错。本章阐述系统的需求分析、Schema设计与各模块的设计决策，重点说明“为什么这样设计”。第四章将给出系统总体架构与各模块的完整实现细节。
+
+\subsection{需求分析}
+
+本课题的目标是构建一个面向计算机网络课程的自动化知识图谱构建系统。在系统设计之前，需要明确系统的功能边界、用户交互方式、模块间接口约定以及非功能性约束。
+
+\subsubsection{功能需求}
+
+系统需覆盖从原始课程文档到可交互知识图谱的完整处理链路。
+
+\textbf{文档处理能力。} 系统应支持PDF讲义、PPT/PPTX课件等多格式课程材料的输入，自动完成页面渲染与文本提取，输出结构化Markdown文本。需处理包含中英文混排、数学公式、网络拓扑图等复杂版面的技术文档。
+
+\textbf{知识抽取能力。} 系统应从课程文本中自动识别预定义类型的命名实体和实体间的语义关系。实体类型至少覆盖协议名称（protocol）、概念术语（concept）、机制算法（mechanism）和性能指标（metric）四类；关系类型至少覆盖包含（contains）、依赖（depends\_on）、对比（compared\_with）和应用（applied\_to）四类。抽取结果应附带原文证据，保证可追溯性。
+
+\textbf{知识融合能力。} 系统需处理跨文档抽取带来的实体冗余与名称变体问题，将同一实体的不同表述（如中英文全称与缩写）归一为标准名称。支持别名映射与语义嵌入两种规范化策略。
+
+\textbf{图存储能力。} 融合后的知识图谱应导入Neo4j图数据库持久化存储，提供基于Cypher查询语言的关系导航与语义检索能力，便于后续的应用集成和扩展。
+
+\subsubsection{界面（人机交互）需求}
+
+系统的目标用户为课程教师与开发者。主要交互方式以命令行工具为主，配合Neo4j提供的图数据库查询接口完成知识检索。
+
+\textbf{命令行接口。} 各处理阶段以独立CLI命令暴露（如 \texttt{pdftopng}、\texttt{pngtotext}、\texttt{kgextract} 等），通过 \texttt{config.yaml} 统一配置模型参数和速率限制。用户可选择性执行特定阶段，利用中间产物实现断点续跑。
+
+\textbf{图数据库查询接口。} 完成图数据库导入后，用户可通过Neo4j自带的Browser控制台或Bolt协议驱动直接执行Cypher查询，按实体类型、关系类型或频次条件检索知识子图，便于下游应用集成与扩展。
+
+\subsubsection{接口（模块对外）需求}
+
+系统内部模块间通过文件系统交换数据，各阶段的输入输出格式约定如下：
+
+\textbf{文档渲染 $\to$ OCR}：PNG图像序列，按书籍分目录存储。
+
+\textbf{OCR $\to$ 文本分块}：结构化Markdown文本，标题使用 \texttt{\#} 标记层级。
+
+\textbf{文本分块 $\to$ 知识抽取}：JSON chunks数组，每块包含文本内容、所属标题层级和Token计数。
+
+\textbf{知识抽取 $\to$ 知识融合}：JSON三元组文件，每文件包含实体列表（含名称、类型、描述）和关系列表（含头尾实体、关系类型、证据字段）。
+
+\textbf{知识融合 $\to$ 图数据库}：标准化的 \texttt{merged\_triples.json}，包含去重后的实体集合和关系集合。
+
+\subsubsection{性能等非功能需求}
+
+\textbf{处理效率。} 单份PDF文档的处理时间应控制在分钟级，整体流水线可在数小时内完成数百份文档的端到端处理。OCR与知识抽取阶段采用并发处理，充分利用API允许的并发配额。
+
+\textbf{可扩展性。} 流水线各阶段解耦，任一阶段可独立替换实现而无需修改上下游代码。支持通过配置文件切换模型、调整Token预算和速率限制。新增实体类型或关系类型仅需修改Schema定义和提示词模板，无需改动代码逻辑。
+
+\textbf{可靠性。} API调用失败时支持指数退避重试；中间产物持久化存储，支持断点续跑；各阶段提供详细日志记录，便于追踪处理进度和定位故障。
+
+\textbf{知识质量。} 所有关系三元组必须附带可验证的原文证据，证据门控机制自动过滤无依据的虚假关系。实体规范化确保同一实体的不同表述被正确合并，降低知识图谱的冗余度。
+
+\subsection{文档预处理设计概要}
+
+课程教材的原始格式包括PDF讲义、PPT课件和PPTX演示文稿。系统将这些异构格式统一转换为PNG图像序列，作为VLM OCR的标准化视觉输入。
+
+\textbf{多格式输入处理。} 对于PDF文件，选用PyMuPDF进行页面渲染，选择依据有三：无需系统级安装Poppler依赖，部署轻量；渲染速度快，批量处理数百页教材时优势突出；提供精确的DPI控制和矩阵变换接口。对于PPT/PPTX文件，使用LibreOffice无头模式先转换为临时PDF，再经统一的PDF渲染管线处理。
+
+\textbf{基于VLM的OCR设计。} 传统OCR引擎对中文教材中数学公式、网络拓扑图和表格等复杂版面元素的识别能力有限。系统使用多模态视觉语言模型（Qwen3-VL-8B）作为OCR核心引擎，具备三项优势：视觉理解能力可识别图表中的文字标注和拓扑结构节点标签；原生支持中文文本识别；可根据版面特征推断标题层级，输出结构化Markdown。OCR提示词要求输出有效Markdown、保持原语言、保留阅读顺序、识别标题层级，并对章节结构词做标题化处理。详细实现参数与提示词设计见第四章。
+
+\subsection{文本分块设计}
+
+\subsubsection{分块问题的提出}
+
+大语言模型的上下文窗口通常限制在4K--8K tokens。一本完整的计算机网络教材可能包含数十万tokens，无法一次性输入LLM。因此需要将教材级Markdown文档拆分为适当大小的文本块，每个块在Token预算内须包含足够的上下文信息，使LLM能够准确识别其中的实体和关系。
+
+分块策略的核心张力在于：块过大会超出Token预算，块过小则丢失上下文信息、降低抽取质量。此外，课程教材的层级结构（章、节、小节）较为清晰，在标题边界处切分有助于保持语义完整性；若在段落中间切分，则可能割裂实体间的关联。
+
+系统使用tiktoken库的 \texttt{cl100k\_base} 编码进行精确的Token计数。选择该编码而非字符数或词数计数的原因是：\texttt{cl100k\_base} 是GPT-4系列模型使用的分词器，与实际LLM调用的Token计量方式一致，避免了计数偏差造成的截断或浪费。
+
+Token预算设为 $T_{max} = 4000$。LLM的有效上下文窗口约8K tokens，其中约2K tokens预留给系统提示词（Schema定义、抽取指南、Few-shot示例等）和模型输出（候选实体与三元组的JSON）。从剩余的约6K tokens中取4000作为文本块上限，保留约2K tokens的安全余量以应对计数偏差。
+
+\subsubsection{递归标题感知分块算法}
+
+分块算法\textbf{优先在标题边界切分，无标题可分时才退至段落级别}。算法先将Markdown文档解析为标题树，再自顶向下递归处理每个子树。若某子树的Token总数未超出预算，则将其整体输出为一个块；若超出预算且存在子标题，则递归降至子标题层继续处理；若超出预算且无子标题可分，则在段落级别累积切分。
+
+算法\ref{al:3-1}将清洗、标题树构建、递归判定与段落级兜底切分串联在同一流程中：先剔除OCR伪影，再通过栈式扫描 \texttt{\#} 标记构建标题树 $H$，最后由 \textsc{chunk\_recursive} 自顶向下按Token预算递归处理，在整体输出、向下递归与段落级累积之间择一。几个关键设计决策包括：（1）\textbf{标题层级保留}——每个输出块在元数据 $titles$ 字段中记录从根节点到当前节点的标题路径，既供下游抽取阶段做上下文定位，也为知识融合环节的实体消歧提供章节级来源线索；（2）\textbf{清洗前置}——清洗步骤刻意安排在分块之前执行，避免OCR伪影（如页码、页眉）被错误计入Token总数、导致块边界偏移或污染文本块内容；（3）\textbf{段落级兜底}——段落级累积切分作为最后一道保障，覆盖课程教材中常见的“无标题但篇幅冗长”场景（如附录说明、习题解答），确保即使没有标题结构的长文本也能在Token预算内被正确分块。
+
+分块流程如算法\ref{al:3-1}所示。
+
+\begin{algorithm}[H]
+    \caption{递归标题感知分块算法}\label{al:3-1}
+    \begin{algorithmic}[1]
+        \Require Markdown文档 $M$，最大Token数 $T_{max}$
+        \Ensure 分块列表 $C = [c_1, c_2, \ldots, c_n]$
+        \State 清洗 $M$：去除YAML前置元数据、页码标记、页眉页脚等OCR伪影
+        \State 构建标题树 $H \gets \text{parse\_headers}(M)$
+        \Statex \hspace{2em} 使用栈式解析 \texttt{\#} 标记
+        \State $C \gets \text{chunk\_recursive}(H, T_{max})$
+        \State \Return $C$
+        \\
+        \Function{chunk\_recursive}{node, $T_{max}$}
+            \If{$\text{token\_count}(node.content) \leq T_{max}$}
+                \State \Return $\{node\}$ \Comment{子树整体作为一个块}
+            \ElsIf{$node$ 存在子标题节点}
+                \State $result \gets []$
+                \For{each子标题节点 $child \in node.children$}
+                    \State $result \gets$
+                    \Statex \hspace{3em} $result \cup \text{chunk\_recursive}(child, T_{max})$
+                \EndFor
+                \State \Return $result$
+            \Else
+                \State $chunks \gets []$，$current \gets []$，$tokens \gets 0$
+                \For{each段落 $p \in node.paragraphs$}
+                    \If{$tokens + \text{token\_count}(p) > T_{max}$ \textbf{and} $current \neq \emptyset$}
+                        \State $chunks \gets chunks \cup \{current\}$
+                        \State $current \gets [p]$，$tokens \gets \text{token\_count}(p)$
+                    \Else
+                        \State $current \gets current \cup \{p\}$，$tokens \gets tokens + \text{token\_count}(p)$
+                    \EndIf
+                \EndFor
+                \State \Return $chunks$
+            \EndIf
+        \EndFunction
+    \end{algorithmic}
+\end{algorithm}
+
+\subsection{实体识别设计概要}
+
+实体识别是知识图谱构建的基础环节，目标是从课程文本中识别属于预定义类型的命名实体。与通用NER任务不同，课程知识NER需要处理领域特定的实体类型，且实体边界常跨越多个词汇（如“三次握手”“慢启动算法”等）。
+
+系统定义了四种实体类型，覆盖计算机网络课程的核心知识元素。类型定义如表\ref{tab:3-1}所示。
+
+\begin{table}[ht]
+    \centering
+    \caption{实体类型Schema定义}\label{tab:3-1}
+    \small
+    \begin{tabular}{p{2.0cm}p{2.0cm}p{4.5cm}p{3.6cm}}
+    \toprule
+    \textbf{类型标识} & \textbf{中文名称} & \textbf{定义} & \textbf{示例} \\
+    \midrule
+    protocol & 协议 & 网络通信中遵循的规则或标准 & TCP, HTTP, DNS, ARP, OSPF \\
+    concept & 概念术语 & 计算机网络中的核心概念或术语 & 拥塞控制, 子网掩码, 路由表, 分层模型 \\
+    mechanism & 机制算法 & 具体的机制、算法或流程 & 三次握手, 慢启动, CSMA/CD, 滑动窗口 \\
+    metric & 性能指标 & 网络性能的度量指标 & 吞吐量, RTT, 丢包率, 带宽, 时延 \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+Schema设计遵循三项原则：（1）\textbf{互斥性}——四种类型在语义上互不重叠。协议与机制的区别在前者为通信标准、后者为操作流程，概念与指标的区别在前者为抽象术语、后者为可量化度量；（2）\textbf{完备性}——四种类型覆盖了计算机网络教材中的绝大多数知识元素，从协议标准到性能度量构成完整的知识维度；（3）\textbf{可操作性}——每种类型配有明确的判定规则和典型示例，降低LLM抽取时的歧义。
+
+\textbf{提示词策略设计。} 系统设计了两套抽取模式：零样本模式和少样本模式。零样本模式受SLIMER\cite{slimer_2024} 启发，在提示词中提供详细的实体类型定义、边界规则和抽取指南，不提供标注示例；少样本模式在零样本基础上增加四个标注示例（分别覆盖四种关系类型），同时附带负面示例和粒度规则，借鉴了GPT-RE\cite{gpt_re_2023} 的少样本检索增强思路和GoLLIE\cite{gollie_2023} 的指令微调策略。两种模式的完整提示词模板和配置管理细节将在第四章展开。
+
+每个抽取出的实体除名称和类型外，还要求LLM生成简短描述（description字段），为例，实体“TCP”的描述为“传输控制协议”。引入描述字段有两重目的：为下游知识融合阶段的实体规范化提供语义信息；为最终知识图谱中的节点附带可解释的元数据，便于知识检索。
+
+\subsection{关系抽取设计概要}
+
+关系抽取在实体识别的基础上，识别实体之间的语义关联，形成结构化的知识三元组 (head, relation, tail)。关系抽取的质量直接决定知识图谱的连通性和可用性。
+
+系统定义了四种关系类型，每种都附带了头尾实体类型的约束条件，如表\ref{tab:3-2}所示。
+
+\begin{table}[ht]
+    \centering
+    \caption{关系类型Schema定义}\label{tab:3-2}
+    \small
+    \begin{tabular}{p{2.3cm}p{2.0cm}p{3.9cm}p{3.9cm}}
+    \toprule
+    \textbf{关系类型} & \textbf{中文名称} & \textbf{定义} & \textbf{头→尾类型约束} \\
+    \midrule
+    contains & 包含关系 & A在结构或概念上包含B & any $\to$ any \\
+    depends\_on & 依赖关系 & A在功能上依赖B & mechanism/concept $\to$ mechanism/protocol \\
+    compared\_with & 对比关系 & A与B在功能或性能上可比较 & protocol $\leftrightarrow$ protocol, concept $\leftrightarrow$ concept \\
+    applied\_to & 应用关系 & A被应用于B的场景 & mechanism $\to$ protocol/concept \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+关系类型系统的设计逻辑如下：（1）\texttt{contains} 不设类型约束，因为包含关系在课程知识中普遍存在；（2）\texttt{depends\_on} 将头实体限定为mechanism或concept；（3）\texttt{compared\_with} 限定为同类型实体间的对比，避免跨类型无意义对比；（4）\texttt{applied\_to} 将头实体限定为mechanism。
+
+\subsubsection{两阶段抽取架构的设计思路}
+
+系统采用“提议—审核”（Propose-Review）两阶段抽取架构，如图\ref{fig:3-2}所示。选择两阶段架构源于对LLM输出质量的实际观察：单次LLM调用常夹带幻觉——模型可能编造文本中不存在的实体、生成不匹配的证据或构造逻辑不成立的关系。
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[
+        node distance=0.6cm,
+        box/.style={rectangle, rounded corners=3pt, draw=black, fill=black!8,
+            minimum height=0.9cm, minimum width=2.3cm, align=center, font=\footnotesize},
+        gate/.style={diamond, draw=black, very thick, fill=black!15,
+            minimum width=1.6cm, minimum height=1.1cm, align=center, font=\footnotesize,
+            inner sep=1pt},
+        result/.style={rectangle, rounded corners=2pt, draw=black!80, fill=black!10,
+            minimum height=0.7cm, minimum width=1.3cm, align=center, font=\scriptsize},
+        drop/.style={rectangle, rounded corners=2pt, draw=black!50, dashed, fill=black!3,
+            minimum height=0.7cm, minimum width=1.3cm, align=center, font=\scriptsize},
+        arr/.style={-{stealth}, thick, draw=black!70}
+    ]
+    \node[box] (propose) {阶段一：提议\\{\scriptsize LLM抽取候选三元组}};
+    \node[box, right=1.0cm of propose] (review) {阶段二：审核\\{\scriptsize LLM验证三元组质量}};
+    \node[gate, right=1.0cm of review] (evidence) {证据\\门控};
+    \node[result, above right=0.5cm and 0.6cm of evidence] (keep) {保留};
+    \node[result, right=0.6cm of evidence] (revise) {修正};
+    \node[drop, below right=0.5cm and 0.6cm of evidence] (drop) {丢弃};
+
+    \draw[arr] (propose) -- (review);
+    \draw[arr] (review) -- (evidence);
+    \draw[arr] (evidence) -- node[above left, font=\scriptsize] {keep} (keep);
+    \draw[arr] (evidence) -- node[above, font=\scriptsize] {revise} (revise);
+    \draw[arr] (evidence) -- node[below left, font=\scriptsize] {drop} (drop);
+
+    % Input
+    \node[left=0.8cm of propose, font=\footnotesize, text=black!70] (input) {文本块 + Schema};
+    \draw[arr] (input) -- (propose);
+    \end{tikzpicture}
+    \caption{两阶段抽取与证据门控流程}\label{fig:3-2}
+\end{figure}
+
+\textbf{阶段一（提议）}侧重召回率——尽可能识别文本中存在的实体和关系，允许一定程度的噪声。LLM接收文本块和完整的Schema定义，输出候选实体列表和三元组列表。
+
+\textbf{阶段二（审核）}侧重精确率——通过一次独立的LLM调用，对每个候选三元组逐一验证：关系类型是否属于预定义四种之一；证据字段（evidence）是否为文本块中的连续原文子串；头实体和尾实体是否均出现在证据字段中；是否存在自环；是否引入了文本块中不存在的新实体或新关系。审核阶段的完整验证规则与实现流程见第四章。
+
+\subsubsection{证据门控机制}
+
+证据门控是该系统在关系抽取中的核心创新。每个三元组必须附带evidence字段，且该字段须为输入文本块中的\textbf{连续原文子串}，头实体和尾实体均需出现在该子串中。这一约束为每个抽取的关系建立了可验证的文本依据。
+
+证据门控的设计逻辑：（1）\textbf{可验证性}——通过将evidence与原文做子串匹配，可自动验证三元组的正确性；（2）\textbf{可追溯性}——每个关系均有明确的文本出处，用户可在知识图谱中点击关系查看原始证据；（3）\textbf{幻觉抑制}——强制要求evidence为原文子串，从根源上杜绝LLM编造虚假关系。证据子串匹配的实现细节和审核提示词设计见第四章。
+
+\subsection{知识融合设计概要}
+
+从多个文本块中独立抽取的实体和三元组，不可避免地存在重复和变体。知识融合阶段的目标是将这些冗余和变体统一为规范的知识表示。
+
+\subsubsection{两级实体规范化策略}
+
+系统采用两级实体规范化策略：别名规范化（Level 1）和基于嵌入的语义规范化（Level 2）。
+
+\textbf{Level 1：别名规范化。} 别名映射表维护中英文缩写与全称的对应关系（如“传输控制协议”映射到“TCP”），同时通过正则表达式剥离实体名称末尾的类型后缀。别名规范化处理常见变体效率高，但无法覆盖所有长尾变体。
+
+\textbf{Level 2：基于嵌入的语义规范化。} 对于别名表未覆盖的变体，通过嵌入向量进行语义匹配。具体流程：按实体类型分桶（可选），调用Embedding API将每个实体编码为语义向量，在FAISS IndexFlatIP索引上做最近邻搜索，通过并查集（UnionFind）合并余弦相似度 $\geq 0.85$ 的实体对。完整算法流程和实现参数见第四章。
+
+两级规范化的核心思路是\textbf{效率与覆盖率的互补}：别名表处理高频变体速度快、确定性高；嵌入方法覆盖长尾变体能力强，但计算成本较高。二者结合，构成“快速路径+深度路径”的混合策略。
+
+图\ref{fig:3-3}展示了实体规范化的完整流程。
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[
+        node distance=0.7cm,
+        box/.style={rectangle, rounded corners=3pt, draw=black, fill=black!12,
+            minimum height=0.8cm, minimum width=2.4cm, align=center, font=\small},
+        proc/.style={rectangle, rounded corners=2pt, draw=black!70, fill=black!5,
+            minimum height=0.7cm, minimum width=2.2cm, align=center, font=\footnotesize},
+        arr/.style={-{stealth}, thick, draw=black!70}
+    ]
+    \node[box] (input) {原始实体列表};
+    \node[proc, below=of input] (alias) {Level 1：别名规范化\\{\scriptsize 别名映射表 + 后缀剥离}};
+    \node[proc, below=of alias] (embed) {Level 2：嵌入语义匹配\\{\scriptsize FAISS + UnionFind}};
+    \node[box, below=of embed] (output) {规范化实体集合};
+
+    % Side annotations
+    \node[right=1.2cm of alias, font=\scriptsize, text=black!75, align=left] {TCP协议 $\to$ TCP\\传输控制协议 $\to$ TCP};
+    \node[right=1.2cm of embed, font=\scriptsize, text=black!75, align=left] {滑动窗口机制 $\sim$ 滑动窗口\\（$\cos \geq 0.85$ 合并）};
+
+    \draw[arr] (input) -- (alias);
+    \draw[arr] (alias) -- (embed);
+    \draw[arr] (embed) -- (output);
+    \end{tikzpicture}
+    \caption{两级实体规范化流程}\label{fig:3-3}
+\end{figure}
+
+\subsubsection{三元组合并与去重}
+
+实体规范化完成后，系统对三元组进行合并与去重。合并策略：以规范化后的（$head$, $relation$, $tail$）三元组作为键分组，对同一键下的三元组累加 $frequency$ 频次，并收集所有唯一的 $evidences$ 证据文本。合并后过滤自环三元组及头尾实体不在有效集合中的三元组。保留频次信息可作为实体重要性的量化指标，辅助下游的知识检索与排序。
+
+\subsection{图存储设计概要}
+
+\subsubsection{Neo4j图数据库Schema设计}
+
+知识图谱的存储使用Neo4j图数据库。Schema设计如图\ref{fig:3-4}所示，包含四类节点标签和四种关系类型。
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[
+        node distance=1.2cm and 2cm,
+        entity/.style={rectangle, rounded corners=4pt, draw=black, fill=black!#1,
+            minimum height=1cm, minimum width=2.2cm, align=center, font=\small\bfseries},
+        rel/.style={-{stealth}, thick, draw=black!70},
+        rel_label/.style={font=\scriptsize, text=black!85, fill=white, inner sep=1pt}
+    ]
+    % Entity nodes (灰度差异区分四类实体)
+    \node[entity=18] (proto) {Protocol\\{\scriptsize name, desc, freq}};
+    \node[entity=12, below=of proto] (conc) {Concept\\{\scriptsize name, desc, freq}};
+    \node[entity=8, below=of conc] (mech) {Mechanism\\{\scriptsize name, desc, freq}};
+    \node[entity=4, below=of mech] (met) {Metric\\{\scriptsize name, desc, freq}};
+
+    % Relations
+    \draw[rel] (proto) -- node[rel_label, above] {CONTAINS} (conc);
+    \draw[rel] (conc) -- node[rel_label, above] {DEPENDS\_ON} (mech);
+    \draw[rel] (proto.east) to[bend left=30] node[rel_label, right] {COMPARED\_WITH} (proto.east);
+    \draw[rel] (mech) -- node[rel_label, above] {APPLIED\_TO} (conc);
+
+    % Self-referencing COMPARED_WITH
+    \draw[rel] (proto.west) to[bend left=40] node[rel_label, left] {COMPARED\_WITH} (proto.west);
+    \draw[rel] (conc.west) to[bend left=40] node[rel_label, left] {COMPARED\_WITH} (conc.west);
+    \end{tikzpicture}
+    \caption{Neo4j图数据库Schema}\label{fig:3-4}
+\end{figure}
+
+每类节点存储 $name$（规范名称，唯一约束）、$description$（实体描述）和 $frequency$（出现频次）。每种关系存储 $frequency$ 和 $evidences$（证据文本列表）。
+
+\textbf{索引与约束。} 在 \texttt{name} 字段上建立唯一性约束，保证同名实体的幂等导入；在 \texttt{frequency} 字段上建立索引以支持按频次的快速排序与高频实体检索。导入采用Cypher MERGE语句保证幂等性，重复导入相同三元组不会产生重复节点或边。所有关系附带 \texttt{evidences} 字段，使下游应用在查询时可同步获取支撑证据，保障知识溯源能力。
+
+\subsection{本章小结}
+
+本章阐述了课程知识抽取系统的需求分析和各模块的设计决策。系统设计围绕三条主线：\textit{模块化}——各阶段独立封装、通过文件系统交换中间产物；\textit{可验证性}——证据门控机制要求每条关系附带原文依据，三元组的正确性可自动检验；\textit{混合策略}——别名表与嵌入语义互补完成实体规范化，两阶段抽取平衡召回率与精度。这些设计为第四章的系统总体架构搭建和各模块工程实现奠定了基础。

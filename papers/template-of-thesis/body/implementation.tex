@@ -1,0 +1,212 @@
+\section{系统实现}
+
+本章给出QmrKG系统各模块的具体实现，包括系统总体架构、代码结构、关键参数配置和工程决策。第三章阐述了各模块的设计决策与取舍理由，本章聚焦于“如何实现”——给出六阶段流水线的完整架构、各阶段的配置参数与关键实现细节。
+
+\subsection{系统总体架构}
+
+\subsubsection{六阶段流水线架构}
+
+系统采用六阶段串行流水线，将原始教材逐步转化为结构化知识图谱。六个阶段依次是：文档转图、OCR识别、文本分块、三元组抽取、三元组合并以及图数据库导入，如图\ref{fig:4-1}所示。
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}[
+        node distance=0.5cm and 0.15cm,
+        stage/.style={
+            rectangle, rounded corners=3pt, draw=black, fill=black!10,
+            minimum height=0.85cm, minimum width=1.5cm, align=center,
+            font=\footnotesize, text=black!90
+        },
+        data/.style={
+            rectangle, rounded corners=2pt, draw=black!60, dashed, fill=black!4,
+            minimum height=0.6cm, minimum width=1.3cm, align=center,
+            font=\scriptsize, text=black!85
+        },
+        arr/.style={-{stealth}, thick, draw=black!70},
+        darr/.style={-{stealth}, dashed, draw=black!60}
+    ]
+    % Stages
+    \node[stage] (s1) {文档转图\\{\scriptsize PyMuPDF}};
+    \node[stage, right=of s1] (s2) {OCR识别\\{\scriptsize VLM}};
+    \node[stage, right=of s2] (s3) {文本分块\\{\scriptsize tiktoken}};
+    \node[stage, right=of s3] (s4) {三元组抽取\\{\scriptsize LLM}};
+    \node[stage, right=of s4] (s5) {三元组合并\\{\scriptsize 别名+嵌入}};
+    \node[stage, right=of s5] (s6) {图数据库\\{\scriptsize Neo4j}};
+
+    % Data nodes
+    \node[data, below=0.5cm of s1] (d1) {PNG};
+    \node[data, below=0.5cm of s2] (d2) {Markdown};
+    \node[data, below=0.5cm of s3] (d3) {JSON\\{\scriptsize Chunks}};
+    \node[data, below=0.5cm of s4] (d4) {Raw\\{\scriptsize Triples}};
+    \node[data, below=0.5cm of s5] (d5) {Merged\\{\scriptsize Triples}};
+
+    % Input
+    \node[left=0.5cm of s1, font=\footnotesize, text=black!70] (input) {PDF/PPT};
+
+    % Arrows: input → stages
+    \draw[arr] (input) -- (s1);
+    \draw[arr] (s1) -- (s2);
+    \draw[arr] (s2) -- (s3);
+    \draw[arr] (s3) -- (s4);
+    \draw[arr] (s4) -- (s5);
+    \draw[arr] (s5) -- (s6);
+
+    % Arrows: stages → data
+    \draw[darr] (s1) -- (d1);
+    \draw[darr] (s2) -- (d2);
+    \draw[darr] (s3) -- (d3);
+    \draw[darr] (s4) -- (d4);
+    \draw[darr] (s5) -- (d5);
+
+    % Data labels
+    \node[below=0.15cm of d1, font=\tiny, text=black!60] {data/png/};
+    \node[below=0.15cm of d2, font=\tiny, text=black!60] {data/markdown/};
+    \node[below=0.15cm of d3, font=\tiny, text=black!60] {data/chunks/};
+    \node[below=0.15cm of d4, font=\tiny, text=black!60] {data/triples/raw/};
+    \node[below=0.15cm of d5, font=\tiny, text=black!60] {data/triples/merged/};
+    \end{tikzpicture}
+    \caption{六阶段流水线总体架构}\label{fig:4-1}
+\end{figure}
+
+选择六阶段串行架构，主要出于三点考虑：
+
+（1）\textbf{关注点分离}。每个阶段拥有明确的输入契约和输出契约，职责单一。文档转图阶段只负责将PDF/PPT渲染为PNG图像，不关心后续OCR如何处理；OCR阶段只负责图像到文本的转换，不关心文本如何分块。各阶段的独立性使其可以分别设计、测试与演进。
+
+（2）\textbf{模块化与可替换性}。每个阶段对应一个独立的CLI命令（\texttt{pdftopng}、\texttt{pngtotext}、\texttt{mdchunk} 等），阶段之间通过文件系统中的中间产物（PNG、Markdown、JSON）传递数据。保持输入输出格式不变，任何阶段都可以替换实现。例如OCR阶段可从VLM切换为传统OCR引擎，无需改动上下游代码。
+
+（3）\textbf{独立扩展与容错}。中间产物持久化存储在 \texttt{data/} 目录下，流水线天然具备断点续跑能力。若某阶段因API限流或网络故障中断，重新运行该阶段即可从中断点继续，无需从头开始。此外，不同阶段对计算资源的需求差异悬殊——OCR阶段依赖GPU加速的多模态推理，分块阶段仅需CPU计算——独立阶段使资源可按需分配。
+
+\subsubsection{LLM工厂模式}
+
+系统内多个阶段需要调用大语言模型，涉及OCR、实体抽取、关系审核与实体嵌入等任务，各阶段对模型能力、速率限制和提示词策略的要求不同。为此，系统设计了LLM工厂模式（TaskLLMFactory），采用\textbf{任务作用域的配置隔离}。
+
+每个任务（\texttt{ocr}、\texttt{extract}、\texttt{entity\_embed} 等）通过 \texttt{llm\_profile} 字段引用一个预定义的模型配置档案（Profile），档案内包含模型名称、API端点、模态（text/multimodal/embedding）、请求超时、重试策略及速率限制参数。切换模型时只需修改配置文件中的Profile引用，无需改动任何代码。
+
+速率限制采用滑动窗口算法（RollingRateLimiter），维护60秒时间窗口内的请求计数，达到RPM上限后阻塞等待。并发控制通过信号量（Semaphore）实现，确保同时运行的LLM请求数不超过 \texttt{max\_concurrency}。不同任务的速率限制参数可独立配置：OCR任务使用 \texttt{qwen3-vl-8b} 模型，设为RPM 100、并发10；抽取任务使用 \texttt{deepseek\_v4\_flash} 模型，设为RPM 3000、并发3000，以匹配不同模型的配额和吞吐能力。
+
+\subsubsection{流水线配置管理与基础设施}
+
+系统通过统一的 \texttt{config.yaml} 配置文件管理各阶段的模型选型、提示词模板、速率限制和输出路径。配置文件遵循分层结构：\texttt{llm.profiles} 段定义所有可用的模型档案（名称、端点、模态、并发参数），各任务段（\texttt{ocr}、\texttt{extract}、\texttt{entity\_embed}）通过 \texttt{llm\_profile} 键引用档案，并在 \texttt{prompts} 段维护任务特定的提示词。目录路径集中于 \texttt{run} 段，各CLI命令在未显式传参时自动读取配置文件的默认值。
+
+每阶段的CLI命令（\texttt{pdftopng}、\texttt{pngtotext}、\texttt{mdchunk} 等）通过argparse构建参数解析，命令行显式传参会覆盖配置文件默认值。各命令以标准的 \texttt{main()} 函数作为入口，统一模式为：加载配置 $\to$ 解析参数 $\to$ 初始化组件 $\to$ 执行处理 $\to$ 输出结果。所有CLI命令通过项目根目录的 \texttt{pyproject.toml} 注册为 \texttt{[project.scripts]} 入口，用户可通过 \texttt{uv run <command>} 执行。
+
+日志记录采用Python标准库的logging模块，按阶段分别配置INFO和DEBUG两个级别。INFO日志记录各阶段的处理进度、文档数量、已用时间和API调用统计；DEBUG日志记录每个LLM请求的完整payload和响应内容，用于调试提示词和定位异常。日志同时输出到控制台和按日期轮转的日志文件（\texttt{logs/} 目录），保留最近30天的历史记录。出现API调用失败（429或5xx）时，除了重试机制外，还会在日志中记录失败详情（请求ID、错误码、重试次数），便于追踪API稳定性问题。
+
+管道中各阶段均采用ThreadPoolExecutor进行并发处理，由配置文件的 \texttt{max\_concurrency} 字段控制最大并发数。不同阶段的并发数根据下游API的配额独立设置，避免彼此竞争。OCR阶段（并发10）受限于多模态模型的推理吞吐，抽取阶段（并发3000）利用文本模型的高吞吐优势。各线程间通过文件系统中间产物通信，不共享内存状态，避免了锁竞争和数据一致性问题。
+
+\subsection{文档渲染与OCR实现}
+
+\subsubsection{PDF渲染模块}
+
+渲染模块将PDF和PowerPoint文件转为PNG图像，作为VLM OCR的标准化视觉输入。PDF页面通过PyMuPDF（\texttt{fitz} 库）渲染：\texttt{fitz.Matrix(zoom, zoom)} 构造缩放矩阵，\texttt{page.get\_pixmap(matrix)} 获取像素图并保存为PNG，DPI默认为200（$zoom = dpi / 72 \approx 2.78$）。该参数在文字清晰度与文件体积之间取得平衡：DPI过低影响OCR识别质量，DPI过高则导致文件体积过大、处理耗时增加。
+
+对于PPT/PPTX文件，使用LibreOffice无头模式（headless）先转换为临时PDF，再经PDF渲染器统一处理。LibreOffice对Microsoft Office格式的兼容性优于其他开源方案，转换后的PDF保留原始幻灯片的版式和字体信息，确保后续OCR阶段的输入质量。所有PNG按书籍分目录存放于 \texttt{data/png/}，目录结构由文档源文件名自动生成。
+
+\subsubsection{VLM OCR实现}
+
+OCR模块基于Qwen3-VL-8B多模态视觉语言模型，通过PPIO API的OpenAI兼容接口调用。每张PNG图像经Base64编码后，与OCR提示词一同以multipart格式发送。提示词以中文撰写，要求输出有效Markdown、保持原语言不翻译、保留阅读顺序和换行、识别标题层级（\texttt{\#} 一级至 \texttt{\#\#\#} 三级），并对中文教材中常见的章节结构词（“第X章”“第X节”）进行标题化处理。
+
+并发OCR使用ThreadPoolExecutor，并发数由 \texttt{config.yaml} 中的 \texttt{max\_concurrency} 控制（默认10）。每页OCR结果写入独立Markdown文件，文件头部的YAML元数据记录模型名称、Token用量和耗时信息。所有单页Markdown文件由 \texttt{kgmdcombine} 阶段按页码顺序合并为完整的教材级Markdown文档，确保跨页内容的连贯性。
+
+\subsection{文本分块实现}
+
+文本分块模块连接OCR输出与LLM知识抽取入口。系统使用tiktoken库（\texttt{cl100k\_base} 编码）做精确Token计数，同时配备离线安全的字符级近似回退方案。分块算法采用递归标题感知策略（见第三章算法 \ref{al:3-1}），Token上限 $T_{max} = 4000$，优先在标题边界切分，无标题可分时退至段落级累积切分。
+
+实现层面，Markdown解析使用栈式结构处理 \texttt{\#} 标记构建标题树，递归函数 \texttt{chunk\_recursive()} 处理三种情况：子树在预算内则整体输出；超出预算且有子标题则递归下降至子标题层；无子标题则在段落级别按预算累积切分。清洗步骤先去除YAML前置元数据、页码标记和页眉页脚等OCR伪影，再送入分块逻辑。每个输出块记录所属标题层级（\texttt{titles} 字段）、Token数量及源文件信息，供下游抽取阶段做上下文定位。
+
+\subsection{命名实体识别实现}
+
+\subsubsection{LLM工厂与限流机制}
+
+所有LLM调用通过统一的工厂模式（TaskLLMFactory）管理。工厂按任务名称（\texttt{extract}、\texttt{ocr}、\texttt{entity\_embed} 等）从配置文件加载对应的模型参数、API密钥和速率限制策略，返回TaskLLMRunner实例。
+
+TaskLLMRunner集成了请求执行、重试与指数退避。遇到429（速率限制）或5xx（服务端错误）时自动指数退避重试（首次1s，逐次翻倍，上限由 \texttt{max\_retries} 配置，默认5次）。RollingRateLimiter使用滑动窗口算法，统计60秒内请求数，达到RPM上限后阻塞等待，避免触发服务端限流。每次LLM调用记录耗时和Token用量，便于性能监控和成本核算。
+
+\subsubsection{两阶段抽取流程}
+
+知识抽取采用Propose--Review两阶段架构，其设计依据见第三章。实现上，两阶段均为独立的LLM调用：
+
+\textbf{提议阶段：} LLM接收文本块和完整的Schema定义（实体类型表 \ref{tab:3-1}、关系类型表 \ref{tab:3-2}）及对应模式的提示词，输出JSON格式的候选实体列表（含name、type、description字段）和三元组列表（含head、relation、tail、evidence字段）。此阶段侧重召回率。
+
+\textbf{审核阶段：} 通过一次独立的LLM调用，对每个候选三元组逐一验证。审核提示词要求LLM逐项检查以下五条规则：（1）关系类型是否属于预定义的四种之一；（2）evidence字段是否为文本块中的连续原文子串且逐字一致；（3）头实体和尾实体是否均出现在evidence字段中；（4）head与tail是否相同（自环检测）；（5）是否引入了文本块中不存在的新实体。每个三元组的审核结果包含 $decision$（keep / revise / drop）和 $reason\_code$（如SUPPORTED、EVIDENCE\_NOT\_IN\_CHUNK、HEAD\_NOT\_IN\_EVIDENCE、SELF\_LOOP等）。
+
+系统对每个文本块依次执行提议和审核，未通过证据门控的三元组被丢弃或标记为修正。所有中间结果以JSON格式持久化存储，支持调试和结果复现。
+
+\subsubsection{抽取模式与提示词管理}
+
+系统支持Zero-shot和Few-shot两种抽取模式，通过命令行 \texttt{--mode} 参数切换。两种模式的提示词存放在 \texttt{config.yaml} 的 \texttt{extract.prompts} 配置段中，支持热更新——修改配置文件后重新运行即可应用新提示词，无需改动代码。
+
+Zero-shot模式提示词包含三个核心组件：Schema定义（四种实体类型的名称、定义及示例）、抽取规则（仅从给定文本中抽取、不编造实体、使用原文名称）和输出格式约束（严格JSON，包含entities和triples数组）。Few-shot模式在Zero-shot基础上额外加载四个标注示例（每种关系类型一个）和粒度规则的负面示例（不抽取过泛词如“计算机”“网络”“系统”），以抑制过度抽取倾向并提升跨文档的一致性。
+
+抽取过程使用ThreadPoolExecutor并行化，并发度由 \texttt{max\_concurrency} 控制。每个文本块的抽取结果保存为独立JSON文件，Zero-shot和Few-shot模式分目录存放（\texttt{data/triples/raw/zs/} 和 \texttt{data/triples/raw/fs/}），支持结果对比与模式切换。
+
+\subsection{关系抽取实现}
+
+\subsubsection{Propose--Review流程实现}
+
+关系抽取与实体识别共用同一套提示词和两阶段架构，在提议阶段同时输出实体和关系，在审核阶段对三元组进行独立的验证。审核阶段的实现利用了第三章定义的evidence验证规则：系统在原始文本块中搜索evidence子串（通过Python \texttt{str.find()} 实现），找到则保留，未找到则丢弃。这一“字符串匹配门控”的实现简洁高效，不依赖额外的LLM调用或模型推理。
+
+实际运行中发现，审核阶段不仅过滤了虚假关系，还能通过reason\_code提供诊断信息。例如，EVIDENCE\_NOT\_IN\_CHUNK提示evidence字段与原文不匹配，可能是LLM在生成evidence时进行了改写或合并；HEAD\_NOT\_IN\_EVIDENCE提示实体识别与关系抽取的边界不一致。这些诊断信息为持续优化提示词提供了反馈。
+
+\subsubsection{关系约束与置信度}
+
+审核阶段输出的三元组还需通过类型约束检查：头尾实体的类型组合必须符合关系Schema表（参见第三章表 \ref{tab:3-2}）中定义的类型约束。例如，compared\_with限定头尾实体为同类型（protocol ↔ protocol或concept ↔ concept），applied\_to限定头实体为mechanism。不符合约束的三元组被标记为REVISED，并将关系类型调整为可能的替代选项。通过检查的三元组记录 $confidence$ 分数字段（基于evidence长度与文本块长度的比率及审核阶段的reason\_code计算），为后续知识融合提供质量依据。
+
+\subsection{知识融合实现}
+
+\subsubsection{实体别名规范化}
+
+从多个文本块中抽取的实体存在名称变体（“传输控制协议”“TCP协议”“TCP”等）。系统通过别名映射表（ALIAS\_MAP）和正则后缀剥离实现Level 1规范化。映射表包含50余条中英文缩写与全称对应关系（如 \texttt{"传输控制协议" → "TCP"}、\texttt{"往返时延" → "RTT"}），同时通过正则 \texttt{(协议|算法|机制|方法|技术|方式)\$} 剥离实体名称末尾的类型后缀。规范化后将名称与类型组成复合键进行合并，保留最高频名称和首个非空描述，累加频次。
+
+\subsubsection{基于嵌入的语义规范化}
+
+别名表只能覆盖词典阶段已知的同义关系，难以处理抽取过程中产生的长尾变体，例如术语翻译差异（“快速重传”与“快速重发”）、修饰成分差异（“基于丢包的拥塞控制”与“丢包驱动的拥塞控制算法”）以及OCR残留引入的字符级噪声。系统因此引入基于嵌入向量的语义规范化（Level 2）作为兜底机制。EmbeddingCanonicalizer通过LLM工厂的 \texttt{EmbeddingTaskProcessor} 调用嵌入模型（向量维度1024）将每个实体编码为语义向量，1024维在表达能力和FAISS索引内存占用之间取得平衡。
+
+编码文本采用结构化模板“实体类型：\{type\}；实体名：\{name\}；定义：\{description\}”，把类型字段和描述字段同时纳入上下文。纯名称编码会忽略学科语境——例如“窗口”在protocol桶中应贴近“滑动窗口”，在metric桶中应贴近“拥塞窗口大小”，仅以名称为输入难以区分；引入类型与描述后，向量同时承载类别与语义信息，可有效抑制跨类型误合并。流程如算法 \ref{al:4-1} 所示。
+
+\begin{algorithm}[H]
+    \caption{基于FAISS的嵌入实体规范化}\label{al:4-1}
+    \begin{algorithmic}[1]
+        \Require 实体列表 $E$，相似度阈值 $\theta$，编码模板 $T$
+        \Ensure 规范化实体集合 $E'$
+        \State 按实体类型分桶（可选）：$E_{type} \gets \{e \in E \mid e.type = type\}$
+        \For{each桶 $B$}
+            \State 对每个实体 $e \in B$，构建编码文本：
+            \Statex \hspace{2em} $T(e) \gets$ ``实体类型：\{$e.type$\}；
+            \Statex \hspace{4em} 实体名：\{$e.name$\}；
+            \Statex \hspace{4em} 定义：\{$e.description$\}''
+            \State 调用Embedding API获取向量 $v_e$
+            \State 构建FAISS IndexFlatIP索引（余弦相似度，内积归一化）
+            \State 对每个实体查询 $top\_k$ 最相似实体
+            \State 使用并查集（UnionFind）合并相似度 $\geq \theta$ 的实体对
+            \State 选择规范代表名：频率最高 $\to$ 名称最短 $\to$ 字典序最小
+        \EndFor
+        \State \Return $E'$
+    \end{algorithmic}
+\end{algorithm}
+
+选择FAISS IndexFlatIP作为向量索引的原因：（1）FAISS提供高效的近似最近邻搜索，适用于数万级实体集合；（2）IndexFlatIP内积搜索配合向量归一化即可实现余弦相似度计算，无需额外索引类型；（3）FAISS的批量查询接口与ThreadPoolExecutor并发架构兼容，避免了向量搜索成为流水线瓶颈。
+
+相似度阈值 $\theta$ 设为0.85。阈值过低会将语义不同的实体错误合并（如“拥塞控制”与“流量控制”），阈值过高则无法合并真正的同义变体（如“TCP协议”与“TCP”）。实验表明0.85在两者之间取得了平衡。
+
+嵌入缓存机制（\_EmbeddingBinaryCache）将已计算的嵌入向量序列化为NumPy二进制文件（.npy）和JSON元数据文件。缓存以实体名称和类型的哈希作为键，避免对相同实体重复调用Embedding API。大规模规范化场景下（数千实体），缓存可降低70\% 以上的API调用量。
+
+\subsubsection{三元组合并与去重}
+
+实体规范化完成后，以规范化后的（$head$, $relation$, $tail$）三元组为键分组，累加频次并收集全部 $evidences$ 列表。合并后过滤自环三元组（$head = tail$）及头尾实体不在有效实体集合中的三元组。合并结果写入 \texttt{merged\_triples.json}，Zero-shot和Few-shot结果分目录存放，结构为 \texttt{\{"entities": [...], "triples": [...]\}}。
+
+\subsection{Neo4j图数据库导入实现}
+
+\subsubsection{Cypher批量导入}
+
+KGNeo4jLoader基于neo4j Python驱动（Bolt协议）执行导入。连接参数（\texttt{NEO4J\_URI}、\texttt{NEO4J\_USER}、\texttt{NEO4J\_PASSWORD}）从环境变量读取，通过 \texttt{GraphDatabase.driver()} 建立连接。导入流程分两步执行：第一步，按实体类型创建不同标签的节点（Protocol、Concept、Mechanism、Metric），以 $name$ 字段作为唯一约束；第二步，按关系类型创建有向边（CONTAINS、DEPENDS\_ON、COMPARED\_WITH、APPLIED\_TO），以头尾节点对和关系类型匹配。
+
+使用Cypher MERGE语句保证幂等性——重复导入相同数据不会产生重复节点或边。每条边额外存储 $frequency$ 和JSON格式的 $evidences$ 数组。批量写入采用 \texttt{execute\_query} 配合参数化查询，针对数千条三元组的导入可在秒级完成。导入前可通过 \texttt{--clear} 参数清空已有数据库，便于重复实验。
+
+\subsubsection{索引、约束与查询接口}
+
+为支持下游应用按实体类型与频次的高效检索，导入阶段同时为四类节点标签的 \texttt{name} 字段建立唯一性约束，为 \texttt{frequency} 字段建立B+ 树索引。约束保证幂等导入下不产生重名实体，索引则将“按频次取前 $N$ 个高频节点并查询其诱导子图”等典型查询的耗时控制在毫秒级。完成导入后，用户可通过Neo4j Browser或Bolt协议驱动直接执行Cypher查询，按实体类型、关系类型或频次条件检索知识子图，每条返回的关系附带 \texttt{evidences} 字段以保留原文证据，便于后续应用集成。
+
+\subsection{本章小结}
+
+本章给出了QmrKG各模块的完整实现细节。系统总体架构采用六阶段串行流水线，各阶段以CLI命令暴露并通过文件系统中间产物解耦；LLM工厂模式通过任务作用域配置隔离统一管理OCR、抽取和嵌入三类LLM调用，配合滑动窗口速率限制和指数退避重试保障稳定性。文档渲染使用PyMuPDF（DPI 200）和LibreOffice无头模式；OCR基于Qwen3-VL-8B并通过ThreadPoolExecutor并发处理；文本分块采用递归标题感知策略，Token上限4000。知识抽取实现两阶段Propose--Review架构，审核阶段执行五条证据验证规则；知识融合结合别名映射表（50余条）和FAISS嵌入语义规范化（阈值0.85），嵌入结果通过二进制缓存复用。Neo4j导入使用Cypher MERGE幂等操作，配合 \texttt{name} 唯一约束与 \texttt{frequency} 索引支持下游应用的高效查询。

@@ -1,5 +1,8 @@
 # QmrKG Frontend
 
+**Generated:** 2026-05-13
+**Commit:** d8111eb
+**Branch:** kgeval-quality-baseline
 **Location:** `frontend/`
 
 ## OVERVIEW
@@ -101,3 +104,6 @@ NEO4J_GRAPH_REL_LIMIT=4000
 - **Next.js version:** 16.2.2
 - **React version:** 19.2.4
 - **Dev indicators:** Disabled in next.config.ts
+- **Dynamic import:** `GraphCanvas` is loaded with `dynamic(..., { ssr: false })` for client-only force-graph
+- **Neo4j driver:** Long-lived driver instance created at module scope in `route.ts`
+- **State management:** Local only (`useState`/`useEffect`/`useMemo`); no Redux/Zustand/SWR

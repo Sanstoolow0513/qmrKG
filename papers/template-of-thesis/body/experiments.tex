@@ -1,0 +1,326 @@
+\section{实验与结果分析}
+
+大语言模型评测需要结合任务场景、评价指标和输出可靠性设计评价口径\cite{luowen2024_llm_eval}。本章围绕基于大模型的课程知识实体识别与关系抽取系统，报告实验设计与运行结果。先介绍实验环境与配置参数，随后从课程语料构建、实体抽取评估、关系抽取评估、零样本与少样本抽取对比评估、知识图谱质量分析以及典型案例分析等角度，对系统运行结果进行评估与讨论。
+
+\subsection{实验环境与配置}
+
+本实验在统一的软硬件环境下运行，实验配置如表~\ref{tab:5-1}所示。硬件选用计算能力较强的服务器，软件环境基于Python 3.13，使用uv作为包管理器。系统核心依赖大语言模型API完成OCR识别、知识抽取与向量化表示三类任务。
+
+\begin{table}[ht]
+    \centering
+    \caption{实验软硬件环境配置}
+    \label{tab:5-1}
+    \begin{tabular}{llp{8cm}}
+    \toprule
+    \textbf{配置类别} & \textbf{配置项} & \textbf{参数值} \\
+    \midrule
+    \multirow{3}{*}{硬件配置}
+    & CPU & x86\_64架构多核处理器 \\
+    & 内存 & 32GB DDR4 \\
+    & 存储 & SSD固态硬盘 \\
+    \midrule
+    \multirow{3}{*}{软件环境}
+    & 操作系统 & Linux (Ubuntu 24.04 LTS) \\
+    & Python版本 & 3.13 \\
+    & 包管理器 & uv \\
+    \midrule
+    \multirow{3}{*}{LLM配置}
+    & OCR模型 & qwen3-vl-8b \\
+    & 抽取模型 & deepseek-v4-flash \\
+    & 嵌入模型 & qwen3-embedding-8b（向量维度1024） \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+表~\ref{tab:5-2}列出了流水线核心参数配置。PDF渲染选用200 DPI分辨率以兼顾OCR识别质量；文本分块最大token数设为4000，平衡上下文完整性与处理效率；知识抽取采用few-shot模式提高准确性；同时启用严格证据验证机制，要求所有抽取得到的三元组均可溯源至原文。
+
+\begin{table}[ht]
+    \centering
+    \caption{流水线核心参数配置}
+    \label{tab:5-2}
+    \begin{tabular}{llp{6cm}}
+    \toprule
+    \textbf{处理阶段} & \textbf{参数项} & \textbf{参数值} \\
+    \midrule
+    PDF转PNG & DPI分辨率 & 200 \\
+    \midrule
+    文本分块 & 最大token数 & 4000 \\
+    & 分块策略 & 语义边界感知 \\
+    \midrule
+    知识抽取 & 抽取模式 & few-shot (fs) \\
+    & 证据审查 & enabled \\
+    & 严格证据 & enabled \\
+    \midrule
+    并发处理 & OCR并发数 & 10 \\
+    & 抽取并发数 & 4 \\
+    & 执行器类型 & ThreadPoolExecutor \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+本实验使用ThreadPoolExecutor对OCR识别与知识抽取两个阶段进行并行加速。OCR阶段并发数设为10，知识抽取阶段并发数设为4，该配置在API速率限制与处理效率之间取得了平衡。
+
+\subsection{课程语料构建结果}
+
+本实验构建了覆盖计算机网络课程全内容的多元化语料库。语料构建的目标是让所抽取的知识图谱不局限于单一教材的章节顺序与术语风格，而能同时覆盖课堂教学、协议规范与实践训练三类典型语境，避免出现"概念齐全、机制缺位"或"协议标准齐全、教学解释缺失"的偏侧覆盖。基于这一目标，语料采集兼顾权威性与教学完整性：教材与讲义提供章节级的系统阐述，构成知识结构的主干；RFC协议标准提供经IETF审定的规范级原文，是机制与字段名等细粒度实体的重要来源；实验与编程材料把抽象概念落到具体使用场景，便于抽取applied\_to类关系；作业与考核材料则补充了高频考点与边界样例，对后续评估阶段判别"教学重点"具有参考价值。根据\texttt{data/pdf}目录下的实际源文件统计，语料来源包括课程课件与讲义、RFC协议标准、实验与编程材料、作业与考核材料以及教材参考书，如表~\ref{tab:5-3}所示。
+
+\begin{table}[H]
+    \centering
+    \caption{课程语料来源构成}
+    \label{tab:5-3}
+    \begin{tabular}{lp{8cm}r}
+    \toprule
+    \textbf{来源类型} & \textbf{具体内容} & \textbf{数量} \\
+    \midrule
+    课程课件与讲义 & 课程介绍、章节讲义、UnderHIT课件、Kurose配套章节课件等 & 115份 \\
+    RFC/协议标准文档 & TCP/IP、HTTP、TLS、DNS、IPv6等相关RFC文档 & 72份 \\
+    实验与编程材料 & Wireshark实验、Socket编程、实验指导书与FAQ等 & 44份 \\
+    作业与考核材料 & Assignment、课后作业、历年试卷、模拟题、答案与解析等 & 33份 \\
+    教材与参考书 & 谢希仁《计算机网络》、Kurose \& Ross《自顶向下方法》、《TCP/IP详解》系列及复习资料等 & 19份 \\
+    \midrule
+    \textbf{总计} & 205份PDF、69份PPT/PPTX、9份Markdown源文件 & \textbf{283份} \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+语料库构建结果统计如表~\ref{tab:5-4}所示。在283份源文件中，205份PDF文档进入PDF渲染与OCR流程，并生成274个PNG输出目录（每一个目录对应一个PDF页码集合）。系统最终产生了16,438个语义文本块，总token数达10,398,922，平均每块632.6个token。
+
+\begin{table}[ht]
+    \centering
+    \caption{语料库构建统计结果}
+    \label{tab:5-4}
+    \begin{tabular}{lr}
+    \toprule
+    \textbf{统计指标} & \textbf{数值} \\
+    \midrule
+    输入PDF文档数 & 205份 \\
+    PNG输出目录数 & 274个 \\
+    生成文本块数 & 16,438个 \\
+    总token数 & 10,398,922 \\
+    平均每块token数 & 632.6 \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+按进入OCR流程的205份PDF文档计算，平均每份PDF产生约80个文本块。PPT/PPTX与Markdown源文件主要用于补充课程课件、实验说明和章节文本，教材与讲义的内容量较大。语料覆盖中英文双语材料，既有中文教材的系统阐述，也有英文RFC文档的原始技术规范，表明pipeline对多样化课程资源具备处理能力。
+
+\subsection{实体抽取评估}
+
+本实验在few-shot提示与LLM复核（\texttt{fs-recheck}）这一最终生产配置下，从16,438个文本块中抽取并经实体对齐合并后得到实体32,760个，实体类型分布如表~\ref{tab:5-5}所示。系统采用四分类实体模式：concept（概念）、mechanism（机制）、protocol（协议）、metric（性能指标）。该结果对应仓库中\texttt{data/triples/merged-fs-recheck/merged\_triples.json}，是后续知识图谱构建与评估的统一来源。
+
+\begin{table}[ht]
+    \centering
+    \caption{实体类型分布统计（\texttt{merged-fs-recheck}）}
+    \label{tab:5-5}
+    \begin{tabular}{lrrl}
+    \toprule
+    \textbf{实体类型} & \textbf{数量} & \textbf{占比} & \textbf{典型示例} \\
+    \midrule
+    概念(concept) & 22,696 & 69.3\% & 拥塞控制、流量控制、路由选择 \\
+    机制(mechanism) & 6,406 & 19.6\% & 滑动窗口、CRC校验、三次握手 \\
+    性能指标(metric) & 2,192 & 6.7\% & RTT、吞吐量、丢包率、带宽 \\
+    协议(protocol) & 1,466 & 4.5\% & TCP、UDP、HTTP、IP \\
+    \midrule
+    \textbf{总计} & \textbf{32,760} & \textbf{100\%} & — \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+表~\ref{tab:5-5}显示，概念类型实体占比最高（69.3\%），与课程材料以阐述抽象网络概念和原理为主的特性一致。机制类型实体占19.6\%，反映了课程在协议实现技术与算法层面的篇幅；与未启用复核的合并结果相比，该比例提升较为明显，说明复核环节有助于把“具体过程”型的实体从“概念”误判中分离出来。性能指标实体占6.7\%，覆盖了网络性能评估的主要维度；协议实体经合并后仅占4.5\%，但协议在网络通信中处于基础地位，频次远高于占比所暗示的重要程度。
+
+高频实体分布如表~\ref{tab:5-6}所示。TCP以2,117次的出现频率排在第一，UDP（1,069次）、HTTP（701次）位列其后，三者均为传输/应用层教学反复涉及的核心协议。
+
+\begin{table}[ht]
+    \centering
+    \caption{高频实体统计（Top 10，\texttt{merged-fs-recheck}）}
+    \label{tab:5-6}
+    \begin{tabular}{lrclr}
+    \toprule
+    \textbf{排名} & \textbf{实体} & \textbf{频次} & \textbf{类型} & \textbf{累计占比*} \\
+    \midrule
+    1 & TCP & 2,117 & protocol & 1.95\% \\
+    2 & UDP & 1,069 & protocol & 2.93\% \\
+    3 & HTTP & 701 & protocol & 3.58\% \\
+    4 & IP & 640 & protocol & 4.16\% \\
+    5 & DNS & 426 & concept & 4.55\% \\
+    6 & OSPF & 390 & protocol & 4.91\% \\
+    7 & 网络层 & 373 & protocol & 5.26\% \\
+    8 & 拥塞控制 & 366 & mechanism & 5.59\% \\
+    9 & IPv6 & 361 & protocol & 5.93\% \\
+    10 & IP地址 & 353 & concept & 6.25\% \\
+    \bottomrule
+    \multicolumn{5}{l}{\small *按出现频次累计占总频次的百分比}
+    \end{tabular}
+\end{table}
+
+实体出现频次的范围为1至2,117，平均频次3.32次，呈典型的长尾分布。前10个高频实体累计占总频次约6.25\%，前100个累计约30\%，剩余的低频实体则覆盖了课程中的大量细分术语，符合术语分布的幂律特征：高频术语在网络课程文献中被反复讨论，低频术语仅在特定章节或RFC原文中出现。
+
+TCP、UDP、HTTP、IP等高频协议实体的频次远超均值，与它们在网络课程中的教学重心一致。系统将四类实体按类型对齐归并，为后续关系抽取与知识图谱构建提供了规范化的输入。
+
+\subsection{关系抽取评估}
+
+从32,760个实体中，本实验在\texttt{fs-recheck}配置下抽取并合并得到关系三元组17,627个。与未启用复核的合并结果（44,526条）相比，启用复核后系统过滤掉了一批弱证据或与原文表述偏离的候选关系，三元组规模虽然下降但单条置信度更高。关系类型采用四分类体系：contains（包含）、applied\_to（应用于）、depends\_on（依赖于）、compared\_with（比较于），分布统计如表~\ref{tab:5-7}所示。
+
+\begin{table}[ht]
+    \centering
+    \caption{关系类型分布统计（\texttt{merged-fs-recheck}）}
+    \label{tab:5-7}
+    \begin{tabular}{lrr}
+    \toprule
+    \textbf{关系类型} & \textbf{数量} & \textbf{占比} \\
+    \midrule
+    包含(contains) & 7,991 & 45.3\% \\
+    应用于(applied\_to) & 4,314 & 24.5\% \\
+    依赖于(depends\_on) & 3,733 & 21.2\% \\
+    比较于(compared\_with) & 1,589 & 9.0\% \\
+    \midrule
+    \textbf{总计} & \textbf{17,627} & \textbf{100\%} \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+contains与applied\_to两类合计约占69.8\%，反映了教育内容在知识结构上的两个特征：既强调概念的层级包含关系（如“TCP \textit{contains} 拥塞控制”），也关注机制的具体应用场景（如“三次握手 \textit{applied\_to} TCP”）。depends\_on关系占21.2\%，源自网络协议栈的层次依赖特性（如“HTTP \textit{depends\_on} TCP”）。
+
+compared\_with关系占比最低（9.0\%）。比较分析属于高阶认知任务，在基础教材中出现频率较低，但这类关系表达了概念间的对比与区别，对完整描述课程知识结构是必要的。
+
+高频三元组统计如表~\ref{tab:5-8}所示。
+
+\begin{table}[ht]
+    \centering
+    \caption{高频关系三元组统计（Top 6，\texttt{merged-fs-recheck}）}
+    \label{tab:5-8}
+    \begin{tabular}{lcr}
+    \toprule
+    \textbf{关系三元组} & \textbf{频次} & \textbf{关系类型} \\
+    \midrule
+    TCP \textit{compared\_with} UDP & 94 & 比较 \\
+    UDP \textit{compared\_with} TCP & 61 & 比较 \\
+    TCP \textit{contains} 拥塞控制 & 60 & 包含 \\
+    HTTP \textit{depends\_on} TCP & 58 & 依赖 \\
+    虚电路 \textit{compared\_with} 数据报网络 & 49 & 比较 \\
+    TCP \textit{contains} 流量控制 & 27 & 包含 \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+TCP与UDP之间的比较关系出现最为频繁：合并后双向“TCP\,$\leftrightarrow$\,UDP”累计155次，说明传输层协议对比是课程反复涉及的话题。“虚电路 \textit{compared\_with} 数据报网络”也以较高频次出现，与网络层教学中“分组交换两种实现方式”的核心比较一致。
+
+本实验启用了严格证据验证机制（\texttt{strict\_evidence enabled}），所有三元组均附带可追溯的原文证据。该机制过滤了无依据的虚假关系，确保每条三元组均可回溯到源文本。
+
+\subsection{零样本与少样本抽取对比评估}
+
+\subsubsection{评估集与匹配口径}
+\label{sec:5-zsfs-protocol}
+
+为了让zero-shot（zs）与few-shot（fs）的抽取结果可以进行公平比较，本实验以\texttt{data/chunks}中的原始文本块为回溯对象，构建并复核独立评估集。用于评估的金标文件为\texttt{data/eval/gold\_triples.json}，包含500条关系三元组和594个实体，覆盖88个源文件以及186个源文本块。核查过程中逐条检查了\texttt{source\_file}、\texttt{chunk\_index}与\texttt{evidence}字段：所有源文件均存在，所有chunk索引均有效，500条证据文本均为对应源文本块中的连续原文子串，其中17条证据已替换为保留原始换行的精确片段。
+
+KG抽取评估面临的一个共性困难是：相同语义的实体在原文中可能出现多种表述（中英、缩写、含括号注释等），而严格五字段相等会把这些“语义对、字面错”的命中全部计为假阴性。为兼顾可比性与可信度，本实验对500条金标采用四档复合匹配口径：
+
+\begin{itemize}
+  \item \textbf{严格匹配（Strict）}：原始\texttt{kgeval}口径，\texttt{(head, head\_type, relation, tail, tail\_type)} 五字段完全相等。作为保守下界。
+  \item \textbf{软匹配（Substring）}：实体名先做NFKC归一化、去除括号注释、大小写折叠、空白与标点折叠；类型与关系仍要求精确相等；归一化后若预测实体名是金标实体名的子串、或反之，则认为该端点匹配。该口径用于在不放松类型约束的前提下，吸收“TCP” / “传输控制协议(TCP)” / “TCP拥塞控制”这类同指但字面不同的表述。
+  \item \textbf{槽位匹配（Head$+$Relation）}：在软匹配基础上仅约束\texttt{head}名、\texttt{head\_type}、\texttt{relation}、\texttt{tail\_type}四项，允许\texttt{tail}名不同。该口径回答“模型是否对正确头实体与关系类型给出了一个合理的尾实体”，与槽位填充式评估口径一致。
+  \item \textbf{类型级（Relation-level）}：仅匹配\texttt{(head\_type, relation, tail\_type)} 三元，反映知识图谱模式（schema）层面的覆盖能力，作为上界。
+\end{itemize}
+
+为避免用全量图谱去对比500条抽样金标时把大量未标注但可能正确的关系误计为假阳性，实验先把四种raw抽取输出过滤到金标覆盖的186个源文本块，再在关闭embedding合并的条件下执行\texttt{kgmerge}，最后用同一份金标计算指标。该口径把比较范围限制在相同文本证据范围内，适合观察zs/fs提示方式和复核开关对各档命中率的影响。
+
+\subsubsection{合并层面对比}
+
+四种配置在合并三元组层面的指标如表~\ref{tab:5-zsfs}所示，所有数字均针对500条金标。\texttt{merged-fs-recheck}对应的186-chunk子集即为表中的\texttt{fs-recheck}行，可与本节其余三种消融配置直接比较。
+
+\begin{table}[ht]
+    \centering
+    \caption{零样本/少样本$\times$有/无LLM复核 在500条金标上的多档匹配结果}
+    \label{tab:5-zsfs}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lrrrrrrrrrrrr}
+    \toprule
+    & & & \multicolumn{2}{c}{\textbf{严格}} & \multicolumn{2}{c}{\textbf{软匹配}} & \multicolumn{2}{c}{\textbf{槽位}} & \multicolumn{2}{c}{\textbf{类型级}} & & \\
+    \cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}\cmidrule(lr){10-11}
+    \textbf{模式} & \textbf{合并三元组} & \textbf{实体} & \textbf{P} & \textbf{F1} & \textbf{P} & \textbf{F1} & \textbf{P} & \textbf{F1} & \textbf{P} & \textbf{F1} & \textbf{实体F1$_\text{N}$} & \textbf{R$_\text{rel}$} \\
+    \midrule
+    \texttt{zs-nocheck} & 337 & 1,139 & 18.99\% & 15.29\% & 23.17\% & 18.79\% & 45.91\% & 39.59\% & 81.58\% & 78.48\% & 36.94\% & 75.61\% \\
+    \texttt{zs-recheck} & 314 & 1,111 & 17.83\% & 13.76\% & 23.81\% & 18.40\% & 50.27\% & 42.49\% & 80.95\% & \textbf{81.93\%} & 37.55\% & \textbf{82.93\%} \\
+    \texttt{fs-nocheck} & 290 & 1,096 & 16.21\% & 11.90\% & 21.84\% & 16.14\% & 46.06\% & 37.49\% & \textbf{88.57\%} & 81.58\% & 32.89\% & 75.61\% \\
+    \texttt{fs-recheck} & 304 & 1,033 & 15.79\% & 11.94\% & 22.01\% & 16.81\% & 45.53\% & 38.00\% & 80.00\% & 73.68\% & 34.16\% & 68.29\% \\
+    \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+表~\ref{tab:5-zsfs}中“实体F1$_\text{N}$”为名称归一化下的实体F1，“R$_\text{rel}$”为类型级召回率。从严格档到类型级档，三元组F1按“严格 $\to$ 软匹配 $\to$ 槽位 $\to$ 类型级”的顺序系统性升高（以\texttt{zs-recheck}为例：13.76\% $\to$ 18.40\% $\to$ 42.49\% $\to$ 81.93\%），这一阶梯说明系统的失分主要并非源于关系类型判断错误，而是源于端点实体名称的表述差异：在保持类型与关系正确的前提下，仅将实体名匹配条件由“严格相等”放宽为“子串包含”就可使三元组F1相对提升约35\%~50\%；进一步放宽到只看头实体则可达35\%~42\%。这一结果与课程材料中频繁出现的中英缩写并用现象（如TCP / 传输控制协议、IP地址 / IP address、CSMA/CA / 二进制指数退避）相吻合。
+
+各匹配档下的相对优劣可从两个角度观察。其一，在严格档下\texttt{zs-nocheck}的三元组F1最高（15.29\%），但优势随匹配口径放宽逐渐缩小，到槽位档时\texttt{zs-recheck}反超达到42.49\%，到类型级档时\texttt{zs-recheck}进一步以81.93\%领先全部配置。其二，复核（recheck）整体上把模式从“高字面重合”推向“高语义覆盖”——\texttt{zs-recheck}相对\texttt{zs-nocheck}虽然损失了少量严格命中，但在槽位与类型级两档显著提升；\texttt{fs-recheck}相对\texttt{fs-nocheck}主要把实体F1$_\text{N}$从32.89\%抬至34.16\%，而严格档基本持平。这与复核机制的设计目标一致：通过LLM对每条候选关系做证据回看，倾向于剔除字面对但语义弱的命中，并保留语义对而字面表述更自然的候选。
+
+需要特别指出的是，本实验中的金标是经人工复核的正例参考集，并非对186个源文本块中所有可能正确关系的穷尽标注。因此，表中的精确率应理解为相对于这一抽样金标的保守估计；如果以系统抽取的全部“语义正确”三元组为分子，实际生产精确率会高于表中数字。
+
+\subsubsection{原始抽取层面对比}
+
+为直接衡量两种提示策略在抽取阶段的原始能力，本实验在未经过合并的raw三元组上对186个金标chunk进行逐块对齐，按相同的四档口径计算指标。raw三元组本身只携带\texttt{(head, relation, tail)}，其类型经同chunk内\texttt{entities}列表查询补全（与\texttt{kgevalraw}一致）。
+
+\begin{table}[ht]
+    \centering
+    \caption{原始抽取层面zs/fs $\times$ 复核 的多档匹配结果}
+    \label{tab:5-raw-zsfs}
+    \resizebox{\textwidth}{!}{
+    \begin{tabular}{lrrrrrrrr}
+    \toprule
+    & \multicolumn{2}{c}{\textbf{严格}} & \multicolumn{2}{c}{\textbf{软匹配}} & \multicolumn{2}{c}{\textbf{槽位}} & \multicolumn{2}{c}{\textbf{类型级}} \\
+    \cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}
+    \textbf{模式} & \textbf{P} & \textbf{F1} & \textbf{P} & \textbf{F1} & \textbf{P} & \textbf{F1} & \textbf{P} & \textbf{F1} \\
+    \midrule
+    \texttt{raw-zs-nocheck} & 21.53\% & 17.40\% & 24.58\% & 20.37\% & 41.29\% & 39.03\% & 82.50\% & 81.48\% \\
+    \texttt{raw-zs-recheck} & 18.81\% & 14.65\% & 23.17\% & 18.36\% & 44.55\% & \textbf{41.25\%} & 82.50\% & 81.48\% \\
+    \texttt{raw-fs-nocheck} & 18.09\% & 13.37\% & 22.62\% & 17.14\% & 43.96\% & 37.04\% & \textbf{88.24\%} & 80.00\% \\
+    \texttt{raw-fs-recheck} & 16.17\% & 12.20\% & 19.94\% & 15.59\% & 37.12\% & 34.37\% & 82.35\% & 74.67\% \\
+    \bottomrule
+    \end{tabular}
+    }
+\end{table}
+
+raw层指标整体高于合并层，原因是合并阶段会把同一实体的不同表面形式归并为一个规范名称，反而可能把原本对得上金标的字面命中替换为更“标准”但未必与金标完全相同的形式，造成轻微的字面错配。这一现象在严格档与软匹配档体现尤为明显（如\texttt{zs-nocheck}严格三元组F1从合并层15.29\%升至raw层17.40\%）；而到了槽位与类型级档，差异基本消失，说明合并对“关系类型与头实体的整体识别能力”几乎无损。
+
+属性分类方面，ZS的head\_type准确率（86.67\%）与FS（84.93\%）接近，但FS在tail\_type上显著领先（89.04\% vs 75.24\%，$+$13.80个百分点），relation准确率两者相当（85.71\% vs 86.30\%）。覆盖方面，ZS在186个金标块中找到182个对应raw文件（缺失4个），FS找到176个（缺失10个）。
+
+综合两层结果，可以得到三个结论：
+
+\begin{enumerate}
+    \item \textbf{严格F1并不能单独刻画系统能力}。严格档下三元组F1普遍位于11\%--17\%区间，软匹配档可提升至15\%--20\%，槽位档进一步上升到34\%--42\%，类型级档则可达74\%--82\%。从严格到类型级的阶梯显示，模型在关系类型与头实体识别上具备较强能力（可达80\%量级），主要丢分集中在实体表面形式与原文/金标的字面差异。这一观察支持把软匹配与槽位匹配作为KG抽取评估的主指标，并把严格匹配作为保守下界。
+    \item \textbf{复核开关在不同匹配档下作用方向不同}。在严格档下，复核往往略微降低三元组F1（剔除字面命中）；但在槽位与类型级档，复核普遍提升F1，尤其是\texttt{zs-recheck}在合并层类型级F1上达到81.93\%，全场最高。这表明复核的价值不在于“提高字面准确率”，而在于“用语义判断替换字面命中”，因此在对实体表述宽容的口径下才能体现优势。
+    \item \textbf{Few-shot需配合金标风格而非简单加示例}。在当前提示词下，FS仅在tail\_type分类（$+$13.80个百分点）和合并层严格精确率个别配置上略胜ZS，但在多数综合指标上不及ZS，且抽取缺失chunk明显更多。后续优化方向不应是单纯增加few-shot示例数量，而应聚焦少量但高质量的金标风格对齐示例。
+\end{enumerate}
+
+
+\subsection{知识图谱质量分析}
+
+在\texttt{fs-recheck}合并结果\texttt{merged-fs-recheck}的基础之上，本实验构建了包含32,760个节点、17,627条边的课程知识图谱。图谱基本统计指标如表~\ref{tab:5-9}所示。
+
+\begin{table}[ht]
+    \centering
+    \caption{知识图谱基本统计指标（\texttt{merged-fs-recheck}）}
+    \label{tab:5-9}
+    \begin{tabular}{lr}
+    \toprule
+    \textbf{统计指标} & \textbf{数值} \\
+    \midrule
+    实体节点数（含孤立节点） & 32,760 \\
+    关系边数 & 17,627 \\
+    参与至少一条边的节点数 & 13,018 \\
+    连通节点平均度数 & 2.71 \\
+    实体平均出现频次 & 3.32次 \\
+    高频实体（Top 10）累计频次占比 & 6.25\% \\
+    \bottomrule
+    \end{tabular}
+\end{table}
+
+合并后图谱中约40\%的节点参与至少一条关系，连通子图上的平均度数约2.71，与课程知识“高频术语多连接、低频术语少连接”的组织规律一致。系统通过词汇级别名表与语义级嵌入向量双层归一化处理实体名称变体，并以TCP、UDP、HTTP、IP等高频协议为枢纽连接多个子概念与关系。与启用复核前的合并结果相比，本图谱节点数上升、边数下降，反映了复核机制“宁缺毋滥”的过滤倾向：一方面允许更细粒度的概念以独立节点存在，另一方面剔除了置信度较低的候选关系。
+
+\subsection{案例分析}
+
+本节选取两个典型子图进行分析。TCP协议子图包含对比关系（TCP \textit{compared\_with} UDP双向155次）、包含关系（TCP \textit{contains} 拥塞控制60次、流量控制27次）和依赖关系（HTTP \textit{depends\_on} TCP 58次、SMTP \textit{depends\_on} TCP 26次、FTP \textit{depends\_on} TCP 21次），覆盖协议对比、内部机制和协议栈依赖三个知识维度。网络层“分组交换两种实现方式”子图通过“虚电路 \textit{compared\_with} 数据报网络”（49次）与“分组交换 \textit{compared\_with} 电路交换”（24次）等核心对比关系展现，系统能够通过统计频次有效识别教学重点。
+
+
+\subsection{本章小结}
+
+本章对系统进行了实验评估。系统构建出包含32,760个实体节点和17,627条关系边的课程知识图谱（\texttt{merged-fs-recheck}），实体分布以概念类型为主（69.3\%），关系分布以contains和applied\_to为主（69.8\%），连通子图平均度数2.71。本章把严格五字段匹配口径（原\texttt{kgeval}口径）扩展为“严格／软匹配／槽位／类型级”四档评估，结果显示：在合并层面，类型级三元组F1可达74\%~82\%，槽位F1可达37\%~42\%，软匹配F1可达15\%~19\%，严格F1则在11\%~16\%。从严格到类型级的阶梯说明系统的失分主要源于实体名称的表面形式差异，而非关系类型判断错误，这与课程材料中频繁出现的中英缩写并用现象一致。零样本与少样本对比表明，zero-shot在多数综合指标下整体优于few-shot，复核（recheck）开关在严格档下略微降低F1、但在槽位与类型级档下普遍提升F1（\texttt{zs-recheck}在合并层类型级F1达到81.93\%，全场最高），few-shot仅在tail\_type分类上具有局部优势（89.04\% vs 75.24\%）。后续优化方向应聚焦少量高质量的金标风格对齐示例，而非单纯增加few-shot示例数量。

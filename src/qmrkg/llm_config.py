@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from .config import load_config
+
 logger = logging.getLogger(__name__)
 
 
@@ -35,49 +37,7 @@ DEFAULT_OCR_PROMPT = (
     "Do not add commentary or summaries outside the transcribed content."
 )
 
-_API_KEY_ALIASES = ("PPIO_API_KEY", "SILICONFLOW_API_KEY")
-_BASE_URL_ALIASES = ("PPIO_BASE_URL", "SILICONFLOW_BASE_URL")
-_MODEL_ALIASES_BY_TASK = {
-    "ocr": ("PPIO_VLM_MODEL", "PPIO_MODEL", "SILICONFLOW_VLM_MODEL", "SILICONFLOW_MODEL"),
-}
-_PROMPT_ALIASES_BY_TASK = {
-    "ocr": ("PPIO_VLM_PROMPT", "PPIO_PROMPT", "SILICONFLOW_VLM_PROMPT", "SILICONFLOW_PROMPT"),
-}
-_PROMPT_KEY_ALIASES = ("PPIO_PROMPT_KEY", "SILICONFLOW_PROMPT_KEY")
-_IMAGE_DETAIL_ALIASES = ("PPIO_IMAGE_DETAIL", "SILICONFLOW_IMAGE_DETAIL")
-_RPM_ALIASES = ("PPIO_RPM", "SILICONFLOW_RPM")
-_MAX_CONCURRENCY_ALIASES = ("PPIO_MAX_CONCURRENCY", "SILICONFLOW_MAX_CONCURRENCY")
-_TIMEOUT_ALIASES = ("PPIO_TIMEOUT_SECONDS", "SILICONFLOW_TIMEOUT_SECONDS")
-_MAX_RETRIES_ALIASES = ("PPIO_MAX_RETRIES", "SILICONFLOW_MAX_RETRIES")
-
-
-def _load_yaml_config(config_path: Path | None = None) -> dict[str, Any]:
-    try:
-        import yaml
-    except ImportError:
-        logger.debug("PyYAML not installed, skipping YAML config loading")
-        return {}
-
-    if config_path is None:
-        search_paths = [
-            Path.cwd() / "config.yaml",
-            Path.cwd() / "config.yml",
-            Path(__file__).parent.parent.parent.parent / "config.yaml",
-        ]
-    else:
-        search_paths = [Path(config_path)]
-
-    for path in search_paths:
-        if path.exists():
-            try:
-                with open(path, "r", encoding="utf-8") as f:
-                    config = yaml.safe_load(f)
-                    logger.debug("Loaded config from %s", path)
-                    return config or {}
-            except Exception as exc:
-                logger.warning("Failed to load config from %s: %s", path, exc)
-
-    return {}
+API_KEY_ENV = "PPIO_API_KEY"
 
 
 def _get_nested_value(config: dict[str, Any], *keys: str, default: Any = None) -> Any:
@@ -89,53 +49,43 @@ def _get_nested_value(config: dict[str, Any], *keys: str, default: Any = None) -
     return current if current != {} else default
 
 
-def _read_env(*names: str) -> str | None:
-    for name in names:
-        value = os.getenv(name)
-        if value not in (None, ""):
-            return value.strip()
+def _read_env(name: str) -> str | None:
+    value = os.getenv(name)
+    if value not in (None, ""):
+        return value.strip()
     return None
 
 
-def _read_str(env_names: tuple[str, ...], config_value: Any, default: str) -> str:
-    env_value = _read_env(*env_names)
-    if env_value not in (None, ""):
-        return env_value
+def _read_str(config_value: Any, default: str) -> str:
     if isinstance(config_value, str) and config_value.strip():
         return config_value.strip()
     return default
 
 
-def _read_int(env_names: tuple[str, ...], config_value: Any, default: int) -> int:
-    env_value = _read_env(*env_names)
-    if env_value not in (None, ""):
-        parsed = int(env_value)
-    elif config_value not in (None, ""):
+def _read_int(config_value: Any, default: int, *, field_name: str) -> int:
+    if config_value not in (None, ""):
         parsed = int(config_value)
     else:
         return default
     if parsed <= 0:
-        raise ValueError(f"{env_names[0]} must be greater than 0")
+        raise ValueError(f"{field_name} must be greater than 0")
     return parsed
 
 
-def _read_float(env_names: tuple[str, ...], config_value: Any, default: float) -> float:
-    env_value = _read_env(*env_names)
-    if env_value not in (None, ""):
-        parsed = float(env_value)
-    elif config_value not in (None, ""):
+def _read_float(config_value: Any, default: float, *, field_name: str) -> float:
+    if config_value not in (None, ""):
         parsed = float(config_value)
     else:
         return default
     if parsed <= 0:
-        raise ValueError(f"{env_names[0]} must be greater than 0")
+        raise ValueError(f"{field_name} must be greater than 0")
     return parsed
 
 
-def _read_image_detail(env_names: tuple[str, ...], config_value: Any, default: str) -> str:
-    value = _read_str(env_names, config_value, default).lower()
+def _read_image_detail(config_value: Any, default: str) -> str:
+    value = _read_str(config_value, default).lower()
     if value not in {"auto", "low", "high"}:
-        raise ValueError(f"{env_names[0]} must be one of: auto, low, high")
+        raise ValueError("request.image_detail must be one of: auto, low, high")
     return value
 
 
@@ -163,14 +113,6 @@ def _default_prompt(task_name: str) -> str:
     if task_name == "ocr":
         return DEFAULT_OCR_PROMPT
     return ""
-
-
-def _model_env_aliases(task_name: str) -> tuple[str, ...]:
-    return _MODEL_ALIASES_BY_TASK.get(task_name, ("PPIO_MODEL", "SILICONFLOW_MODEL"))
-
-
-def _prompt_env_aliases(task_name: str) -> tuple[str, ...]:
-    return _PROMPT_ALIASES_BY_TASK.get(task_name, ("PPIO_PROMPT", "SILICONFLOW_PROMPT"))
 
 
 def _get_task_config(config: dict[str, Any], task_name: str) -> dict[str, Any]:
@@ -236,11 +178,11 @@ class TaskLLMSettings:
     def from_env(cls, task_name: str, config_path: Path | None = None) -> "TaskLLMSettings":
         load_dotenv()
 
-        api_key = _read_env(*_API_KEY_ALIASES)
+        api_key = _read_env(API_KEY_ENV)
         if not api_key:
-            raise ValueError(f"{_API_KEY_ALIASES[0]} is required")
+            raise ValueError(f"{API_KEY_ENV} is required")
 
-        config = _load_yaml_config(config_path)
+        config = load_config(config_path)
         task_config = _get_task_config(config, task_name)
         llm_profiles = _get_llm_profiles(config)
         profile_config: dict[str, Any] = {}
@@ -267,16 +209,14 @@ class TaskLLMSettings:
             request_config = _get_nested_value(task_config, "request", default={}) or {}
             rate_config = _get_nested_value(task_config, "rate_limit", default={}) or {}
 
-        prompt_key = _read_str(_PROMPT_KEY_ALIASES, None, DEFAULT_PROMPT_KEY)
+        prompt_key = _read_str(_get_nested_value(task_config, "prompt_key"), DEFAULT_PROMPT_KEY)
         config_prompt = prompts_config.get(prompt_key, prompts_config.get(DEFAULT_PROMPT_KEY))
 
         base_url = _read_str(
-            _BASE_URL_ALIASES,
             _get_nested_value(provider_config, "base_url"),
             DEFAULT_BASE_URL,
         )
         model = _read_str(
-            _model_env_aliases(task_name),
             _get_nested_value(provider_config, "model"),
             _default_model(task_name),
         )
@@ -284,13 +224,11 @@ class TaskLLMSettings:
             raise ValueError(f"provider.model is required for task '{task_name}'")
 
         prompt = _read_str(
-            _prompt_env_aliases(task_name),
             config_prompt,
             _default_prompt(task_name),
         )
 
         modality = _read_str(
-            tuple(),
             _get_nested_value(provider_config, "modality"),
             _default_modality(task_name),
         ).lower()
@@ -322,28 +260,28 @@ class TaskLLMSettings:
             reasoning_effort = "medium"
 
         image_detail = _read_image_detail(
-            _IMAGE_DETAIL_ALIASES,
             _get_nested_value(request_config, "image_detail"),
             DEFAULT_IMAGE_DETAIL,
         )
-        rpm = _read_int(_RPM_ALIASES, _get_nested_value(rate_config, "rpm"), DEFAULT_RPM)
+        rpm = _read_int(
+            _get_nested_value(rate_config, "rpm"), DEFAULT_RPM, field_name="rate_limit.rpm"
+        )
         max_concurrency = _read_int(
-            _MAX_CONCURRENCY_ALIASES,
             _get_nested_value(rate_config, "max_concurrency"),
             DEFAULT_MAX_CONCURRENCY,
+            field_name="rate_limit.max_concurrency",
         )
         timeout_seconds = _read_float(
-            _TIMEOUT_ALIASES,
             _get_nested_value(request_config, "timeout_seconds"),
             DEFAULT_TIMEOUT_SECONDS,
+            field_name="request.timeout_seconds",
         )
         max_retries = _read_int(
-            _MAX_RETRIES_ALIASES,
             _get_nested_value(request_config, "max_retries"),
             DEFAULT_MAX_RETRIES,
+            field_name="request.max_retries",
         )
         encoding_format = _read_str(
-            tuple(),
             _get_nested_value(request_config, "encoding_format"),
             DEFAULT_EMBEDDING_ENCODING_FORMAT,
         )

@@ -1,0 +1,180 @@
+{
+  "meta": {
+    "pred_path": "data/triples/merged/merged_triples.json",
+    "gold_path": "data/eval/gold_pure.json",
+    "evaluated_at": "2026-05-01T15:39:55.162130Z",
+    "gold_schema_version": 1
+  },
+  "metrics": {
+    "entities": {
+      "pred_count": 2423,
+      "gold_count": 99,
+      "tp": 29,
+      "fp": 2394,
+      "fn": 70,
+      "precision": 0.011968633924886504,
+      "recall": 0.29292929292929293,
+      "f1": 0.022997620935765264
+    },
+    "triples": {
+      "pred_count": 1125,
+      "gold_count": 54,
+      "tp": 0,
+      "fp": 1125,
+      "fn": 54,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  },
+  "evidence": {
+    "pred_coverage": 1.0,
+    "tp_coverage": 0.0
+  },
+  "errors": {
+    "false_positives": [
+      {
+        "head": "/23",
+        "head_type": "metric",
+        "relation": "applied_to",
+        "tail": "Lan D",
+        "tail_type": "concept"
+      },
+      {
+        "head": "/24",
+        "head_type": "metric",
+        "relation": "applied_to",
+        "tail": "Lan A",
+        "tail_type": "concept"
+      },
+      {
+        "head": "/25",
+        "head_type": "metric",
+        "relation": "applied_to",
+        "tail": "Lan B",
+        "tail_type": "concept"
+      },
+      {
+        "head": "/25",
+        "head_type": "metric",
+        "relation": "applied_to",
+        "tail": "Lan C",
+        "tail_type": "concept"
+      },
+      {
+        "head": "1000BASE-T",
+        "head_type": "protocol",
+        "relation": "applied_to",
+        "tail": "汇聚层",
+        "tail_type": "concept"
+      },
+      {
+        "head": "1000BASE-T",
+        "head_type": "protocol",
+        "relation": "depends_on",
+        "tail": "1000BASE-X",
+        "tail_type": "protocol"
+      },
+      {
+        "head": "1000BASE-T",
+        "head_type": "protocol",
+        "relation": "depends_on",
+        "tail": "4 个线对",
+        "tail_type": "concept"
+      },
+      {
+        "head": "1000BASE-T",
+        "head_type": "protocol",
+        "relation": "depends_on",
+        "tail": "5 类无屏蔽双绞线",
+        "tail_type": "concept"
+      },
+      {
+        "head": "100BASET",
+        "head_type": "concept",
+        "relation": "applied_to",
+        "tail": "光纤",
+        "tail_type": "concept"
+      },
+      {
+        "head": "100BASET",
+        "head_type": "concept",
+        "relation": "applied_to",
+        "tail": "双绞线",
+        "tail_type": "concept"
+      }
+    ],
+    "false_negatives": [
+      {
+        "head": "5层因特网协议栈",
+        "head_type": "concept",
+        "relation": "contains",
+        "tail": "运输层",
+        "tail_type": "concept"
+      },
+      {
+        "head": "AP",
+        "head_type": "concept",
+        "relation": "applied_to",
+        "tail": "RADIUS鉴别服务器",
+        "tail_type": "concept"
+      },
+      {
+        "head": "A类地址",
+        "head_type": "concept",
+        "relation": "compared_with",
+        "tail": "B类地址",
+        "tail_type": "concept"
+      },
+      {
+        "head": "CSMA/CA",
+        "head_type": "protocol",
+        "relation": "applied_to",
+        "tail": "ACK帧",
+        "tail_type": "concept"
+      },
+      {
+        "head": "CSMA/CA",
+        "head_type": "protocol",
+        "relation": "depends_on",
+        "tail": "二进制指数退避",
+        "tail_type": "mechanism"
+      },
+      {
+        "head": "FORM",
+        "head_type": "concept",
+        "relation": "contains",
+        "tail": "input",
+        "tail_type": "concept"
+      },
+      {
+        "head": "GBN",
+        "head_type": "protocol",
+        "relation": "applied_to",
+        "tail": "信道利用率",
+        "tail_type": "metric"
+      },
+      {
+        "head": "GSM",
+        "head_type": "protocol",
+        "relation": "contains",
+        "tail": "MSC",
+        "tail_type": "concept"
+      },
+      {
+        "head": "HTTP 首部字段",
+        "head_type": "concept",
+        "relation": "contains",
+        "tail": "请求首部字段",
+        "tail_type": "concept"
+      },
+      {
+        "head": "HTTP头压缩",
+        "head_type": "mechanism",
+        "relation": "applied_to",
+        "tail": "请求头",
+        "tail_type": "concept"
+      }
+    ]
+  }
+}

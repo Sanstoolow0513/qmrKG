@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import logging
 import shutil
+import tempfile
 import threading
 import uuid
 from pathlib import Path
@@ -73,9 +74,39 @@ class FakeAPIStatusError(Exception):
 
 def build_processor(monkeypatch, handler, **settings_overrides):
     monkeypatch.setenv("PPIO_API_KEY", "test-key")
-    for key, value in settings_overrides.items():
-        monkeypatch.setenv(key, str(value))
-    processor = OCRProcessor(use_gpu=True, lang="en", show_log=True)
+    max_retries = settings_overrides.get("PPIO_MAX_RETRIES", 3)
+    max_concurrency = settings_overrides.get("PPIO_MAX_CONCURRENCY", 4)
+    rpm = settings_overrides.get("PPIO_RPM", 60)
+    config_dir = Path(tempfile.mkdtemp(prefix="qmrkg-ocr-test-"))
+    config_path = config_dir / "config.yaml"
+    config_path.write_text(
+        f"""
+llm:
+  profiles:
+    ocr_profile:
+      provider:
+        name: ppio
+        base_url: https://api.ppio.com/openai
+        model: qwen/qwen3-vl-8b-instruct
+        modality: multimodal
+        supports_thinking: false
+      request:
+        image_detail: high
+        timeout_seconds: 60.0
+        max_retries: {max_retries}
+        thinking:
+          enabled: false
+      rate_limit:
+        rpm: {rpm}
+        max_concurrency: {max_concurrency}
+ocr:
+  llm_profile: ocr_profile
+  prompts:
+    default: test ocr prompt
+""".strip(),
+        encoding="utf-8",
+    )
+    processor = OCRProcessor(use_gpu=True, lang="en", show_log=True, config_path=config_path)
     processor._client = FakeClient(handler)
     return processor
 
@@ -133,22 +164,19 @@ def test_settings_load_defaults(monkeypatch, tmp_path):
     assert settings.thinking_enabled is False
 
 
-def test_settings_support_legacy_siliconflow_aliases(monkeypatch, tmp_path):
+def test_settings_rejects_legacy_siliconflow_api_key(monkeypatch, tmp_path):
     monkeypatch.delenv("PPIO_API_KEY", raising=False)
     monkeypatch.setenv("SILICONFLOW_API_KEY", "legacy-test-key")
     monkeypatch.setenv("SILICONFLOW_VLM_MODEL", "legacy-model")
     config_path = write_config(tmp_path, "")
     monkeypatch.setattr("qmrkg.llm_config.load_dotenv", lambda *_args, **_kwargs: False)
 
-    settings = VLMSettings.from_env(config_path)
-
-    assert settings.api_key == "legacy-test-key"
-    assert settings.model == "legacy-model"
+    with pytest.raises(ValueError, match="PPIO_API_KEY"):
+        VLMSettings.from_env(config_path)
 
 
 def test_settings_load_task_scoped_ocr_config(scratch_dir, monkeypatch):
     monkeypatch.setenv("PPIO_API_KEY", "test-key")
-    monkeypatch.setenv("PPIO_PROMPT_KEY", "structured")
     config_path = write_config(
         scratch_dir,
         """
@@ -172,6 +200,7 @@ llm:
         max_concurrency: 9
 ocr:
   llm_profile: ocr_profile
+  prompt_key: structured
   prompts:
     default: default prompt
     structured: structured prompt
@@ -207,12 +236,28 @@ openai:
         VLMSettings.from_env(config_path)
 
 
-def test_settings_reject_invalid_image_detail(monkeypatch):
+def test_settings_reject_invalid_image_detail(monkeypatch, tmp_path):
     monkeypatch.setenv("PPIO_API_KEY", "test-key")
-    monkeypatch.setenv("PPIO_IMAGE_DETAIL", "ultra")
+    config_path = write_config(
+        tmp_path,
+        """
+llm:
+  profiles:
+    ocr_profile:
+      provider:
+        name: ppio
+        model: qwen/qwen3-vl-8b-instruct
+        modality: multimodal
+        supports_thinking: false
+      request:
+        image_detail: ultra
+ocr:
+  llm_profile: ocr_profile
+""".strip(),
+    )
 
-    with pytest.raises(ValueError, match="PPIO_IMAGE_DETAIL"):
-        VLMSettings.from_env()
+    with pytest.raises(ValueError, match="request.image_detail"):
+        VLMSettings.from_env(config_path)
 
 
 def test_settings_reject_thinking_without_provider_support(scratch_dir, monkeypatch):

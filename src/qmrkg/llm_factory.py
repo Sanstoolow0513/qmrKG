@@ -6,6 +6,7 @@ import base64
 import json
 import logging
 import mimetypes
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,6 +26,7 @@ class TaskLLMRunner:
         self.settings = settings
         self._client = client
         self._rate_limiter: RollingRateLimiter | None = None
+        self._rate_limiter_lock = threading.Lock()
 
     @property
     def client(self):
@@ -43,7 +45,9 @@ class TaskLLMRunner:
     @property
     def rate_limiter(self) -> RollingRateLimiter:
         if self._rate_limiter is None:
-            self._rate_limiter = RollingRateLimiter(self.settings.rpm)
+            with self._rate_limiter_lock:
+                if self._rate_limiter is None:
+                    self._rate_limiter = RollingRateLimiter(self.settings.rpm)
         return self._rate_limiter
 
     def run_text(self, prompt: str, *, system_prompt: str | None = None) -> LLMResponse:

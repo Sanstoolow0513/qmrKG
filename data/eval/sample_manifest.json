@@ -1,0 +1,698 @@
+{
+  "seed": 20260504,
+  "total_valid_chunks": 14240,
+  "sampled_count": 56,
+  "sampled_files": [
+    "04-计算机网络-第四章-2021-2.json",
+    "1711361_刘炼_作业5.json",
+    "2021级A卷gpt版（纠错）.json",
+    "2024年王道计算机网络复习指导 (王道计算机) (z-library.sk, 1lib.sk, z-lib.sk).json",
+    "5G.json",
+    "CH4-6ed 网络层.json",
+    "CH8-6ed 音频视频.json",
+    "Chapter1-Introduction.json",
+    "Chapter2-Physical Layer.json",
+    "Chapter3-Data Link Layer & LAN.json",
+    "Chapter4-Network Layer.json",
+    "Chapter7-Wireless & Mobile Networks.json",
+    "Chapter_9_V7.0.json",
+    "ComputerNetworking_ ATopDownApproach_7th.json",
+    "Socket4_ProxyServer.json",
+    "Solution Manual for Computer Networking A Top-Down Approach 8th (James F. Kurose and Keith W. Ross) (Z-Library).json",
+    "TCPIP详解 卷1：协议（原书第2版） (凯文 R. 福尔 (Kevin R. Fall) etc.) (z-library.sk, 1lib.sk, z-lib.sk).json",
+    "TCPIP详解 卷2：实现 (加里·R·赖特(Gary R.Wright), W.理查德·史蒂文斯) (z-library.sk, 1lib.sk, z-lib.sk).json",
+    "TCPIP详解 卷3：TCP事务协议、HTTP、NNTP和UNIX域协议 (W. 理查德·史蒂文斯) (z-library.sk, 1lib.sk, z-lib.sk).json",
+    "UnderHIT_Transport_P1.json",
+    "UnderHIT_linklayerv4.json",
+    "WNB-ch01b.json",
+    "rfc4861.txt.json",
+    "rfc4960.txt.json",
+    "rfc5246.txt.json",
+    "rfc6376.txt.json",
+    "rfc7761.txt.json",
+    "rfc9000.json",
+    "图解HTTP (上野宣) (z-library.sk, 1lib.sk, z-lib.sk).json",
+    "第1课.json",
+    "第7章 无线网络和移动网络.json",
+    "计算机网络-郑老师-第8章.json",
+    "计算机网络实验教程 计算机网络实验教程 (（美）Emad Aboelela) (z-library.sk, 1lib.sk, z-lib.sk)-1.json",
+    "计算机网络第8版课件-第4章-网络层.json",
+    "计算机网络第8版课件-第6章-应用层.json",
+    "计算机网络（第6版） 自顶向下方法 ([美] James F.Kurose [美] Keith W.Ross) (z-library.sk, 1lib.sk, z-lib.sk).json",
+    "计算机网络（第8版） (谢希仁) (z-library.sk, 1lib.sk, z-lib.sk).json",
+    "计算机网络（第8版）_谢希仁_上半.json",
+    "计算机网络：自顶向下方法（原书第8版） (James F. Kurose, Keith W. Ross, 陈鸣) (z-library.sk, 1lib.sk, z-lib.sk).json",
+    "计算机网络：自顶向下方法（原书第8版） ([美]詹姆斯·F.库罗斯, [美]基思·W.罗斯, 陈鸣) (z-library.sk, 1lib.sk, z-lib.sk).json",
+    "计算机网络：自顶向下方法（第6版） (Keith W.Ross,James F.Kurose) (z-library.sk, 1lib.sk, z-lib.sk).json",
+    "部分题目中文解析.json"
+  ],
+  "category_distribution": {
+    "Assignments-solutions": 3,
+    "Chinese-course-materials": 22,
+    "Chinese-reference-books": 6,
+    "English-textbooks": 9,
+    "Labs-exercises": 3,
+    "Other-misc": 3,
+    "RFC/protocol-specs": 7,
+    "Review-exam-prep": 3
+  },
+  "excluded": {
+    "too_short": 1424,
+    "non_networking_files": 1
+  },
+  "chunks": [
+    {
+      "id": 0,
+      "file": "rfc5246.txt.json",
+      "chunk_index": 7,
+      "titles": [
+        "4. Presentation Language",
+        "4.6. Constructed Types"
+      ],
+      "category": "RFC/protocol-specs",
+      "content": "## 4.6. Constructed Types\n\nStructure types may be constructed from primitive types for convenience. Each specification declares a new, unique type. The syntax for definition is much like that of C.\n\n    struct {\n        T1 f1;\n        T2 f2;\n        ...\n        Tn fn;\n    } [[T]];\n\nThe fields within a structure may be qualified using the type's name, with a syntax much like that available for enumerateds. For example, T.f2 refers to the second field of the previous declaration. Structure definitions may be embedded.\n\n### 4.6.1. Variants\n\nDefined structures may have variants based on some knowledge that is available within the environment. The selector must be an enumerated type that defines the possible variants the structure defines. There must be a case arm for every element of the enumeration declared in the select. Case arms have limited fall-through: if two case arms follow in immediate succession with no fields in between, then they\n\nDierks & Rescorla\nStandards Track\n[Page 10]\n\nRFC 5246 TLS August 2008\n\nboth contain the same fields. Thus, in the example below, \"orange\" and \"banana\" both contain V2. Note that this is a new piece of syntax in TLS 1.2.\n\nThe body of the variant structure may be given a label for reference. The mechanism by which the variant is selected at runtime is not prescribed by the presentation language.\n\nRFC 5246\nTLS\nAugust 2008",
+      "content_len": 1376
+    },
+    {
+      "id": 1,
+      "file": "第1课.json",
+      "chunk_index": 27,
+      "titles": [
+        "互联网的两个重要特点"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 互联网的两个重要特点\n\n互联网之所以能够向用户提供许多服务，是因为互联网具有两个重要基本特点：\n\n### 连通性 (Connectivity)\n- 使上网用户之间都可以交换信息（数据，以及各种音频视频），好像这些用户的计算机都可以彼此直接连通一样。\n- 注意，互联网具有虚拟的特点，无法准确知道对方是谁，也无法知道对方的位置。\n\n### 共享 (Sharing)\n- 指资源共享。\n- 资源共享的含义是多方面的。可以是信息共享、软件共享，也可以是硬件共享。\n- 由于网络的存在，这些资源好像就在用户身边一样，方便使用。\n\n```icon: 互联网示意图```\n\n> 注：右侧图标为示意性网络连接图，包含服务器、笔记本电脑和手机等设备通过蓝色线条相连。",
+      "content_len": 327
+    },
+    {
+      "id": 2,
+      "file": "rfc4861.txt.json",
+      "chunk_index": 22,
+      "titles": [
+        "7. Address Resolution and Neighbor Unreachability Detection",
+        "7.2.1. Interface Initialization"
+      ],
+      "category": "RFC/protocol-specs",
+      "content": "## 7.2.1. Interface Initialization\n\nWhen a multicast-capable interface becomes enabled, the node MUST join the all-nodes multicast address on that interface, as well as the solicited-node multicast address corresponding to each of the IP addresses assigned to the interface.\n\nThe set of addresses assigned to an interface may change over time. New addresses might be added and old addresses might be removed [ADDRCONF]. In such cases the node MUST join and leave the solicited-node multicast address corresponding to the new and old addresses, respectively. Joining the solicited-node multicast address is done using a Multicast Listener Discovery such as [MLD] or [MLDv2] protocols. Note that multiple unicast addresses may map into the same solicited-node multicast address; a node MUST NOT leave the solicited-node multicast group until all assigned addresses corresponding to that multicast address have been removed.",
+      "content_len": 921
+    },
+    {
+      "id": 3,
+      "file": "计算机网络第8版课件-第4章-网络层.json",
+      "chunk_index": 75,
+      "titles": [
+        "1. IP 数据报首部的固定部分中的各字段"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 1. IP 数据报首部的固定部分中的各字段\n\n位 0   4   8   16   19   24   31\n版本 首部长度 区分服务 总长度\n标识 标志 片偏移\n生存时间 协议 首部检验和\n源地址\n目的地址\n可选字段 (长度可变) 填充\n数据部分\n\n生存时间——占 8 位，记为 TTL (Time To Live)，指示数据报在网络中可通过的路由器数的最大值。\n\n电子工业出版社\nhttp://www.phei.com.cn\n\n计算机网络（第 8 版） 谢希仁 编著",
+      "content_len": 237
+    },
+    {
+      "id": 4,
+      "file": "Chapter1-Introduction.json",
+      "chunk_index": 93,
+      "titles": [
+        "单选题 1分"
+      ],
+      "category": "English-textbooks",
+      "content": "# 单选题 1分\n\n1.1 计算机网络基本概念\n1.2 计算机网络结构\n1.3 数据交换\n1.4 计算机网络性能指标\n\n在分组交换网络中，主要取决于网络拥塞程度的时间延迟是\n\nA 结点处理时延\nB 排队时延\nC 传输时延\nD 传播时延\n\n提交\n\n95\n\n## 1.5 计算机网络体系结构",
+      "content_len": 143
+    },
+    {
+      "id": 5,
+      "file": "计算机网络：自顶向下方法（原书第8版） (James F. Kurose, Keith W. Ross, 陈鸣) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 7,
+      "titles": [
+        "教授网络原理"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 教授网络原理\n\n本书的两个独特之处是自顶向下方法和聚焦因特网，如果我们增加第三个独特之处的话，那就是对网络原理的讲授。网络领域已经发展得相当成熟，我们能够清楚认识许多基础性的重要问题。例如，在运输层，基础性问题包括建立在不可靠的网络层上的可靠通信、连接建立/拆除与握手、拥塞和流量控制以及多路复用。三个非常重要的网络层问题是，在两台路由器之间找到“好的”路径、互连大量的异构网络和管理现代网络的复杂性。在链路层，基础性问题是共享多路访问信道。在网络安全中，提供机密性、鉴别和报文完整性的技术都基于密码学基本原理。本书在指明基础性网络问题的同时，也会介绍解决这些问题的方法。学习这些原理的学生将获得具有长“保质期”的知识，在今天的网络标准和协议变得过时后的很长时间，其中的原理将仍然重要和中肯。我们相信，用因特网将学生引入网络之门后，再强调基础性问题及其解决方案，这种两者结合的方法将使他们迅速理解几乎任何网络技术。",
+      "content_len": 409
+    },
+    {
+      "id": 6,
+      "file": "TCPIP详解 卷2：实现 (加里·R·赖特(Gary R.Wright), W.理查德·史蒂文斯) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 135,
+      "titles": [
+        "第11章 ICMP：Internet控制报文协议"
+      ],
+      "category": "Chinese-reference-books",
+      "content": "# 第11章 ICMP：Internet控制报文协议\n\n(图11-19)表示的。PRC_常量有一个隐含的顺序，正好与ICMP的code相对应。这就解释了为什么code是按一个PRC_常量递增的。\n\n217-225 如果识别出类型和码，icmp_input就跳到deliver。如果没有识别出来，icmp_input就跳到badcode。\n\n如果对所报告的差错而言，报文长度不正确，icps_badlen的值就加1，并丢弃该报文。Net/3总是丢弃无效的ICMP报文，也不生成有关该无效报文的ICMP差错。这样，就避免在两个有缺陷的实现之间形成无限的差错报文序列。\n\n226-231 icmp_input调用运输层协议的pr_ctlinput函数，该函数根据原始数据报的ip_p，把到达分组分用到正确的协议，从而构造出原始的IP数据报。差错码(code)、原始IP数据报的目的地址(icmps src)以及一个指向无效数据报的指针(icmp_ip)被传给pr_ctlinput(如果是为该协议定义的)。图23-31和图27-12讨论这些差错。\n\n232-234 最后，icps_badcode的值增加1，并终止switch语句的执行。\n\n| 常 量 | 描 述 |\n| :--- | :--- |\n| PRC_HOSTDEAD | 主机似乎已关闭 |\n| PRC_IFDOWN | 网络接口关闭 |\n| PRC_MSGSIZE | 无效报文大小 |\n| PRC_PRRAMPROB | 首部不正确 |\n| PRC_QUENCH | 某人说要放慢 |\n| PRC_QUENCH2 | 阻塞比特要求放慢 |\n| PRC_REDIRECT_HOST | 主机路由选择重定向 |\n| PRC_REDIRECT_NET | 络路由选择重定向 |\n| PRC_REDIRECT_TOSHOST | TOS和主机的重定向 |\n| PRC_REDIRECT_TOSNET | TOS和网络的重定向 |\n| PRC_ROUTEDead | 如果可能，选择新的路由 |\n| PRC_TIMXCEED_INTRANS | 传送过程中分组生命期到期 |\n| PRC_TIMXCEED_REASS | 分片在重装过程中生命期到期 |\n| PRC_UNREACH_HOST | 没有到主机的路由 |\n| PRC_UNREACH_NET | 没有到网络的路由 |\n| PRC_UNREACH_PORT | 目的主机称端口未激活 |\n| PRC_UNREACH_PROTOCOL | 目的主机称协议不可用 |\n| PRC_UNREACH_SRCFAIL | 源路由失败 |\n\n图11-19 与协议无关的差错码\n\n尽管PRC_常量表面上与协议无关，但它们主要还是基于Internet协议族。其结果是，当某个Internet协议族以外的协议把自己的差错映射到PRC_常量时，会失去可指定性。\n\n## 11.7 请求处理\n\nNet/3响应具有正确格式的ICMP请求报文，但把无效ICMP请求报文传给rip_input。第32章讨论了应用程序如何生成ICMP请求报文。\n\n除路由器通告报文外，大多数Net/3所接收的ICMP请求报文都生成回答报文。为避免为回答报文分配新的mbuf，icmp_input把请求的缓存转换成回答的缓存，并返回给发送方。我\n\n252 TCP/IP详解 卷2：实现\n\n们将分别讨论各个请求。\n\n## 11.7.1 回显询问：ICMP_ECHO和ICMP_ECHOREPLY\n\n尽管ICMP非常简单，但是ICMP回显请求和回答却是网络管理员最有力的诊断工具。发出ICMP回显请求称为“ping”一个主机，也就是调用ping程序一次。许多系统提供该程序来手工发送ICMP回显请求。卷1的第7章详细讨论了ping。\n\nping程序的名字依照了声呐脉冲(soar ping)，用其他物体对声呐脉冲的反射所产生的回声确定它们的位置。卷1把这个名字解释成Packet InterNet Groper，是不正确的。\n\n图11-20是ICMP回显请求和回答报文的结构。",
+      "content_len": 1718
+    },
+    {
+      "id": 7,
+      "file": "Solution Manual for Computer Networking A Top-Down Approach 8th (James F. Kurose and Keith W. Ross) (Z-Library).json",
+      "chunk_index": 96,
+      "titles": [
+        "Problem 42"
+      ],
+      "category": "Assignments-solutions",
+      "content": "# Problem 42\nIf TCP were a stop-and-wait protocol, then the doubling of the time out interval would suffice as a congestion control mechanism. However, TCP uses pipelining (and is therefore not a stop-and-wait protocol), which allows the sender to have multiple outstanding unacknowledged segments. The doubling of the timeout interval does not prevent a TCP sender from sending a large number of first-time-transmitted packets into the network, even when the end-to-end path is highly congested. Therefore a congestion-control mechanism is needed to stem the flow of “data received from the application above” when there are signs of network congestion.",
+      "content_len": 654
+    },
+    {
+      "id": 8,
+      "file": "CH8-6ed 音频视频.json",
+      "chunk_index": 61,
+      "titles": [
+        "DiffServ 定义的两种 PHB"
+      ],
+      "category": "English-textbooks",
+      "content": "# DiffServ 定义的两种 PHB\n\n- 确保转发 PHB 即 AF PHB ，或 AF 。\n- AF 用 DSCP 的比特 0~2 将通信量划分为四个等级，并给每一种等级提供最低数量的带宽和缓存空间。\n- 对于其中的每一个等级再用 DSCP 的比特 3 ~5 划分出三个“丢弃优先级”。\n- 当发生网络拥塞时，对于每个等级的 AF ，路由器首先把“丢弃优先级”较高的分组丢弃。\n\n课件制作人：谢希仁",
+      "content_len": 203
+    },
+    {
+      "id": 9,
+      "file": "Chapter2-Physical Layer.json",
+      "chunk_index": 46,
+      "titles": [
+        "典型数字基带信号码型"
+      ],
+      "category": "English-textbooks",
+      "content": "# 典型数字基带信号码型\n\n2.1 物理层基本功能\n2.2 数据通信基础\n2.3 物理介质\n2.4 信道与信道容量\n2.5 信道共享-多路复用\n2.6 基带传输基础\n\n## 单极归零码（Return to Zero-RZ）\n\n- 码元不为零的时间占一个码元周期的百分比称为**占空比**\n- 若码元不为零时间为Tb/2，码元周期为Tb，则该单极归零码的占空比为50%\n\n```icon: 在半周期处归零```\n\n51",
+      "content_len": 208
+    },
+    {
+      "id": 10,
+      "file": "UnderHIT_Transport_P1.json",
+      "chunk_index": 20,
+      "titles": [
+        "崩溃恢复"
+      ],
+      "category": "Labs-exercises",
+      "content": "# 崩溃恢复\n\nStrategy used by receiving host\n\nFirst ACK, then write\n\nFirst write, then ACK\n\nStrategy used by sending host\n\nAC(W) AWC C(AW)\n\nAlways retransmit OK DUP OK\n\nNever retransmit LOST OK LOST\n\nRetransmit in S0 OK DUP LOST\n\nRetransmit in S1 LOST OK OK\n\nC(WA) W AC WC(A)\n\nOK DUP DUP\n\nLOST OK OK\n\nLOST DUP OK\n\nOK OK DUP\n\nOK = Protocol functions correctly\n\nDUP = Protocol generates a duplicate message\n\nLOST = Protocol loses a message\n\n客户和服务器策略的不同组合",
+      "content_len": 447
+    },
+    {
+      "id": 11,
+      "file": "图解HTTP (上野宣) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 118,
+      "titles": [
+        "Ajax 的解决方法"
+      ],
+      "category": "Chinese-reference-books",
+      "content": "# Ajax 的解决方法\n\nAjax（Asynchronous JavaScript and XML，异步 JavaScript 与 XML 技术）是一种有效利用 JavaScript 和 DOM（Document Object Model，文档对象模型）的操作，以达到局部 Web 页面替换加载的异步通信手段。和以前的同步通信相比，由于它只更新一部分页面，响应中传输的数据量会因此而减少，这一优点显而易见。\n\nAjax 的核心技术是名为 XMLHttpRequest 的 API，通过 JavaScript 脚本语言的调用就能和服务器进行 HTTP 通信。借由这种手段，就能从已加载完毕的 Web 页面上发起请求，只更新局部页面。\n\n而利用 Ajax 实时地从服务器获取内容，有可能会导致大量请求产生。另外，Ajax 仍未解决 HTTP 协议本身存在的问题。",
+      "content_len": 380
+    },
+    {
+      "id": 12,
+      "file": "第7章 无线网络和移动网络.json",
+      "chunk_index": 40,
+      "titles": [
+        "无线与有线 LAN 帧地址部分的区别"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 无线与有线 LAN 帧地址部分的区别\n\n```icon: 插图：无线网络与有线网络的帧地址结构对比图\n```\n\nInternet\n\nR1路由器\n\n802.3 帧\n\n目的 地址 R1 MAC 地址\n\n源地址 H1 MAC 地址\n\n802.11 帧\n\n地址 1 AP MAC 地址\n\n地址 2 H1 MAC 地址\n\n地址 3 R1 MAC 地址",
+      "content_len": 172
+    },
+    {
+      "id": 13,
+      "file": "UnderHIT_linklayerv4.json",
+      "chunk_index": 41,
+      "titles": [
+        "Rdt 2.1 vs. Rdt 2.0"
+      ],
+      "category": "Labs-exercises",
+      "content": "# Rdt 2.1 vs. Rdt 2.0\n\n## 发送方：\n- 为每个分组增加了序列号\n- 两个序列号 (0, 1) 就够用，为什么？\n- 需校验 ACK/NAK 消息是否发生错误\n- 状态数量翻倍\n  - 状态必须“记住”“当前”的分组序列号\n\n## 接收方\n- 需判断分组是否是重复\n  - 当前所处状态提供了期望收到分组的序列号\n- 注意：接收方无法知道 ACK/NAK 是否被发送方正确收到\n\n```icon: ?\n```",
+      "content_len": 216
+    },
+    {
+      "id": 14,
+      "file": "计算机网络实验教程 计算机网络实验教程 (（美）Emad Aboelela) (z-library.sk, 1lib.sk, z-lib.sk)-1.json",
+      "chunk_index": 115,
+      "titles": [
+        "配置主机和路由器"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 配置主机和路由器\n\n在 OPNET IT Guru 中，RSVP 进程仅运行在基于 IP 的节点上。正如我们已经做的那样，必须使用那些节点模型的高级版本（*_adv）来配置与 RSVP 相关的参数。除此之外，OPNET IT Guru 中的 RSVP 模型要么需要加权公平排队（WFQ）方案，要么需要用户自定义的排队方案。\n\n1）在“RSVP 语音呼叫方”（Voice_RSVPCaller）节点上右击→“编辑属性”（Edit Attribute）。\n\na. 展开“应用：支持的业务规格”（Application：Supported Profiles）层次结构和“第 0 行”（row 0）层次结构→把“业务规格名称”（Profile Name）属性设置为“支持 RSVP 的 VoIP 业务规格”（VoIP_RSVPProfile）。\n\nb. 展开“应用：RSVP 参数”（Application：RSVP Parameters）层次结构→展开“语音”（Voice）层次结构→把“RSVP 状态”（RSVP Status）设置为“有效的”（Enabled）→展开“业务规格列表”（Profile List）层次结构→如下图所示，把“第 0 行”（row 0）的“业务规格”（Profile）属性设置为“RSVP 业务规格”（RSVP_Profile）。\n\n150 · 计算机网络实验教程\n\n实验十二 资源预留协议 · 151\n\n态”（RSVP Status）值。如果列表中没有“有效的”（Enabled），则返回到“配置接口”（Configure the Interfaces）步骤。→展开接口行的层次结构→把“最大可预留的带宽”（Maximum Reservable BW）和“每个流的最大带宽”（Maximum Bandwidth Per Flow）属性设置为75%。\n\n```icon: (Voice_RSVP Caller) Attributes\nType: workstation\nAttribute         Value\nrow 0\n├─Name\n├─RSVP Status    Enabled\n├─Maximum Reservable BW  75%\n├─Maximum Bandwidth Per Flow  75%\n└─Subinterface Information None\nApply Changes to Selected Objects\nFind Next      Cancel     OK\n```\n\ne. 单击“确定”（OK）。\n\n有益提示 服务类型（Type of Service, ToS）在IP数据包格式中可以设置。它表示一种会话属性：允许IP队列为数据包提供适当的服务。\n\n最大可预留的带宽（Maximum Reservable BW）指定了在接口上可预留的带宽占连接链路总带宽的百分比。\n\n每个流的最大带宽（Maximum Bandwidth Per Flow）指定了可预留给单个流的带宽总量。\n\n2）在“RSVP语音被叫方”（Voice_RSVP Called）节点上右击→“编辑属性”（Edit Attribute）。\n\na. 编辑“应用：支持的服务”（Application: Supported Services）属性，将会弹出“应用：支持的服务表”（Application: Supported Services Table）→在表中，使用“支持RSVP的VOIP”（VoIP_RSVP）代替“VoIP应用”（VoIP Application），单击“确定”（OK）。\n\nb. 展开“应用：RSVP参数”（Application: RSVP Parameters）层次结构→展开“语音”（Voice）层次结构→把“RSVP状态”（RSVP Status）设置为“有效的”（Enabled）→展开“业务规格列表”（Profile List）层次结构→编辑“第0行”（row 0）的“业务规格”（Profile）属性值，设置为“RSVP业务规格”（RSVP_Profile）。\n\nc. 展开“IP主机参数”（IP Host Parameters）层次结构→展开“接口信息”（Interface Information）层次结构→展开“服务质量信息”（QoS Information）层次结构→把“排队方案”（Queuing Scheme）属性设置为“加权公平队列”（WFQ）→把\n\n152 · 计算机网络实验教程\n\n“排队业务规格”（Queuing Profile）属性设置为“基于服务类型”（ToS Based）→把“RSVP 信息”（RSVP Info）属性设置为“RSVP 有效的”（RSVP Enabled）。\n\nd. 展开“RSVP 协议参数”（RSVP Protocol Parameters）层次结构→展开“接口信息”（Interface Information）层次结构（应该注意到，与路由器连接的接口的 RSVP 状态设置成了“有效的”（Enabled）；如果不是，请返回到“配置接口”（Configure the Interfaces）步骤）→把“最大可预留的带宽”（Maximum Reservable BW）和“每个流的最大带宽”（Maximum Bandwidth Per Flow）属性设置为 75%。\n\ne. 单击“确定”（OK），“保存”（Save）工程。\n\n3）在路由器 East Router 上右击→“编辑属性”（Edit Attributes）。\n\na. 单击模型的属性值 ethernet4_slip8_gtwy →选择“编辑”（Edit）→选择 ethernet4_slip8_gtwy_adv 模型。\n\nb. 展开“RSVP 协议参数”（RSVP Protocol Parameters）层次结构→展开“接口信息”（Interface Information）层次结构（应该注意到，两个接口的 RSVP 状态设置成了“有效的”（Enabled），这两个接口连接了路由器 West Router 和“RSVP 语音被叫方”（Voice_RSVPCalled）节点；如果不是，请返回到“配置接口”（Configure the Interfaces）步骤。）→展开这两个“有效的”接口的行的层次结构→把“最大可预留的带宽”（Maximum Reservable BW）和“每个流的最大带宽”（Maximum Bandwidth Per Flow）属性设置为 75%。\n\nc. 展开“IP 由参数”（IP Routing Parameters）层次结构→展开“接口信息”（Interface Information）层次结构→展开在前面步骤（步骤 b）中配置的两个接口的行的层次结构→展开它们的“服务质量信息”（QoS Information）层次结构→把它们的“排队方案”（Queuing Scheme）设置为“加权公平队列”（WFQ），把“排队业务规格”（Queuing Profiles）设置为“基于服务类型”（ToS Based）。\n\nd. 单击“确定”（OK），“保存”（Save）工程。\n\n4）在路由器 West Router 上右击→“编辑属性”（Edit Attributes）。\n\na. 单击模型的属性值 ethernet4_slip8_gtwy →选择“编辑”（Edit）→选择 ethernet4_slip8_gtwy_adv 模型。\n\nb. 展开“RSVP 协议参数”（RSVP Protocol Parameters）层次结构→展开“接口信息”（Interface Information）层次结构。（应该注意到两个接口的 RSVP 状态都设置为“有效的”（Enabled），这两个接口连接了路由器 East Router 和“RSVP 语音呼叫方”（Voice_RSVPCaller）节点；如果不是，请返回到“配置接口”（Configure the Interfaces）步骤。）→展开这两个有效接口的行的层次结构→把“最大可预留的带宽”（Maximum\n\n实验十二 资源预留协议 · 153\n\nReservable BW）和“每个流的最大带宽”（Maximum Bandwidth Per Flow）属性设置为 75%。\n\nc. 展开“IP 路由参数”（IP Routing Parameters）层次结构→展开“接口信息”（Interface Information）层次结构→展开在前面步骤（步骤 b）中配置的两个接口的行的层次结构→展开它们的“服务质量信息”（QoS Information）层次结构→把它们的“排队策略”（Queuing Scheme）设置为“加权公平队列”（WFQ），把“排队业务规格”（Queuing Profiles）设置为“基于服务类型”（ToS Based）。\n\nd. 单击“确定”（OK），“保存”（Save）工程。\n\n选择统计量\n\n我们将从 3 个不同的节点上选择统计量。\n\nRSVP 语音呼叫方（Voice_RSVP Caller）统计量\n\n1）在“RSVP 语音呼叫方”（Voice_RSVP Caller）节点上右击，从弹出菜单中选择“选择单个统计量”（Choose Individual Statistics）。\n\n2）展开 RSVP 层次结构，选择“路径状态数量”（Number of Path Status）。\n\n3）在“路径状态数”（Number of Path Status）统计量上右击→从弹出菜单中选择“改变绘图风格”（Change Draw Style）→选择“条形图”（bar chart）。\n\n4）在“路径状态数”（Number of Path Status）统计量上右击→从弹出菜单中选择“改变收集模式”（Change Collection Mode）→选中“高级”（Advanced）复选框→从下拉菜单中，把“捕捉模式”（Capture mode）设置为“所有值”（all values）→单击“确定”（OK）。\n\n5）展开“语音呼叫活动”（Voice Calling Party）层次结构，选择以下统计量：“数据包延迟抖动”（Packet Delay Variation）和“数据包端到端延迟（秒）”（Packet End-to-End Delay(sec)）。\n\n6）单击“确定”（OK）。\n\nRSVP 语音被叫方（Voice_RSVP Called）统计量\n\n1）在“RSVP 语音被叫方”（Voice_RSVP Called）节点上右击，从弹出菜单中选择“选择单个统计量”（Choose Individual Statistics）。\n\n2）展开 RSVP 层次结构，选择“资源预留状态数”（Number of Resv Status）。\n\n3）在“资源预留状态数”（Number of Resv Status）统计量上右击→从弹出菜单中选择“改变绘图风格”（Change Draw Style）→选择“条形图”（bar chart）。\n\n4）在“资源预留状态数量”（Number of Resv Status）统计量上右击→从弹出菜单中选择“改变收集模式”（Change Collection Mode）→选中“高级”（Advanced）复选框→\n\n154 · 计算机网络实验教程\n\n从下拉菜单中，把“捕捉模式”（Capture mode）设置为“所有值”（all values）→单击“确定”（OK）两次。\n\n## 语音呼叫方（Voice Caller）统计量\n\n1）在“语音呼叫方”（Voice Caller）节点上右击，从弹出菜单中选择“选择单个统计量”（Choose Individual Statistics）。\n\n2）展开“语音呼叫活动”（Voice Calling Party）层次结构，选择以下统计量：“数据包延迟抖动”（Packet Delay Variation）和“数据包端到端延迟（秒）”（Packet End-to-End Delay(sec)）→单击“确定”（OK）。\n\n**有益提示** 数据包延迟抖动（Packet Delay Variation）是节点接收到的语音数据包端到端延迟的方差。\n\n语音数据包的数据包端到端延迟（秒）（Packet End-to-End Delay(sec)）是按创建数据包到接收数据包的时间来计算的。\n\n## 配置仿真\n\n现在，我们需要配置仿真的持续时间：\n\n1）单击按钮，出现“配置仿真”（Configure Simulation）窗口。\n\n2）确保把“持续时间”（duration）设置为 150 秒。\n\n3）单击“全局属性”（Global Attributes）标签，确保把以下属性设置为有效：RSVP Sim Efficiency =Enabled。这样就不发送刷新信息（即 Path 和 Resv 信息的更新），可以减少仿真时间和内存需求。\n\n4）单击“确定”（OK），“保存”（Save）工程。\n\n## 运行仿真\n\n请按以下步骤运行仿真：\n\n1）单击按钮，然后单击“运行”（Run）按钮。完成这个过程可能需要几分钟，这取决于计算机的处理器速度。\n\n2）仿真运行完毕后，“关闭”（Close）仿真，“保存”（Save）工程。\n\n## 观察结果\n\n按以下步骤查看并且分析结果：\n\n1）在“结果”（Results）菜单中选择“观察结果”（View Results）。\n\n2）如下图所示，选择“语音呼叫方”（Voice Caller）节点和“RSVP 语音呼叫方”（Voice_RSVP Caller）节点的“数据包端到端延迟”（Packet End-to-End Delay）。选择\n\n实验十二 资源预留协议 · 155\n\n“重叠显示统计量”（Overlaid Statistics）和“时间平均”（time_average）。\n\n```icon: 图表界面截图\n```\n\n3）单击“显示”（Show）按钮，获取下面的图表（注：单击并且拖动鼠标，在适当的区域内画一个长方形，然后松开鼠标按键，放大图表）。\n\n```icon: 图表界面截图\n```\n\n4）同样，可以获取下图，该图比较了“语音呼叫方”（Voice Caller）节点和“RSVP 语音呼叫方”（Voice_RSVP Caller）节点的“数据包延迟抖动”（Packet Delay Variation）。（注：确保取消了你在前面的图中选择的统计量。）\n\n156 · 计算机网络实验教程\n\n实验十二 资源预留协议 · 157\n\n```icon: Panel Operations\n```\n\n7）单击“确定”（OK）。结果图如下图所示。\n\n```icon: itguru\n```",
+      "content_len": 6158
+    },
+    {
+      "id": 15,
+      "file": "计算机网络第8版课件-第6章-应用层.json",
+      "chunk_index": 100,
+      "titles": [
+        "电子邮件系统的组成：三个主要构件"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 电子邮件系统的组成：三个主要构件\n\n用户代理，邮件服务器，以及邮件发送和读取协议。\n\n用户发件人\n\n发件方\n用户代理\n\nSMTP\n客户\n\n发送\n邮件\nSMTP\n\nTCP\n连接\n\n发送方\n邮件服务器\n\nSMTP\n服务器\n\nSMTP\n客户\n\n发送邮件 SMTP\n\nTCP\n连接\n\n接收方\n邮件服务器\n\nPOP3\n服务器\n\nSMTP\n服务器\n\n读取\n邮件\nPOP3\n\nTCP\n连接\n\n接收方\n用户代理\n\nPOP3\n客户\n\n用户收件人\n\n电子工业出版社.\nPUBLISHING HOUSE OF ELECTRONICS INDUSTRY\nhttp://www.phei.com.cn\n\n计算机网络（第 8 版） 谢希仁 编著",
+      "content_len": 310
+    },
+    {
+      "id": 16,
+      "file": "计算机网络：自顶向下方法（第6版） (Keith W.Ross,James F.Kurose) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 256,
+      "titles": [
+        "课后习题和问题"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 课后习题和问题\n\n第 7 章\n\n7.3 节\nR12. 端到端时延和分组时延抖动的区别是什么？分组时延抖动的原因是什么？\nR13. 为什么在预定的播放时间之后收到的分组被认为是丢失了？\nR14. 7.3 节描述了两种 FEC 方案，简要地总结它们。这两种方案通过增加开销而增加了流的传输速率。\n交织技术也会增加传输速率吗？\n\n7.4 节\nR15. 接收方如何识别在不同会话中的不同 RTP 流？同一个会话中的不同流是怎样识别的？\nR16. SIP 注册器的作用是什么？一个 SIP 注册器的作用与移动 IP 中的归属代理的作用有怎样的差异？\n\n7.5 节\nR17. 在 7.5 节，我们讨论了非抢占优先级排队。抢占优先级排队是什么？抢占优先级排队对于计算机网络有意义吗？\nR18. 举一个非保持工作的调度规则的例子。\nR19. 举例说明你的日常生活中所经历的 FIFO、优先权、RR 和 WFQ 的排队。\n\n习题\n\nP1. 考虑下图。类似于我们对图 7-1 的讨论，假设视频以固定比特率进行编码，因此每个视频块包含了在相同的固定时间量 Δ 播放的视频帧。服务器在 t₀ 时刻传输第一个视频块，在 t₀ + Δ 时刻传输第二块，在 t₀ + 2Δ 时刻传输第三块，等等。一旦客户开始播放，每个块应当在前一块后播放 Δ 时间单元。\na. 假设第一块在 t₁ 时刻一到达，客户就开始播放。在下图中，多少视频块（包括第一块）将及时到达客户供其播放？解释你怎样得到该答案的。\nb. 假设该客户现在在 t₁ + Δ 时刻开始播放。多少视频块（包括第一块）将及时到达客户供其播放？解释你怎样得到该答案的。\nc. 在如上面 (b) 的相同场景中，存储在客户缓存中等待播放的块的最大数量有多少？解释你怎样得到该答案的。\nd. 在客户中为使每个视频块及时到达供其播放，最小的播放时延是多少？解释你怎样得到该答案的。\n\n多媒体网络\n\n发送比特。具体而言，假设 $x(t)$ 具有下列锯齿形状。其速率在时刻 $t=0$ 初始为零，在时刻 $t=T$ 线性爬升到 $H$。然后反复重复这种模式，如下图中显示的那样。\n\na. 服务器的平均发送速率是什么？\n\nb. 假设 $Q=0$，客户一接收到一个视频块就开始播放。将发生什么现象？\n\nc. 现在假设 $Q>0$。作为 $Q$、$H$ 和 $T$ 的函数，确定首先开始播放的时间。\n\nd. 假设 $H>2r$ 和 $Q=HT/2$。证明在初始播放时延之后将不会有停滞。\n\ne. 假设 $H>2r$。求出最小的 $Q$ 值，使在初始播放时延之后将不会有停滞。\n\nf. 现在假定缓存长度 $B$ 是有限的。假定 $H>2r$。作为 $Q$、$B$、$T$ 和 $H$ 的函数，确定当客户应用缓存首次变满的时刻 $t=t_f$。\n\n436",
+      "content_len": 1178
+    },
+    {
+      "id": 17,
+      "file": "TCPIP详解 卷3：TCP事务协议、HTTP、NNTP和UNIX域协议 (W. 理查德·史蒂文斯) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 44,
+      "titles": [
+        "第 4 章 T/TCP 协议(续)",
+        "4.6 小结"
+      ],
+      "category": "Chinese-reference-books",
+      "content": "## 4.6 小结\n\nTCP协议的TIME_WAIT状态有两个功能：\n\n1) 实现了连接的全双工关闭。\n\n2) 使得过时的重复报文段超时作废。\n\n如果T/TCP连接的持续时间小于120秒(1MSL)，那么TIME_WAIT状态的保持时间只要8倍的重传超时，而不是240秒。而且，在前一次连接还处于TIME_WAIT状态时，客户端就可以建立一个连接的新替身，从而进一步缩短了等待时间。我们说明了为什么这么做是可行的，仅受限于T/TCP协议能支持的最大事务速率（大约每秒18 000 000次）。如果T/TCP客户知道要与同一台服务器执行大量事务，那么它每次都可以使用同一个本地端口，从而可减少TIME_WAIT状态的控制块的数量。\n\nTCP的TAO(TCP加速打开)测试使得T/TCP的客户-服务器程序可以跳过三次握手过程。这是在服务器收到客户端的CC值大于服务器记录的该客户CC值时实现的。正是CC值的单调递增性以及以下两点假定，才确保了服务器能够断定客户端的SYN是新的，使T/TCP能够跳过三次握手过程：\n\n1) 所有报文段都有一个有限的生存期限：MSL秒；\n\n2) tcp_ccgen计数器的最大递增速率为：在2MSL秒内增加2³²−1。",
+      "content_len": 522
+    },
+    {
+      "id": 18,
+      "file": "Socket4_ProxyServer.json",
+      "chunk_index": 0,
+      "titles": [
+        "Socket Programming Assignment 4: HTTP Web Proxy Server"
+      ],
+      "category": "Labs-exercises",
+      "content": "# Socket Programming Assignment 4: HTTP Web Proxy Server\n\nIn this lab, you will learn how web proxy servers work and one of their basic functionalities – caching.\n\nYour task is to develop a small web proxy server which is able to cache web pages. It is a very simple proxy server which only understands simple GET-requests, but is able to handle all kinds of objects - not just HTML pages, but also images.\n\nGenerally, when the client makes a request, the request is sent to the web server. The web server then processes the request and sends back a response message to the requesting client. In order to improve the performance we create a proxy server between the client and the web server. Now, both the request message sent by the client and the response message delivered by the web server pass through the proxy server. In other words, the client requests the objects via the proxy server. The proxy server will forward the client’s request to the web server. The web server will then generate a response message and deliver it to the proxy server, which in turn sends it to the client.\n\nable to run the proxy and the browser on the same computer without any problem. With this approach, to get a web page using the proxy server, you simply provide the URL of the page you want.\n\nFor e.g. http://www.google.com\n\n## What to Hand in\nYou will hand in the complete proxy server code and screenshots at the client side verifying that you indeed get the web page via the proxy server.",
+      "content_len": 1484
+    },
+    {
+      "id": 19,
+      "file": "TCPIP详解 卷1：协议（原书第2版） (凯文 R. 福尔 (Kevin R. Fall) etc.) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 157,
+      "titles": [
+        "系统配置：DHCP 和自动配置",
+        "6.2.6.2 中继代理远程 ID 子选项和 IPv6 远程 ID 选项"
+      ],
+      "category": "Chinese-reference-books",
+      "content": "## 6.2.6.2 中继代理远程 ID 子选项和 IPv6 远程 ID 选项\n\n中继的共同需求是通过超出客户机自身提供的信息之外的信息来标识发送 DHCP 请求的客户机。中继代理信息选项的一个子选项称为远程 ID 子选项，它提供了一种标识发送请求的 DHCP 客户机的方法，即采用一系列本地解释的命名方法（例如呼叫方 ID、用户名、调制解调器 ID、一条点到点链路的远程 IP 地址）。DHCPv6 中继代理远程 ID 选项 [RFC4649] 提供了相同的功能，它还包括一个额外的字段（企业编号），以表明与供应商相关的识别信息。这种远程 ID 信息格式后来以一种基于企业编号的特定供应商方式定义。一种常用的方法是将 DUID 用于远程 ID。",
+      "content_len": 323
+    },
+    {
+      "id": 20,
+      "file": "计算机网络（第6版） 自顶向下方法 ([美] James F.Kurose [美] Keith W.Ross) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 118,
+      "titles": [
+        "3.5 面向连接的运输：TCP",
+        "1. 估计往返时间"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "## 1. 估计往返时间\n\n我们开始学习 TCP 定时器的管理问题，要考虑一下 TCP 是如何估计发送方与接收方之间往返时间的。这是通过如下方法完成的。报文段的样本 RTT（表示为 SampleRTT）就是从某报文段被发出（即交给 IP）到对该报文段的确认被收到之间的时间量。大多数 TCP 的实现仅在某个时刻做一次 SampleRTT 测量，而不是为每个发送的报文段测量一个 SampleRTT。这就是说，在任意时刻，仅为一个已发送的但目前尚未被确认的报文段估计 SampleRTT，从而产生一个接近每个 RTT 的新 SampleRTT 值。另外，TCP 决不为已被重传的报文段计算 SampleRTT；它仅为传输一次的报文段测量 SampleRTT［Kan 1987］。（本章后面的一个习题请你考虑一下为什么要这么做。）\n\n显然，由于路由器的拥塞和端系统负载的变化，这些报文段的 SampleRTT 值会随之波动。由于这种波动，任何给定的 SampleRTT 值也许都是非典型的。因此，为了估计一个典型的 RTT，自然要采取某种对 SampleRTT 取平均的办法。TCP 维持一个 SampleRTT 均值（称为 EstimatedRTT）。一旦获得一个新 SampleRTT 时，TCP 就会根据下列公式来更新 EstimatedRTT：\n\nEstimatedRTT = (1 - α) · EstimatedRTT + α · SampleRTT\n\n上面的公式是以编程语言的语句方式给出的，即 EstimatedRTT 的新值是由以前的 EstimatedRTT 值与 SampleRTT 新值加权组合而成的。在［RFC 6298］中给出的 α 参考值是 α = 0.125（即 1/8），这时上面的公式变为：\n\nEstimatedRTT = 0.875 · EstimatedRTT + 0.125 · SampleRTT\n\n值得注意的是，EstimatedRTT 是一个 SampleRTT 值的加权平均值。如在本章后面习题中讨论的那样，这个加权平均对最近的样本赋予的权重要大于对老样本赋予的权重。这是很自然的，因为越近的样本越能更好地反映网络的当前拥塞情况。从统计学观点讲，这种平均被称为指数加权移动平均（Exponential Weighted Moving Average, EWMA）。在 EWMA 中的“指数”一词看起来是指一个给定的 SampleRTT 的权重在更新的过程中呈指数型快速衰减。在课后习题中，将要求你推导出 EstimatedRTT 的指数表达形式。\n\n图 3-32 显示了当 α = 1/8 时，在 gaia.cs.umass.edu（在美国马萨诸塞州的 Amherst）与 fantasia.eurecom.fr（在法国南部）之间的一条 TCP 接上的 SampleRTT 值与 EstimatedRTT 值。显然，SampleRTT 的变化在计算 EstimatedRTT 的过程中趋于平缓。\n\n除了估算 RTT 外，测量 RTT 的变化也是有价值的。［RFC 6298］定义了 RTT 偏差 DevRTT，用于估算 SampleRTT 一般会偏离 EstimatedRTT 的程度：\n\nDevRTT = (1 - β) · DevRTT + β · | SampleRTT - EstimatedRTT |\n\n注意到 DevRTT 是一个 SampleRTT 与 EstimatedRTT 之间差值的 EWMA。如果 SampleRTT\n\n162\n\n第 3 章\n\n值波动较小，那么 DevRTT 的值就会很小；另一方面，如果波动很大，那么 DevRTT 的值就会很大。β 的推荐值为 0.25。\n\n运输层\n163\n\nTCP 也使用流水线，使得发送方在任意时刻都可以有多个已发出但还未被确认的报文段存在。我们在前面已经看到，当报文段长度与往返时延之比很小时，流水线可显著地增加一个会话的吞吐量。一个发送方可以具有的未被确认报文段的确切个数是由 TCP 的流量控制和拥塞控制机制决定的。TCP 流量控制将在本节后面讨论；TCP 拥塞控制将在 3.7 节中讨论。我们暂时只需知道 TCP 发送方使用了流水线即可。\n\n3.5.4 可靠数据传输\n\n前面讲过，因特网的网络层服务（IP 服务）是不可靠的。IP 不保证数据报的交付，不保证数据报的按序交付，也不保证数据报中数据的完整性。对于 IP 服务，数据报能够溢出路由器缓存而永远不能到达目的地，数据报也可能是乱序到达，而且数据报中的比特可能损坏（由 0 变为 1 或者相反）。由于运输层报文段是被 IP 数据报携带着在网络中传输的，所以运输层的报文段也会遇到这些问题。\n\nTCP 在 IP 不可靠的尽力而为服务之上创建了一种可靠数据传输服务（reliable data transfer service）。TCP 的可靠数据传输服务确保一个进程从其接收缓存中读出的数据流是无损坏、无间隔、非冗余和按序的数据流；即该字节流与连接的另一方端系统发送出的字节流是完全相同。TCP 提供可靠数据传输的方法涉及我们在 3.4 节中所学的许多原理。\n\n在我们前面研发可靠数据传输技术时，曾假定每一个已发送但未被确认的报文段都与一个定时器相关联，这在概念上是最简单的。虽然这在理论上很好，但定时器的管理却需要相当大的开销。因此，推荐的定时器管理过程［RFC 6298］仅使用单一的重传定时器，即使有多个已发送但还未被确认的报文段。在本节中描述的 TCP 协议遵循了这种单一定时器的推荐。\n\n我们将以两个递增的步骤来讨论 TCP 是如何提供可靠数据传输的。我们先给出一个 TCP 发送方的高度简化的描述，该发送方只用超时来恢复报文段的丢失；然后再给出一个更全面的描述，该描述中除了使用超时机制外，还使用冗余确认技术。在接下来的讨论中，我们假定数据仅向一个方向发送，即从主机 A 到主机 B，且主机 A 在发送一个大文件。\n\n图 3-33 给出了一个 TCP 发送方高度简化的描述。我们看到在 TCP 发送方有 3 个与发送和重传有关的主要事件：从上层应用程序接收数据；定时器超时和收到 ACK。一旦第一个主要事件发生，TCP 从应用程序接收数据，将数据封装在一个报文段中，并把该报文段交给 IP。注意到每一个报文段都包含一个序号，如 3.5.2 节所讲的那样，这个序号就是该报文段第一个数据字节的字节流编号。还要注意到如果定时器还没有为某些其他报文段而运行，则当报文段被传给 IP 时，TCP 就启动该定时器。（将定时器想象为与最早的未被确认的报文段相关联是有帮助的。）该定时器的过期间隔是 TimeoutInterval，它是由 3.5.3 节中所描述的 EstimatedRTT 和 DevRTT 计算得出的。\n\n第二个主要事件是超时。TCP 通过重传引起超时的报文段来响应超时事件。然后 TCP 重启定时器。\n\nTCP 发送方必须处理的第三个主要事件是一个来自接收方的确认报文段（ACK）的到达（更确切地说是一个包含了有效 ACK 字段值的报文段）。当该事件发生时，TCP 将 ACK 的值 y 与它的变量 SendBase 进行比较。TCP 状态变量 SendBase 是最早未被确认的字节的\n\n164\n\n第 3 章\n\n序号。(因此 SendBase - 1 是指接收方已正确按序接收到的数据的最后一个字节的序号。)如前面指出的那样，TCP 采用累积确认，所以 y 确认了字节编号在 y 之前的所有字节都已经收到。如果 y > SendBase，则该 ACK 是在确认一个或多个先前未被确认的报文段。因此发送方更新它的 SendBase 变量；如果当前有未被确认的报文段，TCP 还要重新启动定时器。\n\n运输层\n\n文的确认号是 100，第二个确认报文的确认号是 120。现在假设在超时之前这两个报文段中没有一个确认报文到达主机 A。当超时事件发生时，主机 A 重传序号 92 的第一个报文段，并重启定时器。只要第二个报文段的 ACK 在新的超时发生以前到达，则第二个报文段将不会被重传。\n\n166\n\n第 3 章\n\n报文段，并把新的过期时间设置为 1.5 秒。如果 1.5 秒后定时器又过期了，则 TCP 将再次重传该报文段，并把过期时间设置为 3.0 秒。因此，超时间隔在每次重传后会呈指数型增长。然而，每当定时器在另两个事件（即收到上层应用的数据和收到 ACK）中的任意一个启动时，TimeoutInterval 由最近的 EstimatedRTT 值与 DevRTT 值推算得到。\n\n这种修改提供了一个形式受限的拥塞控制。（更复杂的 TCP 拥塞控制形式将在 3.7 节中学习。）定时器过期很可能是由网络拥塞引起的，即太多的分组到达源与目的地之间路径上的一台（或多台）路由器的队列中，造成分组丢失或长时间的排队时延。在拥塞的时候，如果源持续重传分组，会使拥塞更加严重。相反，TCP 使用更文雅的方式，每个发送方的重传都是经过越来越长的时间间隔后进行的。当我们在第 5 章学习 CSMA/CD 时，将看到以太网采用了类似的思路。",
+      "content_len": 3807
+    },
+    {
+      "id": 21,
+      "file": "04-计算机网络-第四章-2021-2.json",
+      "chunk_index": 25,
+      "titles": [
+        "4.2 IP协议- IPv4数据包转发"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 4.2 IP协议- IPv4数据包转发\n\n## IP数据包分片与重组\n\n- 每种物理网络都规定MTU\n  - 不同的物理网络MTU可能不同\n- 较大的IP数据包在路由器转发时可能会被分片\n  - 只有在最终的目的进行重组\n  - IP数据包首部中的一些域段用于IP数据包的重组\n\nMTU: Max Transfer Unit",
+      "content_len": 164
+    },
+    {
+      "id": 22,
+      "file": "rfc9000.json",
+      "chunk_index": 75,
+      "titles": [
+        "21. Security Considerations",
+        "21.1.3.1. On-Path Active Attacks"
+      ],
+      "category": "RFC/protocol-specs",
+      "content": "## 21.1.3.1. On-Path Active Attacks\n\nAn attacker that can cause a packet it observes to no longer reach its intended destination is considered an on-path attacker. When an attacker is present between a client and server, endpoints are required to send packets through the attacker to establish connectivity on a given path.\n\nAn on-path attacker can:\n\n- Inspect packets\n- Modify IP and UDP packet headers\n- Inject new packets\n- Delay packets\n- Reorder packets\n- Drop packets\n- Split and merge datagrams along packet boundaries\n\nAn on-path attacker cannot:\n\n- Modify an authenticated portion of a packet and cause the recipient to accept that packet\n\nAn on-path attacker has the opportunity to modify the packets that it observes; however, any modifications to an authenticated portion of a packet will cause it to be dropped by the receiving endpoint as invalid, as packet payloads are both authenticated and encrypted.\n\nQUIC aims to constrain the capabilities of an on-path attacker as follows:\n\n1. An on-path attacker can prevent the use of a path for a connection, causing the connection to fail if it cannot use a different path that does not contain the attacker. This can be achieved by dropping all packets, modifying them so that they fail to decrypt, or other methods.\n\nIyengar & Thomson\nStandards Track\nPage 126\n\nRFC 9000\nQUIC Transport Protocol\nMay 2021\n\n2. An on-path attacker can prevent migration to a new path for which the attacker is also on-\npath by causing path validation to fail on the new path.\n\n3. An on-path attacker cannot prevent a client from migrating to a path for which the attacker\nis not on-path.\n\n4. An on-path attacker can reduce the throughput of a connection by delaying packets or\ndropping them.\n\n5. An on-path attacker cannot cause an endpoint to accept a packet for which it has modified\nan authenticated portion of that packet.\n\n21.1.3.2. Off-Path Active Attacks\nAn off-path attacker is not directly on the path between a client and server but could be able to\nobtain copies of some or all packets sent between the client and the server. It is also able to send\ncopies of those packets to either endpoint.\n\nAn off-path attacker can:\n- Inspect packets\n- Inject new packets\n- Reorder injected packets\n\nAn off-path attacker cannot:\n- Modify packets sent by endpoints\n- Delay packets\n- Drop packets\n- Reorder original packets\n\nAn off-path attacker can create modified copies of packets that it has observed and inject those\ncopies into the network, potentially with spoofed source and destination addresses.\n\nFor the purposes of this discussion, it is assumed that an off-path attacker has the ability to inject\na modified copy of a packet into the network that will reach the destination endpoint prior to the\narrival of the original packet observed by the attacker. In other words, an attacker has the ability\nto consistently \"win\" a race with the legitimate packets between the endpoints, potentially\ncausing the original packet to be ignored by the recipient.\n\nIt is also assumed that an attacker has the resources necessary to affect NAT state. In particular,\nan attacker can cause an endpoint to lose its NAT binding and then obtain the same port for use\nwith its own traffic.\n\nQUIC aims to constrain the capabilities of an off-path attacker as follows:\n\n1. An off-path attacker can race packets and attempt to become a \"limited\" on-path attacker.\n2. An off-path attacker can cause path validation to succeed for forwarded packets with the\nsource address listed as the off-path attacker as long as it can provide improved connectivity\nbetween the client and the server.\n\nIyengar & Thomson\nStandards Track\nPage 127\n\nRFC 9000\nQUIC Transport Protocol\nMay 2021\n\n3. An off-path attacker cannot cause a connection to close once the handshake has completed.\n4. An off-path attacker cannot cause migration to a new path to fail if it cannot observe the new path.\n5. An off-path attacker can become a limited on-path attacker during migration to a new path for which it is also an off-path attacker.\n6. An off-path attacker can become a limited on-path attacker by affecting shared NAT state such that it sends packets to the server from the same IP address and port that the client originally used.",
+      "content_len": 4231
+    },
+    {
+      "id": 23,
+      "file": "计算机网络：自顶向下方法（原书第8版） (James F. Kurose, Keith W. Ross, 陈鸣) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 231,
+      "titles": [
+        "7.4.2 LTE 协议栈",
+        "7.4.3 LTE 无线电接入网"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "## 7.4.3 LTE 无线电接入网\n\nLTE 在下行信道上使用频分复用和时分复用的组合，称为正交频分复用（OFDM）[Hwang 2009]。（术语“正交”来自这样一个事实：在不同频率的信道上发送的信号，即使信道频率间隔很紧，它们彼此之间的干扰也很小。）在 LTE 中，每个主动移动设备在一个或多个信道频率中被分配一个或多个 0.5ms 的时隙。图 7-22 显示了在 4 个频率上分配 8 个时隙。通过分配越来越多的时隙（无论是在同一频率上还是在不同频率上），移动设备能够实现越来越高的传输速率。移动设备之间的时隙（重新）分配可以每毫秒执行一次。不同的调制方案也可以用来改变传输速率，参见我们之前对图 7-3 的讨论以及 WiFi 网络中调制方案的动态选择。\n\n无线网络和移动网络 377\n\n一个引导过程，以获悉附近的基站，然后与之关联。移动设备首先在所有频段的所有信道中搜索主同步信号，该主同步信号由基站每 5ms 定期广播一次。一旦找到这个信号，移动设备就保持在这个频率上并定位次级同步信号。有了在第二信号中找到的信息，设备可以定位（遵循下列几个步骤）附加信息，如信道带宽、信道配置和该基站的蜂窝载波信息。有了这些信息，移动设备可以选择一个要关联的基站（如果有的话，优先连接到它的归属网络），并通过无线跳与该基站建立一个控制平面信号连接。这个移动节点到基站的通道将在网络连接过程的其余部分中使用。\n\n- 相互鉴别。在 7.4.1 节对移动性管理实体的描述中，我们注意到基站与本地 MME 联系以执行相互鉴别，我们将在 8.8.2 节中进一步研究这个过程。这是网络连接的第二阶段，允许网络知道所连接的设备确实是与给定的 IMSI 相关联的设备，并且移动设备知道它所连接的网络也是一个合法的蜂窝运营商网络。一旦网络连接的第二阶段完成，MME 和移动设备相互鉴别，MME 也知道移动设备所连接的基站的身份。有了这些信息，MME 现在就可以配置设备到 PDN 网关数据路径了。\n\n- 移动设备到 PDN 网关的数据路径配置。MME 联系 PDN 网关（这同时也为移动设备提供 NAT 地址）、服务网关和基站，以建立如图 7-21 所示的两条隧道。一旦这个阶段完成，移动设备就能够通过这些隧道并通过基站发送/接收 IP 数据报到互联网！\n\n2. 功率管理：睡眠模式\n\n回想在我们先前在 802.11（7.3.5 节）和蓝牙（7.3.6 节）中讨论的高级特性，无线设备中的无线电在不传送或接收数据时可以进入睡眠状态以节省能源。这是为了在需要发送/接收数据以及通道传感时，移动设备电路的“打开”时间能够尽可能短。在 4G LTE 中，睡眠移动设备可能处于两种不同的睡眠状态之一。在不连续的接收状态下，通常在数百毫秒的不活动后进入睡眠状态 [Sauter 2014]，移动设备和基站将提前安排周期时间（通常间隔几百毫秒），在此时间移动设备将唤醒并主动监控下行（基站到移动设备）传输的通道；然而，除了这些预定的时间，移动设备的无线电将处于睡眠状态。\n\n如果不连续的接收状态可以被认为是“浅睡眠”，那么第二种睡眠状态即空闲状态可能被认为是“深度睡眠”。空闲状态的持续时间更长，为 5~10s。在这种深度睡眠中，移动设备的无线电会醒来，监听频道的频率会更低。事实上，这种睡眠是如此之深，以至于如果移动设备在休眠时移动到运营商网络中的一个新蜂窝，它不需要通知之前与其关联的基站。因此，当从这个深度睡眠中周期性地醒来时，移动设备将需要重新建立与（可能是新的）基站的关联，以检查 MME 向该移动设备上次关联的基站附近的基站广播的寻呼报文。这些控制平面寻呼报文，由这些基站广播到其小区内的所有移动设备，指示哪些移动设备应该完全苏醒并重新建立到基站的新数据平面连接（见图 7-18），以便接收到来的分组。\n\n7.4.5 全球蜂窝网络：网络的网络\n\n在研究了 4G 蜂窝网络架构之后，让我们回过头来看看全球蜂窝网络是如何组织的，它本身就像互联网一样，就是一个“网络的网络”。\n\n图 7-23 显示了用户的移动智能手机通过 4G 基站连接到归属网络。用户的归属移动网络由蜂窝运营商运营，如美国的 Verizon、AT&T、T-Mobile 或 Sprint，法国的 Orange，或者\n\n378 第 7 章\n\n韩国的 SK 电信。反过来，用户的归属网络通过归属网络中的一个或多个网关路由器连接到其他蜂窝运营商的网络和全球互联网，如图 7-23 所示。移动网络本身通过公共因特网或互联网协议分组交换（IPX）网络互连 [GSMA 2018a]。IPX 是一种专门用于互连蜂窝运营商的被管网络，类似于因特网交换点（参见图 1-15）用于 ISP 之间的对等。从图 7-23 中，我们可以看到全球蜂窝网络确实是一个“网络的网络”，就像因特网一样（回想图 1-15 和 5.4 节）。4G 网络还可以与 3G 蜂窝语音/数据网络和早期的纯语音网络对接。\n\n无线网络和移动网络 379\n\n用于固定无线因特网服务，而不用于智能手机。\n\n5G 标准将频率分为两组：FR1（450MHz~6GHz）和 FR2（24GHz~52GHz）。大多数早期的部署将在 FR1 空间，尽管 FR2 空间在 2020 年有早期部署，用于如前所述的固定互联网住宅接入。重要的是，5G 的物理层（即无线）方面与 LTE 等 4G 移动通信系统不向后兼容，特别是不能通过部署基站升级或软件更新来过渡到现有的智能手机。因此，在向 5G 过渡的过程中，无线运营商将需要在物理基础设施方面进行大量投资。\n\nFR2 频率也被称为毫米波频率。虽然毫米波频率支持更快的数据传输速度，但也有两个主要缺点：\n\n- 毫米波频率使得从基站到接收器的范围要短得多。这表明毫米波技术不适用于农村地区，需要在城市地区密集部署基站。\n- 毫米波通信非常容易受到大气干扰。附近的树叶和雨水会给户外使用带来问题。\n\n5G 不是一个密切结合的标准，而是由三个共存的标准组成 [Dahlman 2018]：\n\n- eMBB（增强型移动带宽）。5G NR 的初始部署主要集中在 eMBB 上，与 4G LTE 相比，eMBB 可以为更高的下载和上传速度提供更高的带宽，并适度降低时延。eMBB 支持丰富的媒体应用程序，如移动增强现实和虚拟现实，以及移动 4K 分辨率和 360° 视频流。\n- URLLC（极可靠低时延通信）。URLLC 的目标是满足时延高度敏感的应用程序，如工厂自动化和自动驾驶。URLLC 的目标时延为 1ms。在撰写本书时，支持 URLLC 的技术仍在标准化过程中。\n- mMTC（大规模机器类型通信）。mMTC 是一种窄带接入类型，用于传感、测量和监控应用。5G 络设计的一个优先事项是降低物联网设备的网络连接障碍。除了降低时延外，5G 网络的新兴技术正专注于降低能源需求，使物联网设备的使用比 4G LTE 更加普及。\n\n### 1. 5G 和毫米波频率\n\n许多 5G 创新将在 24GHz~52GHz 频段的毫米波频率下工作的直接结果。例如，这些频率提供了比 4G 容量增加 100 倍的潜力。为了更深入地了解这一点，容量可以被定义为三个术语的乘积 [Björnson 2017]：\n\n容量 = 小区密度 × 可用频谱 × 频谱效率\n\n其中小区密度以小区/km² 为单位，可用频谱以 Hz 为单位，频谱效率是衡量每个基站与用户通信效率的指标，以 bps/Hz/小区为单位。通过将这些单位相乘，很容易看到容量的单位是 bps/km²。对于这三个术语中的每一个，5G 的值都会比 4G 大：\n\n- 由于毫米波的频率范围比 4G LTE 的频率范围小得多，因此需要更多的基站，从而使小区密度变大。\n- 由于 5G FR2（52–24 = 28GHz）运行在比 4G LTE（最高 2GHz）更大的频段内，因此可用频谱更多。\n- 关于频谱效率，信息理论认为，如果想要将频谱效率提高一倍，需要将功率提高 17 倍 [Björnson 2017]。5G 没有增加功率，而是使用 MIMO 技术（与我们在 7.3 节研究 802.11 网络时遇到的技术相同），该技术在每个基站使用多个天线。每个 MIMO 天线采用波束成形并将信号指向用户，而不是向所有方向广播信号。MIMO 技术允许基站在同一频带内同时向 10~20 个用户发送信号。\n\n380 第 7 章\n\n通过增加容量方程中的所有三项，5G 预计将为城市地区提供 100 倍的容量增长。同样，由于更宽的频带，5G 有望提供 1Gbps 或更高的峰值下载速率。\n\n然而，毫米波信号很容易被建筑物和树木阻挡。需要小型蜂窝基站来填补基站和用户之间的覆盖缺口。在人口密集地区，两个小区之间的距离可能从 10 米到 100 米不等 [Dahlman 2018]。",
+      "content_len": 3662
+    },
+    {
+      "id": 24,
+      "file": "部分题目中文解析.json",
+      "chunk_index": 14,
+      "titles": [
+        "第四，五章 网络层"
+      ],
+      "category": "Review-exam-prep",
+      "content": "# 第四，五章 网络层\n\n## 第四章题目\n\nP1\n\nP1. 考虑下面的网络。\n\na. 显示路由器 A 中的转发表，使得目的地为主机 H3 的所有流量都通过接口 3 转发。\n\nb. 你能否写出路由器 A 中的转发表，使得从 H1 发往主机 H3 的所有流量都通过接口 3 转发，从 H2 发往主机 H3 的所有流量都通过接口 4 转发？（提示：这是一个技巧性的问题。）\n\nlec4,5.md\n2024-11-22\n\nlec4.5.md\n2024-11-22\n\n- 让输入端口为分组预先计划一个交换机内部标签（首部），指示本地输出端口，分组其实可以被所有输出端口收到\n- 与标签匹配的端口保存该分组\n- 标签在输出端口处被移除\n\n- 纵横交换：2N个总线，链接N个输入端口和输出端口。具体布局见上图。注意：非阻塞的，只要没有其他分组被转发到相同的输出端口，那么目的地为这个输出端口的分组就不会等待。如果来自两个不同端口的两个分组的目的地是同一个输出端口，那么一个分组必须在输入端口等待。具体步骤是：\n\n  - 某分组到端口A需要转发到端口Y\n  - 交换机控制器闭合总线AY交叉点\n  - 口A在总线上发送该分组，分组可以被Y收到\n\n完成这些分析后，实际上这题很简单了，对于三种方案，最大排队时延分别是：(N-1)D, (N-1)D, 0\n\nP14\n\nP14. 考虑一个具有前缀 128.119.40.128/26 的子网。给出能被分配给该网络的一个 IP 地址（形式为 xxx.xxx.xxx.xxx）的例子。假定一个 ISP 拥有形式为 128.119.40.64/26 的地址块。假定它要从该地址块生成 4 个子网，每块具有相同数量的 IP 地址。这 4 个子网（形式为 a.b.c.d/x）的前缀是什么？\n\n这题很简单。\n\n地址分配：128.119.40.128 到 128.119.40.191 范围内的任何 IP 地址都可以。\n\n子网划分：需要我们划分4个子网，那么可以把26位网络号再加上2位，变成28号。多出来的这2号表示4个子网，分别是00，01，10，11。因此，四个大小相等的子网：128.119.40.64/28、128.119.40.80/28、128.119.40.96/28、128.119.40.112/28。\n\nP18\n\nP18. 考虑在图 4-25 中建立的网络。假定 ISP 现在为路由器分配地址 24.34.112.235，家庭网络的网络地址是 192.168.1/24。\n\na. 在家庭网络中为所有接口分配地址。\n\nb. 假定每台主机具有两个进行中的 TCP 连接，所有都是针对主机 128.119.40.86 的 80 端口的。在 NAT 转换表中提供 6 个对应表项。\n\n3 / 6\n\nlec4,5.md\n2024-11-22\n\nlec4.5.md\n2024-11-22\n\nWAN端      LAN端\n24.34.112.235:5001  10.0.0.1:3345\n24.34.112.235:5002  10.0.0.1:3346\n24.34.112.235:5003  10.0.0.2:3345\n24.34.112.235:5004  10.0.0.2:3346\n24.34.112.235:5005  10.0.0.3:3345\n24.34.112.235:5006  10.0.0.3:3346",
+      "content_len": 1427
+    },
+    {
+      "id": 25,
+      "file": "Chapter_9_V7.0.json",
+      "chunk_index": 54,
+      "titles": [
+        "Comparison with H.323"
+      ],
+      "category": "English-textbooks",
+      "content": "# Comparison with H.323\n\n- H.323: comes from the ITU protocol for real-time, interactive multimedia\n- SIP comes from IETF: borrows much of its concepts from HTTP\n- H.323: complete, vertically integrated suite of protocols for multimedia conferencing; signaling, registration, admission control, transport, codecs\n  - SIP has Web flavor, H.323 has telephony flavor\n- SIP uses KISS principle: Keep It Simple Stupid\n- SIP: single component. Works with RTP, but does not mandate it. Can be combined with other protocols, services\n\nMultimedia Networking 9-55",
+      "content_len": 553
+    },
+    {
+      "id": 26,
+      "file": "部分题目中文解析.json",
+      "chunk_index": 10,
+      "titles": [
+        "P8"
+      ],
+      "category": "Review-exam-prep",
+      "content": "# P8\n\nP8. 参照习题 P7，假定在同一服务器上某 HTML 文件引用了 8 个非常小的对象。忽略发送时间，在下列情况下需要多长时间：\n\na. 没有并行 TCP 连接的非持续 HTTP。\n\nb. 配置有 5 个并行连接的非持续 HTTP。\n\nc. 持续 HTTP。\n\n对于这些情况，首先都需要获取 IP 地址并从基本 HTTP 文本里解析出 8 个对象的引用。因此首先具有固定时间为 T₁ = t₁ + t₂ = ∑ᵢ₌₁ⁿ RTTᵢ + 2RTT₀.\n\na. 没有并行 TCP 连接的非持续 HTTP：需要对 8 个对象，每一个都建立一个 TCP 连接，这需要 RTT₀ 时间；然后请求报文和响应报文共需要 RTT₀ 的时间，重复这操作 8 次，需要 T₂ = 16RTT₀ 时间。故总时间 T = T₁ + T₂ = ∑ᵢ₌₁ⁿ RTTᵢ + 18RTT₀.\n\nb. 配置 5 个并行连接的非持续 HTTP：由于是 5 个并行，因此可以对 8 个对象分两批传送。重复 a 中操作 2 次即可。这耗费 T₂ = 4RTT₀ 时间。故总时间 T = T₁ + T₂ = ∑ᵢ₌₁ⁿ RTTᵢ + 6RTT₀.\n\nc. 持续 HTTP：\n\n- 流水线：只需一次请求报文和响应报文，即可一下子打包全部 8 个对象。这需要 T₂ = RTT₀ 时间。故总时间 T = T₁ + T₂ = ∑ᵢ₌₁ⁿ RTTᵢ + 3RTT₀.\n\n- 非流水线：需要 8 个请求报文和响应报文，每个对象需要 RTT₀ 时间。这需要 T₂ = 8RTT₀ 时间。故总时间 T = T₁ + T₂ = ∑ᵢ₌₁ⁿ RTTᵢ + 10RTT₀.\n\n3 / 7\n\nlec2.md\n2024-09-23\n\nP9\n\nP9. 考虑图 2-12，其中有一个机构的网络和因特网相连。假定对象的平均长度为 850 000 比特，从这个机构网的浏览器到初始服务器的平均请求率是每秒 16 个请求。还假定从接入链路的因特网一侧的路由器转发一个 HTTP 请求开始，到接收到其响应的平均时间是 3 秒（参见 2.2.5 节）。将总的平均响应时间建模为平均接入时延（即从因特网路由器到机构路由器的时延）和平均因特网时延之和。对于平均接入时延，使用 Δ/(1−Δβ)，式中 Δ 是跨越接入链路发送一个对象的平均时间，β 是对象对该接入链路的平均到达率。\n\na. 求出总的平均响应时间。\n\nb. 现在假定在这个机构 LAN 中安装了一个缓存器。假定命中率为 0.4，求出总的响应时间。\n\n为了深刻理解缓存器带来的好处，我们考虑在图 2-12 场景下的一个例子。该图显示了两个网络，即机构（内部）网络和公共因特网的一部分。机构网络是一个高速的局域网，它的一台路由器与因特网上的一台路由器通过一条 15Mbps 的链路连接。这些初始服务器与因特网相连但位于全世界各地。假设对象的平均长度为 1Mb，从机构内的浏览器对这些初始服务器的平均访问速率为每秒 15 个请求。假设 HTTP 请求报文小到可以忽略，因而不会在网络中以及接入链路（从机构内部路由器到因特网路由器）上产生什么通信量。我们还假设在图 2-12 中从因特网接入链路一侧的路由器转发 HTTP 请求报文（在一个 IP 数据报中）开始，到它收到其响应报文（通常在多个 IP 数据报中）为止的时间平均为 2s。我们将该持续时延非正式地称为“因特网时延”。\n\n总的响应时间，即从浏览器请求一个对象到接收到该对象为止的时间，是局域网时延、接入时延（即两台路由器之间的时延）和因特网时延之和。我们来粗略地估算一下这个时延。局域网上的流量强度（参见 1.4.2 节）为\n\n(15 个请求/s) × (1Mb/请求)/(100Mbps) = 0.15\n\n然而接入链路上的流量强度（从因特网路由器到机构路由器）为\n\n(15 个请求/s) × (1Mb/请求)/(15Mbps) = 1\n\na.\n\n- △= L/R = 850000bits/15mbps = 0.0567s，注意这里的15mbps是图里面的数据。\n- 平均到达率β = 16/s，则流量强度△β = 16/s × 0.0567s = 0.907.\n- 故平均接入时延△/(1−β△) = 0.607s.\n- 总的平均响应时间为：平均接入时延+平均因特网时延，即0.607 + 3 = 3.607s.\n\nb. 安装缓存器后，有0.4 = 40的请求会几乎立即由缓存器得到响应。局域网时延在这里是忽略不计的，因此那40的请求的响应时间是0；而还有 60的请求仍然需要时间响应。也即平均响应时间为0.6 × 3.607s = 2.16s.\n\n图 2-12 一个机构网络与因特网之间的瓶颈\n\nP10 (本题解析大部分参考英文版答案)\n\nP10. 考虑一条 10 米短链路，某发送方经过它能够以 150bps 速率双向传输。假定包含数据的分组是 100 000 比特长，仅包含控制（如 ACK 或握手）的分组是 200 比特长。假定 N 个并行连接每个都获得 1/N 的链路带宽。现在考虑 HTTP 协议，并且假定每个下载对象是 100Kb 长，这些初始下载对象包含 10 个来自相同发送方的引用对象。在这种情况下，经非持续 HTTP 的并行实例的并行下载有意义吗？现在考虑持续 HTTP。你期待这比非持续的情况有很大增益吗？评价并解释你的答案。\n\n设 Tp = d/c, 其中 d = 10m 为长度，c = 3 × 10⁸ 为光速。\n\n4 / 7\n\nlec2.md\n2024-09-23\n\n- 非持续，并行情况下：首先需要2个RTT来解析HTML文本，花费时间\n  $t_1 = 200/150 + T_p + 200/150 + T_p + 200/150 + T_p + 100000/150 + T_p$。之后，并发地对10个引用对象进行传输。花费时间\n  $t_2 = 200/150 + T_p + 200/150 + T_p + 200/150 + T_p + 100000/(1/10 \\times 150) + T_p$，则总时间为$t_1 + t_2 = 8T_p + 7377s$。\n\n- 持续HTTP:\n\n- 流水：$t_1$不变，现在只需要一次请求报文和响应报文，即可一下子打包全部10个对象，则\n    $t_2 = 200/150 + T_p + 100000 \\times 10/150 + T_p$，总时间为$t_1 + t_2 = 6T_p + 7338s$。\n\n- 非流水：$t_1$不变，现在需要10次请求报文和响应报文，则\n    $t_2 = 10 \\times (200/150 + T_p + 100000/150 + T_p) = 24T_p + 7351s$。\n\n- 光速是非常大的，所以$T_p$对结果影响很小。故持续方法其实没什么增益。\n\nP11\nP11. 考虑在前一个习题中引出的情况。现在假定该链路由 Bob 和 4 个其他用户所共享。Bob 使用非持续 HTTP 的并行实例，而其他 4 个用户使用无并行下载的非持续 HTTP。\na. Bob 的并行连接能够帮助他更快地得到 Web 页面吗？\nb. 如果所有 5 个用户打开 5 个非持续 HTTP 并行实例，那么 Bob 的并行连接仍将是有效果的吗？为什么？\n\na. 能。英文版答案的解析是：是的，因为鲍勃有更多的连接，所以他可以获得更大份额的链路带宽。个人感觉能理解，但是有一点模糊。\n\nb. 是。英文版答案的解析是：是的，鲍勃仍然需要执行并行下载，否则他获得的带宽将少于其他四个用户。\n\n总结：这题目感觉像是体现出并行要比非并行的竞争能力更强的那种意味，即如果其他人都并行，我不并行就抢不过他们的蛋糕一样。\n\nP17\nP17. 阅读用于 SMTP 的 RFC 5321。MTA 代表什么？考虑下面收到的垃圾邮件（从一份真实垃圾邮件修改得到）。假定这封垃圾邮件的唯一始作俑者是恶意的，而其他主机是诚实的，指出产生了这封垃圾邮件的恶意主机。\n\nFrom - Fri Nov 07 13:41:30 2008\nReturn-Path: <tennis5@pp33head.com>\nReceived: from barmail.cs.umass.edu (barmail.cs.umass.edu [128.119.240.3]) by cs.umass.edu (8.13.1/8.12.6) for <hg@cs.umass.edu>; Fri, 7 Nov 2008 13:27:10 -0500\nReceived: from asusus-4b96 (localhost [127.0.0.1]) by barmail.cs.umass.edu (Spam Firewall) for <hg@cs.umass.edu>; Fri, 7 Nov 2008 13:27:07 -0500 (EST)\nReceived: from asusus-4b96 ([58.88.21.177]) by barmail.cs.umass.edu for <hg@cs.umass.edu>; Fri, 7 Nov 2008 13:27:07 -0500 (EST)\nReceived: from [58.88.21.177] by inbnd55.exchangeddd.com; Sat, 8 Nov 2008 01:27:07 +0700\nFrom: \"Jonny\" <tennis5@pp33head.com>\nTo: <hg@cs.umass.edu>\nSubject: How to secure your savings\n\n5 / 7\n\nlec2.md\n2024-09-23\n\nMTA 代表 Mail Transfer Agent。主机将邮件发送到 MTA。然后，邮件将遵循一系列 MTA 到达收件人的邮件阅读器。我们看到此垃圾邮件遵循一系列 MTA。诚实的 MTA 应报告它接收邮件的位置。请注意，在此消息中，“asu_su_s-4b96 ([58.88.21.177])”没有报告从何处收到电子邮件。由于我们假设只有发起者不诚实，因此“asu_su_s-4b96 ([58.88.21.177])”必须是发起者。\n\nP22\n\nP22. 考虑向 N 个对等方分发 F=20Gb 的一个文件。该服务器具有 u<sub>s</sub>=30Mbps 的上载速率，每个对等方具有 d<sub>i</sub>=2Mbps 的下载速率和上载速率 u。对于 N=10、100、1000 和 u=300kbps、700kbps、2Mbps，为 N 和 u 的每种组合绘制出确定最小分发时间的图表。需要分别针对客户-服务器分发和 P2P 分发两种情况制作图表。\n\nF = 20Gb, u<sub>s</sub> = 39Mbps, d<sub>min</sub> = 2Mbps, N 和 u<sub>i</sub> 是不确定的。\n\nC/S: 在这里，D<sub>cs</sub> = min NF/u<sub>s</sub>, F/d<sub>min</sub>. 带值计算即可。\n\n| N/u     | 10      | 100     | 1000    |\n|---------|---------|---------|---------|\n| 300Kbps | 10240   | 68266.67| 682666.67|\n| 700Kbps | 10240   | 68266.67| 682666.67|\n| 2Mbps   | 10240   | 68266.67| 682666.67|\n\nP2P: D<sub>p2p</sub> = min F/u<sub>s</sub>, F/d<sub>min</sub>, NF/(u<sub>s</sub> + Σ<sub>i=1</sub><sup>N</sup> u<sub>i</sub>).\n\n| N/u     | 10      | 100     | 1000    |\n|---------|---------|---------|---------|\n| 300Kbps | 10240   | 34538.67| 63412   |\n| 700Kbps | 10240   | 20821.33| 28700   |\n| 2Mbps   | 10240   | 10240   | 10240   |\n\nP23\n\nP23. 考虑使用一种客户-服务器体系结构向 N 个对等方分发一个 F 比特的文件。假定一种某服务器能够同时向多个对等方传输的流体模型，只要组合速率不超过 u<sub>s</sub>，则以不同的速率向每个对等方传输。\n\na. 假定 u<sub>s</sub>/N ≤ d<sub>min</sub>。定义一个具有 NF/u<sub>s</sub> 分发时间的分发方案。\n\nb. 假定 u<sub>s</sub>/N ≥ d<sub>min</sub>。定义一个具有 F/d<sub>min</sub> 分发时间的分发方案。",
+      "content_len": 5490
+    },
+    {
+      "id": 27,
+      "file": "WNB-ch01b.json",
+      "chunk_index": 2,
+      "titles": [
+        "2.2 计算机网络的体系结构（4）"
+      ],
+      "category": "Other-misc",
+      "content": "# 2.2 计算机网络的体系结构（4）\n\n## 2.2.2 协议和协议的分层结构\n\n协议的定义和组成\n\n层次结构的计算机网络功能中，最重要的功能是通信功能\n这种通信功能主要涉及同一层次中通信双方的相互作用\n位于不同计算机上进行对话的第 N 层通信各方可分别看成是一种\n进程，称为对等（同等）进程。\n协议（Protocol）：计算机网络同等层次中，通信双方进行信息\n交换时必须遵守的规则。\n\n## 2.2 计算机网络的体系结构（5）\n\n协议的组成\n语法（syntax）：以二进制形式表示的命令和相应的结构\n语义（semantics）：由发出的命令请求，完成的动作和回送的响应组成的集合\n定时关系（timing）：有关事件顺序的说明\n\n协议的分层和层间结构\n协议的分层原则（layering principle）\nLayer N software on the destination computer must receive exactly the message sent by layer N software on the sending computer. Mathematically, if the sender applies a transformation T, the receiver must apply the inverse T⁻¹.\n协议分层要保证整个通信系统功能完备、高效。\n\n## 2.2 计算机网络的体系结构（6）\n\n每一相邻层之间有一个接口（Interface），它定义了下层向上层提供的原语操作和服务。\n对于第 N 层协议来说，它有如下特性\n不知道上、下层的内部结构\n独立完成某种功能\n为上层提供服务\n使用下层提供的服务",
+      "content_len": 730
+    },
+    {
+      "id": 28,
+      "file": "计算机网络（第6版） 自顶向下方法 ([美] James F.Kurose [美] Keith W.Ross) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 62,
+      "titles": [
+        "应用层",
+        "3. 进程寻址"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "## 3. 进程寻址\n\n为了向特定目的地发送邮政邮件，目的地需要有一个地址。类似地，在一台主机上运行的进程为了向在另一台主机上运行的进程发送分组，接收进程需要有一个地址。为了标识该接收进程，需要定义两种信息：①主机的地址；②定义在目的主机中的接收进程的标识符。\n\n60\n\n第 2 章\n\n应用层\n61\n\n如果一个协议提供了这样的确保数据交付服务，就认为提供了可靠数据传输（reliable data transfer）。运输层协议能够潜在地向应用程序提供的一个重要服务是进程到进程的可靠数据传输。当一个运输协议提供这种服务时，发送进程只要将其数据传递进套接字，就可以完全相信该数据将能无差错地到达接收进程。\n\n当一个运输层协议不提供可靠数据传输时，由发送进程发送的某些数据可能不能够到达接收进程。这可能被容忍丢失的应用（loss-tolerant application）所接受，最值得注意的是多媒体应用，如交谈式音频/视频，它们能够承受一定量的数据丢失。在这些多媒体应用中，丢失的数据引起播放的音频/视频出现小干扰，而不是致命的损伤。",
+      "content_len": 467
+    },
+    {
+      "id": 29,
+      "file": "Chapter7-Wireless & Mobile Networks.json",
+      "chunk_index": 86,
+      "titles": [
+        "在同一个运营商网络内切换BS"
+      ],
+      "category": "English-textbooks",
+      "content": "# 在同一个运营商网络内切换BS\n\n7.1 无线与移动网络概述\n7.2 无线链路与网络特性\n7.3 无线局域网:IEEE802.11\n7.4 移动通信网络体系结构\n7.5 网络移动管理基本原理\n7.6 移动IP\n7.7 移动通信网络的移动管理\n\n⑤ 目标BS通告MME 新的BS为BS服务\n- MME指导S-SW改变隧道的端节点，改到到目标端BS\n\n⑥ 目标BS给源BS确认ACK: 切换完成，源BS可以释放资源\n\n⑦ 移动站点的数据报可以通过新隧道（从目标BS到S-SW）流动\n\n## 7.8 无线与移动对高层协议的影响",
+      "content_len": 261
+    },
+    {
+      "id": 30,
+      "file": "计算机网络实验教程 计算机网络实验教程 (（美）Emad Aboelela) (z-library.sk, 1lib.sk, z-lib.sk)-1.json",
+      "chunk_index": 12,
+      "titles": [
+        "实验步骤"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 实验步骤\n\n## 启动 OPNET IT Guru 学术版\n\n请按下面的步骤启动 OPNET IT Guru 学术版：\n\n1）单击“开始”（Start）→“所有程序”（All Programs）→选择“OPNET IT Guru 学术 x.x 版”（OPNET IT Guru Academic Edition x.x）→启动“OPNET IT Guru 学术版”（OPNET IT Guru Academic Edition）（注：x.x 是软件的版本号（例如 9.1 版本））。\n\n2）阅读“限制使用协议”（Restricted Use Agreement）。如果同意该协议，单击“我已阅读了该软件协议，理解并接受相关条款”（I have read this SOFTWARE AGREEMENT and I understand and accept the terms and conditions described herein）。\n\n现在你会看见如下图所示的 OPNET IT Guru 学术版的启动窗口：\n\n实验基础 OPNET IT Guru（学术版）软件使用说明 · 3",
+      "content_len": 497
+    },
+    {
+      "id": 31,
+      "file": "ComputerNetworking_ ATopDownApproach_7th.json",
+      "chunk_index": 66,
+      "titles": [
+        "Application Layer",
+        "HTTP with Non-Persistent Connections"
+      ],
+      "category": "English-textbooks",
+      "content": "## HTTP with Non-Persistent Connections\n\nLet’s walk through the steps of transferring a Web page from server to client for the case of non-persistent connections. Let’s suppose the page consists of a base HTML\n\n2.2 • THE WEB AND HTTP 129\n\nfile and 10 JPEG images, and that all 11 of these objects reside on the same server.\nFurther suppose the URL for the base HTML file is\n\nhttp://www.someSchool.edu/someDepartment/home.index\n\nHere is what happens:\n\n1. The HTTP client process initiates a TCP connection to the server www\n.someSchool.edu on port number 80, which is the default port number for\nHTTP. Associated with the TCP connection, there will be a socket at the client\nand a socket at the server.\n\n2. The HTTP client sends an HTTP request message to the server via its socket.\nThe request message includes the path name /someDepartment/home\n.index. (We will discuss HTTP messages in some detail below.)\n\n3. The HTTP server process receives the request message via its socket, retrieves\nthe object /someDepartment/home.index from its storage (RAM or\ndisk), encapsulates the object in an HTTP response message, and sends the\nresponse message to the client via its socket.\n\n4. The HTTP server process tells TCP to close the TCP connection. (But TCP\ndoesn't actually terminate the connection until it knows for sure that the client\nhas received the response message intact.)\n\n5. The HTTP client receives the response message. The TCP connection termi-\nnates. The message indicates that the encapsulated object is an HTML file. The\nclient extracts the file from the response message, examines the HTML file, and\nfinds references to the 10 JPEG objects.\n\n6. The first four steps are then repeated for each of the referenced JPEG objects.\n\nAs the browser receives the Web page, it displays the page to the user. Two dif-\nferent browsers may interpret (that is, display to the user) a Web page in somewhat\ndifferent ways. HTTP has nothing to do with how a Web page is interpreted by a cli-\nent. The HTTP specifications ([RFC 1945] and [RFC 2616]) define only the commu-\nnication protocol between the client HTTP program and the server HTTP program.\n\nThe steps above illustrate the use of non-persistent connections, where each TCP\nconnection is closed after the server sends the object—the connection does not per-\nsist for other objects. Note that each TCP connection transports exactly one request\nmessage and one response message. Thus, in this example, when a user requests the\nWeb page, 11 TCP connections are generated.\n\nIn the steps described above, we were intentionally vague about whether the\nclient obtains the 10 JPEGs over 10 serial TCP connections, or whether some of the\nJPEGs are obtained over parallel TCP connections. Indeed, users can configure modern\nbrowsers to control the degree of parallelism. In their default modes, most browsers open\n5 to 10 parallel TCP connections, and each of these connections handles one request-\nresponse transaction. If the user prefers, the maximum number of parallel connections\n\n130 CHAPTER 2 • APPLICATION LAYER\n\ncan be set to one, in which case the 10 connections are established serially. As we'll see\nin the next chapter, the use of parallel connections shortens the response time.\nBefore continuing, let's do a back-of-the-envelope calculation to estimate the\namount of time that elapses from when a client requests the base HTML file until\nthe entire file is received by the client. To this end, we define the round-trip time\n(RTT), which is the time it takes for a small packet to travel from client to server\nand then back to the client. The RTT includes packet-propagation delays, packet-\nqueuing delays in intermediate routers and switches, and packet-processing delays.\n(These delays were discussed in Section 1.4.) Now consider what happens when\na user clicks on a hyperlink. As shown in Figure 2.7, this causes the browser to\ninitiate a TCP connection between the browser and the Web server; this involves\na “three-way handshake”—the client sends a small TCP segment to the server, the\nserver acknowledges and responds with a small TCP segment, and, finally, the cli-\nent acknowledges back to the server. The first two parts of the three-way handshake\ntake one RTT. After completing the first two parts of the handshake, the client sends\nthe HTTP request message combined with the third part of the three-way handshake\n(the acknowledgment) into the TCP connection. Once the request message arrives at\n\n2.2 • THE WEB AND HTTP 131\n\nthe server, the server sends the HTML file into the TCP connection. This HTTP\nrequest/response eats up another RTT. Thus, roughly, the total response time is two\nRTTs plus the transmission time at the server of the HTML file.",
+      "content_len": 4719
+    },
+    {
+      "id": 32,
+      "file": "Chapter4-Network Layer.json",
+      "chunk_index": 180,
+      "titles": [
+        "RIP"
+      ],
+      "category": "English-textbooks",
+      "content": "# RIP\n\n- 早于1982年随BSD-UNIX操作系统发布\n- 距离向量路由算法\n  - 距离度量：跳步数 (max = 15 hops), 每条链路1个跳步\n  - 每隔30秒，邻居之间交换一次DV，成为通告(advertisement)\n  - 每次通告：最多25个目的子网(IP地址形式)\n\n解决无穷计数\n\n从路由器A到目的子网：",
+      "content_len": 170
+    },
+    {
+      "id": 33,
+      "file": "计算机网络：自顶向下方法（原书第8版） ([美]詹姆斯·F.库罗斯, [美]基思·W.罗斯, 陈鸣) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 111,
+      "titles": [
+        "3.3 无连接运输：UDP"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 3.3 无连接运输：UDP\n\n在本节中，我们要仔细地研究一下 UDP，看它是怎样工作的，能做些什么。我们鼓励你回过来看一下 2.1 节的内容，其中包括了 UDP 服务模型的概述，再看看 2.7.1 节，其中讨论了 UDP 上的套接字编程。\n\n为了激发我们讨论 UDP 的热情，假如你对设计一个不提供不必要服务的最简化的运输层协议感兴趣。你将打算怎样做呢？你也许会首先考虑使用一个无所事事的运输层协议。特别是在发送方一侧，你可能会考虑将来自应用进程的数据直接交给网络层；在接收方一侧，你可能会考虑将从网络层到达的报文直接交给应用进程。而正如我们在前一节所学的，我们必须做一点点事，而不是什么都不做！运输层最低限度必须提供一种复用/分解服务，以便在网络层与正确的应用级进程之间传递数据。\n\n由 [RFC 768] 定义的 UDP 只是做了运输协议能够做的最少工作。除了复用/分解功能及少量的差错检测外，它几乎没有对 IP 增加别的东西。实际上，如果应用程序开发人员选择 UDP 而不是 TCP，则该应用程序差不多就是直接与 IP 打交道。UDP 从应用进程得到数据，附加上用于多路复用/分解服务的源和目的端口号字段，以及两个其他的小字段，然后将形成的报文段交给网络层。网络层将该运输层报文段封装到一个 IP 数据报中，然后尽力而为地尝试将此报文段交付给接收主机。如果该报文段到达接收主机，UDP 使用目的端口号将报文段中的数据交付给正确的应用进程。值得注意的是，使用 UDP 时，在发送报文段之前，发送方和接收方的运输层实体之间没有握手。正因为如此，UDP 被称为无连接的。\n\nDNS 是一个通常使用 UDP 的应用层协议的例子。当一台主机中的 DNS 应用程序想要进行一次查询时，它构造了一个 DNS 查询报文并将其交给 UDP。无须执行任何与运行在目的端系统中的 UDP 实体之间的握手，主机端的 UDP 为此报文添加首部字段，然后将形成的报文段交给网络层。网络层将此 UDP 报文段封装进一个 IP 数据报中，然后将其发送给一个名字服务器。在查询主机中的 DNS 应用程序则等待对该查询的响应。如果它没有收到响应（可能是由于底层网络丢失了查询或响应），则要么试图向另一个名字服务器发送该查询，要么通知调用的应用程序它不能获得响应。\n\n128 第 3 章\n\n现在你也许想知道，为什么应用开发人员宁愿在 UDP 之上构建应用，而不选择在 TCP 上构建应用？既然 TCP 提供了可靠数据传输服务，而 UDP 不能提供，那么 TCP 是否总是首选的呢？答案是否定的，因为有许多应用更适合用 UDP，原因主要以下几点：\n\n- 关于发送什么数据以及何时发送的应用层控制更为精细。采用 UDP 时，只要应用进程将数据传递给 UDP，UDP 就会将此数据打包进 UDP 报文段并立即将其传递给网络层。在另一方面，TCP 有一个拥塞控制机制，以便当源和目的主机间的一条或多条链路变得极度拥塞时来遏制运输层 TCP 发送方。TCP 仍将继续重新发送数据报文段直到目的主机收到此报文并加以确认，而不管可靠交付需要用多长时间。因为实时应用通常要求最小的发送速率，不希望过分地延迟报文段的传送，且能容忍一些数据丢失，TCP 服务模型并不是特别适合这些应用的需要。如后面所讨论的，这些应用可以使用 UDP，并作为应用的一部分来实现所需的、超出 UDP 的不提供不必要的报文段交付服务之外的额外功能。\n\n- 无须连接建立。如我们后面所讨论的，TCP 在开始数据传输之前要经过三次握手。UDP 却不需要任何准备即可进行数据传输。因此 UDP 不会引入建立连接的时延。这可能是 DNS 运行在 UDP 之上而不是运行在 TCP 之上的主要原因（如果运行在 TCP 上，则 DNS 会慢得多）。HTTP 使用 TCP 而不是 UDP，因为对于具有文本数据的 Web 网页来说，可靠性是至关重要的。但是，如我们在 2.2 节中简要讨论的那样，HTTP 中的 TCP 连接建立时延对于与下载 Web 文档相关的时延来说是一个重要因素。用于谷歌的 Chrome 浏览器中的 QUIC 协议（快速 UDP 因特网连接［IETF QUIC 2020］）的确将 UDP 作为其支撑运输协议并在 UDP 之上的应用层协议中实现可靠性。我们将在 3.8 节更仔细地讨论 QUIC。\n\n- 无连接状态。TCP 需要在端系统中维护连接状态。此连接状态包括接收和发送缓存、拥塞控制参数以及序号与确认号的参数。我们将在 3.5 节看到，要实现 TCP 的可靠数据传输服务并提供拥塞控制，这些状态信息是必要的。另一方面，UDP 不维护连接状态，也不跟踪这些参数。因此，当应用程序运行在 UDP 之上而不是运行在 TCP 上时，某些专门用于某种特定应用的服务器一般都能支持更多的活跃客户。\n\n- 分组首部开销小。每个 TCP 报文段都有 20 字节的首部开销，而 UDP 仅有 8 字节的开销。\n\n图 3-6 列出了流行的因特网应用及其所使用的运输协议。如我们所期望的那样，电子邮件、远程终端访问、Web 及文件传输都运行在 TCP 之上。因为所有这些应用都需要 TCP 的可靠数据传输服务。无论如何，有很多重要的应用是运行在 UDP 上而不是 TCP 上。例如，UDP 用于承载网络管理数据（SNMP，参见 5.7 节）。在这种场合下，UDP 要优于 TCP，因为网络管理应用程序通常必须在该网络处于重压状态时运行，而正是在这个时候可靠的、拥塞受控的数据传输难以实现。此外，如我们前面所述，DNS 运行在 UDP 之上，从而避免了 TCP 的连接创建时延。\n\n如图 3-6 所示，UDP 和 TCP 现在都用于多媒体应用，如因特网电话、实时视频会议、流式存储音频与视频。我们将在第 9 章仔细学习这些应用。我们刚说过，既然所有这些应用都能容忍少量的分组丢失，因此可靠数据传输对于这些应用的成功并不是至关重要的。此外，TCP 的拥塞控制会导致如因特网电话、视频会议之类的实时应用性能变得很差。由于这些原因，多媒体应用开发人员通常将这些应用运行在 UDP 之上而不是 TCP 之上。当分组丢包率低时，并且为了安全原因，某些机构阻塞 UDP 流量（参见第 8 章），对于流\n\n运输层 129\n\n式媒体传输来说，TCP 变得越来越有吸引力了。\n\n| 应用 | 应用层协议 | 下面的运输协议 |\n| :--- | :--- | :--- |\n| 电子邮件 | SMTP | TCP |\n| 远程终端访问 | Telnet | TCP |\n| 安全远程终端访问 | SSH | TCP |\n| Web | HTTP | TCP |\n| 文件传输 | FTP | TCP |\n| 远程文件服务器 | NFS | 通常为 UDP |\n| 流式多媒体 | 通常专用 | UDP 或 TCP |\n| 因特网电话 | 通常专用 | UDP 或 TCP |\n| 网络管理 | SNMP | 通常为 UDP |\n| 名字转换 | DNS | 通常为 UDP |\n\n图 3-6 流行的因特网应用及其下面的运输协议\n\n虽然目前通常这样做，但在 UDP 之上运行多媒体应用需要小心处理。如我们前面所述，UDP 没有拥塞控制。但是，需要拥塞控制来预防网络进入一种拥塞状态，在拥塞状态中可做的有用工作非常少。如果每个人都启动流式高比特率视频而不使用任何拥塞控制的话，就会使路由器中有大量的分组溢出，以至于非常少的 UDP 分组能成功地通过源到目的的路径传输。况且，由无控制的 UDP 发送方引入的高丢包率将引起 TCP 发送方（如我们将看到的那样，TCP 遇到拥塞将减小它们的发送速率）大大地减小它们的速率。因此，UDP 中缺乏拥塞控制会导致 UDP 发送方和接收方之间的高丢包率，并挤垮 TCP 会话，这是一个潜在的严重问题 [Floyd 1999]。很多研究人员已提出了一些新机制，以促使所有的数据源（包括 UDP 源）执行自适应的拥塞控制 [Mahdavi 1997；Floyd 2000；Kohler 2006；RFC 4340]。\n\n在讨论 UDP 报文段结构之前，我们要提一下，使用 UDP 的应用是可能实现可靠数据传输的。这可通过在应用程序自身中建立可靠性机制来完成（例如，可通过增加确认与重传机制来实现，如采用我们将在下一节学习的一些机制）。我们前面讲过在谷歌的 Chrome 浏览器中所使用的 QUIC 协议在 UDP 之上的应用层协议中实现了可靠性。但这并不是无足轻重的任务，它会使应用开发人员长时间地忙于调试。无论如何，将可靠性直接构建于应用程序中可以使其“左右逢源”。也就是说应用进程可以进行可靠通信，而无须受制于由 TCP 拥塞控制机制加强的传输速率限制。",
+      "content_len": 3647
+    },
+    {
+      "id": 34,
+      "file": "Solution Manual for Computer Networking A Top-Down Approach 8th (James F. Kurose and Keith W. Ross) (Z-Library).json",
+      "chunk_index": 95,
+      "titles": [
+        "Problem 41"
+      ],
+      "category": "Assignments-solutions",
+      "content": "# Problem 41\nRefer to Figure 5. In Figure 5(a), the ratio of the linear decrease on loss between connection 1 and connection 2 is the same - as ratio of the linear increases: unity. In this case, the throughputs never move off of the AB line segment. In Figure 5(b), the ratio of the linear decrease on loss between connection 1 and connection 2 is 2:1. That is, whenever there is a loss, connection 1 decreases its window by twice the amount of connection 2. We see that eventually, after enough losses, and subsequent increases, that connection 1's throughput will go to 0, and the full link bandwidth will be allocated to connection 2.\n\n```icon: Figure 5: Lack of TCP convergence with linear increase, linear decrease```\n\n© 2020 Pearson Education, Hoboken, NJ. All rights reserved.",
+      "content_len": 784
+    },
+    {
+      "id": 35,
+      "file": "计算机网络（第8版）_谢希仁_上半.json",
+      "chunk_index": 143,
+      "titles": [
+        "本章的重要概念",
+        "习题",
+        "4-39"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "### 4-39\n网络同上题。路由器 R₁d 知道前缀 X，并将前缀 X 写入转发表。\n(1) 试问路由器 R₁d 应当从接口 1 还是接口 2 转发分组呢？请简述理由。\n(2) 现假定 AS₂ 和 AS₄ 之间有物理连接，即图中的虚线变成了实线。假定路由器 R₁d 知道到达前缀 X 可以经过 AS₂，但也可以经过 AS₃。试问路由器 R₁d 应当从接口 1 还是接口 2 转发分组呢？请简述理由。\n(3) 现假定有另一个 AS₅ 处在 AS₂ 和 AS₄ 之间（图中的虚线之间未画出 AS₅）。假定路由器 R₁d 知道到达前缀 X 可以经过路由[AS₂ AS₅ AS₄]，但也可以经过路由[AS₃ AS₄]。试问路由器 R₁d 应当从接口 1 还是接口 2 转发分组呢？请简述理由。",
+      "content_len": 343
+    },
+    {
+      "id": 36,
+      "file": "第7章 无线网络和移动网络.json",
+      "chunk_index": 26,
+      "titles": [
+        "第六代 Wi-Fi ："
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 第六代 Wi-Fi ：\n\n802.11ax\n\n- 单流速率提升至 1.2Gbps ，8x8 模式下提供高达 9.6Gbps 的传输速率\n- 支持较窄的子载波间隔以及增加的符号持续时间，更有利于确保信号的健壮性，令 Wi-Fi 覆盖至更远范围\n- 引入曾在 4G LTE 上使用的正交频分多址（OFDMA）技术，加之同时支持 2.4GHz 和 5GHz 频段，能创造出更多可用的数据通道，解决无线网络拥堵问题\n- 通过在多 AP 多用户并发场景中引入很多 LTE 领域的组网特性，让信号的抗干扰性大幅提升",
+      "content_len": 253
+    },
+    {
+      "id": 37,
+      "file": "5G.json",
+      "chunk_index": 35,
+      "titles": [
+        "热点技术介绍（2）——大规模天线技术"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 热点技术介绍（2）——大规模天线技术\n\n> 大规模天线——有效提高谱效率\n\n何为大规模天线：大量天线为相对少的用户提供同传服务\n\n```\n10倍\n系统容量\n```\n\n```\n100倍\n能量效率\n```\n\n发射能量\n\n```\n1 / √M\n```\n\n**优势**\n- 系统容量和能量效率大幅度提升\n- 上行和下行发射能量都将减少\n- 用户间信道正交，干扰和噪声将被消除\n- 信道的统计特性趋于稳定\n\n**挑战**\n- 信道状态信息获取（导频污染问题）\n- 信道测量与建模（不同场景信道）\n- 发射机和接收机设计（降低复杂度）\n- 天线单元及阵列设计（低能耗天线）\n\n□ 大规模天线被公认为5G关键技术之一",
+      "content_len": 303
+    },
+    {
+      "id": 38,
+      "file": "计算机网络（第8版） (谢希仁) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 56,
+      "titles": [
+        "2.6 宽带接入技术",
+        "2.6.2 光纤同轴混合网（HFC 网）"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "## 2.6.2 光纤同轴混合网（HFC 网）\n\n光纤同轴混合网（HFC 网，HFC 是 Hybrid Fiber Coax 的缩写）是在目前覆盖面很广的有线电视网的基础上开发的一种居民宽带接入网，除可传送电视节目外，还能提供电话、数据和其他宽带交互型业务。最早的有线电视网是树形拓扑结构的同轴电缆网络，它采用模拟技术的频分复用对电视节目进行单向广播传输。但以后有线电视网进行了改造，变成了现在的光纤同轴混合网（HFC 网）。\n\n为了提高传输的可靠性和电视信号的质量，HFC 网把原有有线电视网中的同轴电缆主干部分更换为光纤（如图 2-23 所示）。光纤从头端连接到光纤节点(fiber node)。在光纤节点光信号被转换为电信号，然后通过同轴电缆传送到每个用户家庭。从头端到用户家庭所需的放大器数目也就减少到仅 4~5 个。连接到一个光纤节点的典型用户数是 500 左右，但不超过 2000。\n\n```icon: 图 2-23 HFC 网的结构图\n```\n\n光纤节点与头端的典型距离为 25 km，而从光纤节点到其用户的距离则不超过 2～3 km。原来的有线电视网的最高传输频率是 450 MHz，并且仅用于电视信号的下行传输。但现在的 HFC 网具有双向传输功能，而且扩展了传输频带。根据有线电视频率配置标准 GB/T\n\n• 66 •\n\n17786-1999，目前我国的 HFC 网的频带划分如图 2-24 所示。\n\n```icon: 图 2-24 我国的 HFC 网的频带划分```\n\n要使现有的模拟电视机能够接收数字电视信号，需要把一个叫作机顶盒(set-top box)的设备连接在同轴电缆和用户的电视机之间。但为了使用户能够利用 HFC 网接入到互联网，以及在上行信道中传送交互数字电视所需的一些信息，我们还需要增加一个为 HFC 网使用的调制解调器，它又称为电缆调制解调器(cable modem)。电缆调制解调器可以做成一个单独的设备（类似于 ADSL 的调制解调器），也可以做成内置式的，安装在电视机的机顶盒里面。用户只要把自己的计算机连接到电缆调制解调器，就可方便地上网了。\n\n美国的有线电视实验室 CableLabs 制定的电缆调制解调器规约 DOCSIS(Data Over Cable Service Interface Specifications)的第一个版本 DOCSIS 1.0，已在 1998 年 3 月被 ITU-T 批准为国际标准。后来又有了 2001 年的 DOCSIS 2.0 和 2006 年的 DOCSIS 3.0 等新的标准。\n\n电缆调制解调器不需要成对使用，而只需安装在用户端。电缆调制解调器比 ADSL 使用的调制解调器复杂得多，因为它必须解决共享信道中可能出现的冲突问题。在使用 ADSL 调制解调器时，用户计算机所连接的电话用户线是该用户专用的，因此在用户线上所能达到的最高数据率是确定的，与其他 ADSL 用户是否在上网无关。但在使用 HFC 的电缆调制解调器时，在同轴电缆这一段用户所享用的最高数据率是不确定的，因为某个用户所能享有的数据率取决于这段电缆上现在有多少个用户正在传送数据。有线电视运营商往往宣传通过电缆调制解调器上网可以达到比 ADSL 更高的数据率（例如达到 10 Mbit/s 甚至 30 Mbit/s），但只有在很少几个用户上网时才可能会是这样的。然而若出现大量用户（例如几百个）同时上网，那么每个用户实际的上网速率可能会低到令人难以忍受的程度。",
+      "content_len": 1464
+    },
+    {
+      "id": 39,
+      "file": "2024年王道计算机网络复习指导 (王道计算机) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 45,
+      "titles": [
+        "2.1.6 本节习题精选",
+        "2.2.2 物理层接口的特性"
+      ],
+      "category": "Chinese-reference-books",
+      "content": "## 2.2.2 物理层接口的特性\n\n物理层考虑的是如何在连接到各种计算机的传输媒体上传输数据比特流，而不指具体的传输媒体。网络中的硬件设备和传输介质的种类繁多，通信方式也各不相同。物理层应尽可能屏蔽这些差异，让数据链路层感觉不到这些差异，使数据链路层只需考虑如何完成本层的协议和服务。\n\n物理层的主要任务可以描述为确定与传输媒体的接口有关的一些特性：\n\n1）机械特性。指明接口所用接线器的形状和尺寸、引脚数目和排列、固定和锁定装置等。\n\n2）电气特性。指明在接口电缆的各条线上出现的电压的范围。\n\n3）功能特性。指明某条线上出现的某一电平的电压表示何种意义。\n\n4）过程特性。或称规程特性。指明对于不同功能的各种可能事件的出现顺序。\n\n常用的物理层接口标准有 EIA RS-232-C、ADSL 和 SONET/SDH 等。",
+      "content_len": 363
+    },
+    {
+      "id": 40,
+      "file": "TCPIP详解 卷1：协议（原书第2版） (凯文 R. 福尔 (Kevin R. Fall) etc.) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 11,
+      "titles": [
+        "第 1 章 概述 ……………………………… 1"
+      ],
+      "category": "Chinese-reference-books",
+      "content": "# 第 1 章 概述 ……………………………… 1\n1.1 体系结构原则 ……………………………… 2\n1.1.1 分组、连接和数据报 …………………… 2\n1.1.2 端到端论点和命运共享 ………………… 3\n1.1.3 差错控制和流量控制 …………………… 4\n1.2 设计和实现 ……………………………… 5\n1.2.1 分层 …………………………………… 5\n1.2.2 分层实现中的复用、分解和封装 ……… 6\n1.3 TCP/IP 协议族结构和协议 ………………… 9\n1.3.1 ARPANET 参考模型 …………………… 9\n1.3.2 TCP/IP 中的复用、分解和封装 ………… 11\n1.3.3 端口号 ………………………………… 12\n1.3.4 名称、地址和 DNS …………………… 12\n1.4 Internet、内联网和外联网 ………………… 13\n1.5 设计应用 ………………………………… 13\n1.5.1 客户机 / 服务器 ……………………… 14\n1.5.2 对等 …………………………………… 14\n1.5.3 应用程序编程接口 ……………………… 14\n1.6 标准化进程 ………………………………… 15\n1.6.1 RFC …………………………………… 15\n1.6.2 其他标准 ……………………………… 15\n1.7 实现和软件分发 …………………………… 16\n1.8 与 Internet 体系结构相关的攻击 …………… 17\n1.9 总结 ……………………………………… 17\n1.10 参考文献 …………………………………… 18",
+      "content_len": 697
+    },
+    {
+      "id": 41,
+      "file": "rfc4960.txt.json",
+      "chunk_index": 11,
+      "titles": [
+        "3.2.2. Reporting of Unrecognized Parameters"
+      ],
+      "category": "RFC/protocol-specs",
+      "content": "## 3.2.2. Reporting of Unrecognized Parameters\n\nIf the receiver of an INIT chunk detects unrecognized parameters and has to report them according to Section 3.2.1, it MUST put the 'Unrecognized Parameter' parameter(s) in the INIT ACK chunk sent in response to the INIT chunk. Note that if the receiver of the INIT chunk is NOT going to establish an association (e.g., due to lack of resources), an 'Unrecognized Parameter' would NOT be included with any ABORT being sent to the sender of the INIT.\n\nIf the receiver of an INIT ACK chunk detects unrecognized parameters and has to report them according to Section 3.2.1, it SHOULD bundle the ERROR chunk containing the 'Unrecognized Parameters' error cause with the COOKIE ECHO chunk sent in response to the INIT ACK chunk. If the receiver of the INIT ACK cannot bundle the COOKIE ECHO chunk with the ERROR chunk, the ERROR chunk MAY be sent separately but not before the COOKIE ACK has been received.\n\nNote: Any time a COOKIE ECHO is sent in a packet, it MUST be the first chunk.",
+      "content_len": 1028
+    },
+    {
+      "id": 42,
+      "file": "1711361_刘炼_作业5.json",
+      "chunk_index": 0,
+      "titles": [
+        "作业五："
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 作业五：\n\n1711361 刘炼 物联网工程\n\n## 问题 1:\n\n如右图所示，假设结点最初只知道到邻居的代价（相邻结点之间的代价值已在图中标出），请回答如下问题：\n\n```icon: 图形\n```\n\n(1) 使用距离向量算法，给出稳态情况下C结点保持的距离向量表（无毒性逆转）。\n\n(2) 在（1）的基础上，通过改变C、D之间的链路代价，使B、C之间构成一个暂时的直接环路，请给出C、D之间链路代价的最小改变？\n\n(3) 使用毒性逆转方法，可以在一定程度上解决（2）中的问题。请根据题中给出的原始网络结构图及代价值，使用毒性逆转方法，重新给出稳态情况下C结点保持的距离向量表，并解释如何解决（2）中的问题。\n\n(4) 毒性逆转方法在解决计数到无穷问题时存在什么局限性？RIP协议中增加了什么限制，来克服毒性逆转方法在解决计数到无穷问题时的局限性？OSPF协议和BGP协议是否存在环路问题，给出简单说明。\n\n## 解答\n\n（1）因为距离向量算法只知道相邻结点的信息，所以只需要计算B、C、D的表格信息，此时不考虑毒性逆转，所以距离向量表为：\n\n| COST | TO     | A   | B   | C   | D   | E   |\n|------|--------|-----|-----|-----|-----|-----|\n| FROM | B      | 7   | 0   | 1   | 3   | 8   |\n|      | C      | 8   | 1   | 0   | 2   | 7   |\n|      | D      | 8   | 3   | 2   | 0   | 5   |\n\n（2）\n\n根据相应的分析，当C、D之间链路代价发生改变时，假设其代价为x，那么此时的情况为：\n\n对于B而言，其对应的相应路径信息应该如下所示\n\n| 目的结点 | 下一结点 | 距离 |\n| --- | --- | --- |\n| A | A | 1 |\n| B | 直接 | 0 |\n| C | C | 1 |\n| D | C | 3 |\n| E | C | 8 |\n\n此时，B向C发送相应的向量信息，而此时作为对比的C、D之间的距离代价为：x\n\n故应该有这样的结果，即：x > 3 + 1 = 4，故而x至少为5，那么最小代价即为：5-2=3\n\n（3）\n\n稳定情况下C的距离向量表应该变为：\n\n| COST | TO | A | B | C | D | E |\n| --- | --- | --- | --- | --- | --- | --- |\n| FROM | B | 7 | 0 | 1 | ∞ | ∞ |\n|  | C | 8 | 1 | 0 | 2 | 7 |\n|  | D | 8 | ∞ | 2 | 0 | 5 |\n\n其解决方法为：路由器从某个接口上接收到某个网段的路由信息之后，并不是不往回发送信息了，而是发送，只不过是将这个网段的跳数设为无限大，再发送出去。\n\n具体操作为：当B向C发送相应的相应的连接信息的时候，应该发送为：\n\n| 目的结点 | 下一结点 | 距离 |\n| --- | --- | --- |\n| A | A | 1 |\n| B | 直接 | 0 |\n| C | C | ∞ |\n| D | C | ∞ |\n| E | C | ∞ |\n\n（4）\n\n局限性：由于距离向量表存储了相邻结点，因此如果涉及到多个结点构成环路的问题，毒性逆转方法难以察觉到，并因此而难以解决路由环路的问题。\n\nRIP协议中采用了限制路径最大“距离”对策，设置了最大“距离”为16，即经过的路由器个数不超过15个，从一定程度上解决了计数到无穷问题时的局限性。\n\n对于OSPF协议：由于该协议采用的是状态链路算法，实际上从本质上而言是使用dijkstra算法，能够根据链路状态知道全局的信息，而以自己为根节点建立SPF树，并根据产生的树，利用dijkstra算法，产生的一定是无环路径。\n\n对于BGP协议而言，其也是不会产生环路的。因为BGP协议也是根据全局的情况来进行相应的处理，并且利用AS-PATH来进行相应的检测，会丢弃包含本地AS的数据报，从而避免了环路的产生。\n\n问题2：\n\n一个单位的IP互联网由路由器、交换机、集线器和主机组成，结构如下图所示。该互联网采用RIP路由协议，为路由器分配的IP地址已标记在相应接口旁。请回答以下问题（涉及到的IP地址和掩码，请使用点分十进制表示法表示）。\n\n```icon: 网络拓扑图\n```\n\n(1) 请为主机PC1、PC2、PC3和PC4分配IP地址和掩码，并给出依据。\n\n(2) 该IP互联网采用RIP路由协议，请写出路由器Router1和Router2初始路由表。\n\n(3) 如果在该网络初始化后，首先由Router2向路由器Router1发起路由更新消息，请写出Router2更新消息的主要内容。同时，写出Router1更新后的路由表。\n\n(4) 经过一定时间后，路由器的路由表逐渐达到稳态。请写出Router1和Router2的稳态路由表。\n\n解答\n\n（1）\n\n- PC1：202.99.98.18/28 由于其和相应的路由器处于同一网络(202.99.98.16/28)中，掩码应该为28位(255.255.255.240)，需要保证IP地址前28位相同，故设置如下\n- PC2 ：202.99.98.51/28 由于其和相应的路由器处于同一网络(202.99.98.32/28)中，掩码应该为28位(255.255.255.240)，需要保证IP地址前28位相同，故设置如下\n- PC3 ：202.99.98.52/28 由于其和相应的路由器处于同一网络(202.99.98.48/28)中，掩码应该为28位(255.255.255.240)，需要保证IP地址前28位相同，故设置如下\n- PC4：202.99.98.66/24 由于其和相应的路由器处于同一网络(202.99.98.64/24)中，掩码应该为24位(255.255.255.0)，需要保证IP地址前24位相同，且不能和前面的网络重合，故需要如上设置。\n\n（2）\n\n对于router1而言，其初始路由表为：\n\n| 目的网络 | 子网掩码 | 下一跳路由选择 | HOPS |\n|----------|----------|----------------|------|\n| 202.99.98.16 | 255.255.255.240 | 直接投递 | 1 |\n| 202.99.98.32 | 255.255.255.240 | 直接投递 | 1 |\n\n对于router2而言，其初始路由表为：\n\n| 目的网络 | 子网掩码 | 下一跳路由选项 | HOPS |\n|----------|----------|----------------|------|\n| 202.99.98.48 | 255.255.255.240 | 直接投递 | 1 |\n| 202.99.98.64 | 255.255.255.240 | 直接投递 | 1 |\n\n（3）\n\n由于Router3还未发起更新信息到Router2，Router2想Router1发送的主要更新信息就是问题（2）中所写的路由表项，那么显然的，需要更新的就是网络202.99.98.48/28的信息。\n\nRouter2更新消息的主要内容\n\n| 目的网络 | 子网掩码 | HOPS |\n|----------|----------|------|\n| 202.99.98.48 | 255.255.255.240 | 1 |\n| 202.99.98.64 | 255.255.255.240 | 1 |\n\n所以Router1更新后的路由表如下\n\n| 目的网络 | 子网掩码 | 下一跳路由选项 | HOPS |\n|----------|----------|----------------|------|\n| 202.99.98.16 | 255.255.255.240 | 直接投递 | 1 |\n| 202.99.98.32 | 255.255.255.240 | 直接投递 | 1 |\n| 202.99.98.48 | 255.255.255.240 | 202.99.98.33 | 2 |\n\n（4）Router1的稳态路由表为：\n\n| 目的网络 | 子网掩码 | 下一跳路由选项 | HOPS |\n|----------|----------|----------------|------|\n| 202.99.98.16 | 255.255.255.240 | 直接投递 | 1 |\n| 202.99.98.32 | 255.255.255.240 | 直接投递 | 1 |\n\nRouter2的稳定路由表为:\n\n| 目的网络 | 子网掩码 | 下一跳路由选项 | HOPS |\n| :--- | :--- | :--- | :--- |\n| 202.99.98.16 | 255.255.255.240 | 202.99.98.34 | 2 |\n| 202.99.98.32 | 255.255.255.240 | 直接投递 | 1 |\n| 202.99.98.48 | 255.255.255.240 | 直接投递 | 1 |\n| 202.99.98.0 | 255.255.255.0 | 202.99.98.50 | 2 |\n\n问题3:\n\nTraceroute（或Tracert）命令可以用于获取源主机到目的主机的路径信息，但该命令有时可能会返回在Internet拓扑中不存在的路径，例如第i跳可能与第i+1跳之间可能没有连接，试解释发生这种情况的原因。\n\n解答\n\n由于利用traceroute 命令获取源主机到目的主机的路径信息时，实际上利用的是ICMP报文协议，发送过程中，实际上是由发送到的每个路由器决定发送到下一个是个具体的哪个路由器的，因此，如果在过程中，路由状态发生变化，中间某个或某些路由表项发生变化，那么在其中某一个路由器进行处理的时候，就会发送到其它可达到最终目的网络的另一条路由路径，因而可能会到达其它的路由器。其实质是，每一次ICMP报文的转发路径不是确定的，故第i 跳和第i+1跳之间可能没有连接。\n\n问题4:\n\n假设有一个自治域，该自治域中包含8个IP网络，IP地址前缀分别为203.132.30.0/24, 203.132.31.0/24, 203.132.32.0/24, 203.132.33.0/24,203.132.34.0/24, 203.132.35.0/24, 203.132.36.0/24, 203.132.37.0/24。如果采用CIDR机制，该自治域的BGP网关应该向其他自治域通告怎样的可达网络信息？\n\n解答\n\n根据CIDR机制，进行路由聚合，根据分析，可以将其分为三组进行聚合，聚合结果为:\n\n| 原网络 | 聚合网络 |\n| :--- | :--- |\n| 203.132.30.0/24 | 203.132.30.0/23 |\n| 203.132.31.0/24 | 203.132.30.0/23 |\n| 203.132.32.0/24 | 203.132.32.0/22 |\n\n| 原网络 | 聚合网络 |\n|--------|----------|\n| 203.132.33.0/24 | 203.132.32.0/22 |\n| 203.132.34.0/24 | 203.132.32.0/22 |\n| 203.132.35.0/24 | 203.132.32.0/22 |\n| 203.132.36.0/24 | 203.132.36.0/23 |\n| 203.132.37.0/24 | 203.132.36.0/23 |\n\n故，实际上可以将包含的8个IP网络聚合为3个相应网络，那么告知的信息应该为：\n\n| 网络 | NEXT HOP | AS PATH |\n|------|----------|---------|\n| 203.132.30.0/23 | 该自治域中某一边界路由器接口IP | 转发经过的AS序列号 |\n| 203.132.32.0/22 | 该自治域中某一边界路由器接口IP | 转发经过的AS序列号 |\n| 203.132.36.0/23 | 该自治域中某一边界路由器接口IP | 转发经过的AS序列号 |",
+      "content_len": 5175
+    },
+    {
+      "id": 43,
+      "file": "rfc7761.txt.json",
+      "chunk_index": 27,
+      "titles": [
+        "Transitions from Prune-Pending State"
+      ],
+      "category": "RFC/protocol-specs",
+      "content": "# Transitions from Prune-Pending State\n\nWhen in Prune-Pending state, the following events may trigger a transition:\n\nReceive Join(S,G)\nA Join(S,G) is received on interface I with its Upstream Neighbor Address set to the router’s primary IP address on I.\n\nThe (S,G) downstream state machine on interface I transitions to the Join state. The Prune-Pending Timer is canceled (without triggering an expiry event). The Expiry Timer (ET) is restarted and is then set to the maximum of its current value and the HoldTime from the triggering Join/Prune message.\n\nExpiry Timer Expires\nThe Expiry Timer for the (S,G) downstream state machine on interface I expires.\n\nThe (S,G) downstream state machine on interface I transitions to the NoInfo state.\n\nPrune-Pending Timer Expires\nThe Prune-Pending Timer for the (S,G) downstream state machine on interface I expires.\n\nThe (S,G) downstream state machine on interface I transitions to the NoInfo state. A PruneEcho(S,G) is sent onto the subnet connected to interface I.\n\nThe action \"Send PruneEcho(S,G)\" is triggered when the router stops forwarding on an interface as a result of a prune. A PruneEcho(S,G) is simply a Prune(S,G) message sent by the upstream router on a LAN with its own address in the Upstream Neighbor Address field. Its purpose is to add additional reliability so that if a Prune that should have been overridden by another router is lost locally on the LAN, then the PruneEcho may be received and cause the override to happen. A PruneEcho(S,G) need not be sent on an interface that contains only a single PIM neighbor during the time this state machine was in Prune-Pending state.\n\nFenner, et al.\nStandards Track\n[Page 53]\n\nRFC 7761\nPIM-SM Specification (Revised)\nMarch 2016\n\n## 4.5.3. Receiving (S,G,rpt) Join/Prune Messages\n\nThe per-interface state machine for receiving (S,G,rpt) Join/Prune messages is given below. There are five states:\n\nNoInfo (NI)\nThe interface has no (S,G,rpt) Prune state and no (S,G,rpt) timers running.\n\nPrune (P)\nThe interface has (S,G,rpt) Prune state, which will cause the router not to forward packets from S destined for G from this interface even though the interface has active (*,G) Join state.\n\nPrune-Pending (PP)\nThe router has received a Prune(S,G,rpt) on this interface from a downstream neighbor and is waiting to see whether the prune will be overridden by another downstream router. For forwarding purposes, the Prune-Pending state functions exactly like the NoInfo state.\n\nPruneTmp (P')\nThis state is a transient state that for forwarding purposes behaves exactly like the Prune state. A (*,G) Join has been received (which may cancel the (S,G,rpt) Prune). As we parse the Join/Prune message from top to bottom, we first enter this state if the message contains a (*,G) Join. Later in the message, we will normally encounter an (S,G,rpt) prune to reinstate the Prune state. However, if we reach the end of the message without encountering such an (S,G,rpt) prune, then we will revert to NoInfo state in this state machine.\n\nAs no time is spent in this state, no timers can expire.\n\nPrune-Pending-Tmp (PP')\nThis state is a transient state that is identical to P' except that it is associated with the PP state rather than the P state. For forwarding purposes, PP' behaves exactly like the PP state.\n\nFenner, et al.\nStandards Track\n[Page 54]\n\nRFC 7761 PIM-SM Specification (Revised) March 2016\n\nIn addition, there are two timers:\n\nExpiry Timer (ET)\nThis timer is set when a valid Prune(S,G,rpt) is received.\nExpiry of the Expiry Timer causes this state machine to\nrevert to NoInfo state.\n\nPrune-Pending Timer (PPT)\nThis timer is set when a valid Prune(S,G,rpt) is received.\nExpiry of the Prune-Pending Timer causes this state machine\nto move on to Prune state.\n\nFenner, et al. Standards Track [Page 55]\n\nRFC 7761\nPIM-SM Specification (Revised)\nMarch 2016\n\nFigure 4: Downstream Per-Interface (S,G,rpt) State Machine\n\n| Prev State | Receive Join (*,G) | Receive Join (S,G,rpt) | Receive Prune (S,G,rpt) | End of Message | Prune-Pending Timer Expires | Expiry Timer Expires |\n|------------|--------------------|------------------------|--------------------------|----------------|----------------------------|----------------------|\n| NoInfo (NI) | - | - | -> PP state start Prune-Pending Timer; start Expiry Timer | - | - | - |\n| Prune (P) | -> P' state | -> NI state | -> P state restart Expiry Timer | - | - | -> NI state |\n| Prune-Pending (PP) | -> PP' state | -> NI state | - | - | -> P state | - |\n| PruneTmp (P') | - | - | -> P state restart Expiry Timer | - | - | - |\n| Prune-Pending-Tmp (PP') | - | - | -> PP state restart Expiry Timer | -> NI state | - | - |\n\nThe transition events \"Receive Join(S,G,rpt)\", \"Receive Prune(S,G,rpt)\", and \"Receive Join(*,G)\" imply receiving a Join or Prune targeted to this router's primary IP address on the received interface. If the upstream neighbor address field is not correct,\n\nFenner, et al.\nStandards Track\n[Page 56]\n\nRFC 7761 PIM-SM Specification (Revised) March 2016\n\nthese state transitions in this state machine MUST NOT occur,\nalthough seeing such a packet may cause state transitions in other\nstate machines.\n\nOn unnumbered interfaces on point-to-point links, the router's\naddress should be the same as the source address it chose for the\nHello message it sent over that interface. However, on point-to-\npoint links it is RECOMMENDED that PIM Join/Prune messages with an\nupstream neighbor address field of all zeros also be accepted.\n\nTransitions from NoInfo State\n\nWhen in NoInfo (NI) state, the following event may trigger a\ntransition:\n\nReceive Prune(S,G,rpt)\nA Prune(S,G,rpt) is received on interface I with its\nUpstream Neighbor Address set to the router's primary IP\naddress on I.\n\nThe (S,G,rpt) downstream state machine on interface I\ntransitions to the Prune-Pending state. The Expiry Timer\n(ET) is started and set to the HoldTime from the triggering\nJoin/Prune message. The Prune-Pending Timer is started. It\nis set to the J/P_Override_Interval(I) if the router has\nmore than one neighbor on that interface; otherwise, it is\nset to zero, causing it to expire immediately.\n\nFenner, et al. Standards Track [Page 57]\n\nRFC 7761\nPIM-SM Specification (Revised)\nMarch 2016",
+      "content_len": 6228
+    },
+    {
+      "id": 44,
+      "file": "Chapter3-Data Link Layer & LAN.json",
+      "chunk_index": 17,
+      "titles": [
+        "差错编码的检错能力"
+      ],
+      "category": "English-textbooks",
+      "content": "# 差错编码的检错能力\n\n3.1 数据链路层基本服务\n3.2 差错检测与纠正\n\n- 差错编码可分为检错码与纠错码\n- 汉明距离 (Hamming distance): 两个码字之间对应位不同的数目\n- 对于检错码，如果编码集的汉明距离 $d_s=r+1$，则该差错编码可以检测 $r$ 位差错\n\n　　min{ds}\n\n　　```\n　　≥r+1\n　　　　r\n　　　　≥1\n　　Ci　　C'　　Cj\n　　```\n\n- 例如，编码集 {0000,0101,1010,1111} 的汉明距离 $d_s=2$，可以100%检测1比特差错\n\n- 对于纠错码，如果编码集的汉明距离 $d_s=2r+1$，则该差错编码可以纠正 $r$ 位差错\n\n　　```\n　　≥2r+1\n　　　　r\n　　　　≥r+1\n　　Ci　　C'　　Cj\n　　```\n\n　　纠正在距离最近的\n\n- 例如，编码集 {00000,01010,10101,11111} 的汉明距离 $d_s=3$，可以纠正1比特差错，如100010纠正为101010。\n\n19",
+      "content_len": 456
+    },
+    {
+      "id": 45,
+      "file": "CH4-6ed 网络层.json",
+      "chunk_index": 32,
+      "titles": [
+        "IP 地址的一些重要特点"
+      ],
+      "category": "English-textbooks",
+      "content": "# IP 地址的一些重要特点\n\n(1) IP 地址是一种分等级的地址结构。分两个等级的好处是：\n\n- 第一，IP 地址管理机构在分配 IP 地址时只分配网络号，而剩下的主机号则由得到该网络号的单位自行分配。这样就方便了 IP 地址的管理。\n- 第二，路由器仅根据目的主机所连接的网络号来转发分组（而不考虑目的的主机号），这样就可以使路由表中的项目数大幅度减少，从而减小了路由表所占的存储空间。\n\n课件制作人：谢希仁",
+      "content_len": 207
+    },
+    {
+      "id": 46,
+      "file": "rfc4960.txt.json",
+      "chunk_index": 35,
+      "titles": [
+        "5. Association Initialization",
+        "6. User Data Transfer"
+      ],
+      "category": "RFC/protocol-specs",
+      "content": "## 6. User Data Transfer\n\nData transmission MUST only happen in the ESTABLISHED, SHUTDOWN-PENDING, and SHUTDOWN-RECEIVED states. The only exception to this is that DATA chunks are allowed to be bundled with an outbound COOKIE ECHO chunk when in the COOKIE-WAIT state.\n\nStewart Standards Track [Page 73]\n\nRFC 4960 Stream Control Transmission Protocol September 2007\n\nDATA chunks MUST only be received according to the rules below in ESTABLISHED, SHUTDOWN-PENDING, and SHUTDOWN-SENT. A DATA chunk received in CLOSED is out of the blue and SHOULD be handled per Section 8.4. A DATA chunk received in any other state SHOULD be discarded.\n\nA SACK MUST be processed in ESTABLISHED, SHUTDOWN-PENDING, and SHUTDOWN-RECEIVED. An incoming SACK MAY be processed in COOKIE-ECHOED. A SACK in the CLOSED state is out of the blue and SHOULD be processed according to the rules in Section 8.4. A SACK chunk received in any other state SHOULD be discarded.\n\nAn SCTP receiver MUST be able to receive a minimum of 1500 bytes in one SCTP packet. This means that an SCTP endpoint MUST NOT indicate less than 1500 bytes in its initial a_rwnd sent in the INIT or INIT ACK.\n\nFor transmission efficiency, SCTP defines mechanisms for bundling of small user messages and fragmentation of large user messages. The following diagram depicts the flow of user messages through SCTP.\n\nIn this section, the term \"data sender\" refers to the endpoint that transmits a DATA chunk and the term \"data receiver\" refers to the endpoint that receives a DATA chunk. A data receiver will transmit SACK chunks.\n\nStewart Standards Track [Page 74]\n\nRFC 4960 Stream Control Transmission Protocol September 2007\n\nRFC 4960 Stream Control Transmission Protocol September 2007\n\nThe following general rules MUST be applied by the data sender for transmission and/or retransmission of outbound DATA chunks:\n\nA) At any given time, the data sender MUST NOT transmit new data to any destination transport address if its peer’s rwnd indicates that the peer has no buffer space (i.e., rwnd is 0; see Section 6.2.1). However, regardless of the value of rwnd (including if it is 0), the data sender can always have one DATA chunk in flight to the receiver if allowed by cwnd (see rule B, below). This rule allows the sender to probe for a change in rwnd that the sender missed due to the SACK’s having been lost in transit from the data receiver to the data sender.\n\nWhen the receiver’s advertised window is zero, this probe is called a zero window probe. Note that a zero window probe SHOULD only be sent when all outstanding DATA chunks have been cumulatively acknowledged and no DATA chunks are in flight. Zero window probing MUST be supported.\n\nIf the sender continues to receive new packets from the receiver while doing zero window probing, the unacknowledged window probes should not increment the error counter for the association or any destination transport address. This is because the receiver MAY keep its window closed for an indefinite time. Refer to Section 6.2 on the receiver behavior when it advertises a zero window. The sender SHOULD send the first zero window probe after 1 RTO when it detects that the receiver has closed its window and SHOULD increase the probe interval exponentially afterwards. Also note that the cwnd SHOULD be adjusted according to Section 7.2.1. Zero window probing does not affect the calculation of cwnd.\n\nThe sender MUST also have an algorithm for sending new DATA chunks to avoid silly window syndrome (SWS) as described in [RFC0813]. The algorithm can be similar to the one described in Section 4.2.3.4 of [RFC1122].\n\nHowever, regardless of the value of rwnd (including if it is 0), the data sender can always have one DATA chunk in flight to the receiver if allowed by cwnd (see rule B below). This rule allows the sender to probe for a change in rwnd that the sender missed due to the SACK having been lost in transit from the data receiver to the data sender.\n\nB) At any given time, the sender MUST NOT transmit new data to a given transport address if it has cwnd or more bytes of data outstanding to that transport address.\n\nStewart Standards Track [Page 76]\n\nRFC 4960 Stream Control Transmission Protocol September 2007\n\nC) When the time comes for the sender to transmit, before sending new DATA chunks, the sender MUST first transmit any outstanding DATA chunks that are marked for retransmission (limited by the current cwnd).\n\nD) When the time comes for the sender to transmit new DATA chunks, the protocol parameter Max.Burst SHOULD be used to limit the number of packets sent. The limit MAY be applied by adjusting cwnd as follows:\n\nif((flightsize + Max.Burst*MTU) < cwnd) cwnd = flightsize + Max.Burst*MTU\n\nOr it MAY be applied by strictly limiting the number of packets emitted by the output routine.\n\nE) Then, the sender can send out as many new DATA chunks as rule A and rule B allow.\n\nMultiple DATA chunks committed for transmission MAY be bundled in a single packet. Furthermore, DATA chunks being retransmitted MAY be bundled with new DATA chunks, as long as the resulting packet size does not exceed the path MTU. A ULP may request that no bundling is performed, but this should only turn off any delays that an SCTP implementation may be using to increase bundling efficiency. It does not in itself stop all bundling from occurring (i.e., in case of congestion or retransmission).\n\nBefore an endpoint transmits a DATA chunk, if any received DATA chunks have not been acknowledged (e.g., due to delayed ack), the sender should create a SACK and bundle it with the outbound DATA chunk, as long as the size of the final SCTP packet does not exceed the current MTU. See Section 6.2.\n\nIMPLEMENTATION NOTE: When the window is full (i.e., transmission is disallowed by rule A and/or rule B), the sender MAY still accept send requests from its upper layer, but MUST transmit no more DATA chunks until some or all of the outstanding DATA chunks are acknowledged and transmission is allowed by rule A and rule B again.\n\nWhenever a transmission or retransmission is made to any address, if the T3-rtx timer of that address is not currently running, the sender MUST start that timer. If the timer for that address is already running, the sender MUST restart the timer if the earliest (i.e., lowest TSN) outstanding DATA chunk sent to that address is being retransmitted. Otherwise, the data sender MUST NOT restart the timer.\n\nStewart Standards Track [Page 77]\n\nRFC 4960 Stream Control Transmission Protocol September 2007\n\nWhen starting or restarting the T3-rtx timer, the timer value must be adjusted according to the timer rules defined in Sections 6.3.2 and 6.3.3.\n\nNote: The data sender SHOULD NOT use a TSN that is more than 2**31 - 1 above the beginning TSN of the current send window.",
+      "content_len": 6791
+    },
+    {
+      "id": 47,
+      "file": "Solution Manual for Computer Networking A Top-Down Approach 8th (James F. Kurose and Keith W. Ross) (Z-Library).json",
+      "chunk_index": 109,
+      "titles": [
+        "Problem 55"
+      ],
+      "category": "Assignments-solutions",
+      "content": "# Problem 55\n\nLet’s assume 1500-byte packets and a 100 ms round-trip time. From the TCP throughput equation\n$B = \\frac{1.22 \\cdot MSS}{RTT \\cdot \\sqrt{L}}$, we have\n10 Gbps = 1.22 * (1500*8 bits) / (.1 sec * sqrt(L)), or\nsqrt(L) = 14640 bits / (10^9 bits) = 0.00001464, or\nL = 2.14 * 10^(-10)",
+      "content_len": 292
+    },
+    {
+      "id": 48,
+      "file": "计算机网络实验教程 计算机网络实验教程 (（美）Emad Aboelela) (z-library.sk, 1lib.sk, z-lib.sk)-1.json",
+      "chunk_index": 78,
+      "titles": [
+        "选择统计量"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 选择统计量\n\n1）在局域网 LAN_East 上右击，选择“选择单个统计量”（Choose Individual Statistics）→从“HTTP 客户端”（Client HTTP）的层次结构中选择“接收流量（字节/秒）”（Traffic Received(bytes/sec)）统计量→单击“确定”（OK）。\n\n2）在连接路由器 Router2 和路由器 Router3 的链路上右击，从弹出的菜单中选择“选择单个统计量”（Choose Individual Statistics）→从“点到点”（point-to-point）的层次结构中选择“吞吐量（位/秒）”（Throughput(bit/sec) -->）统计量→单击“确定”（OK）。\n\n注：如果链路的名称为“Router3<--> Router2”，那么你需选择“Throughput(bit/sec)<--”统计量。\n\n3）在连接路由器 Router2 和路由器 Router4 的链路上右击，从弹出菜单中选择“选择单个统计量”（Choose Individual Statistics）→从“点到点”（point-to-point）的层次结构中选择“吞吐量（位/秒）”（Throughput(bit/sec) -->）统计量→单击“确定”（OK）。\n\n注：如果链路的名称为“Router4<-->Router2”，那么你需选择“Throughput(bits/sec)<--”统计量。",
+      "content_len": 630
+    },
+    {
+      "id": 49,
+      "file": "2021级A卷gpt版（纠错）.json",
+      "chunk_index": 14,
+      "titles": [
+        "CSMA/CD 的运行原理"
+      ],
+      "category": "Other-misc",
+      "content": "# CSMA/CD 的运行原理\n\nCSMA/CD（Carrier Sense Multiple Access with Collision Detection，带碰撞检测的载波侦听多路访问）是一种用于有线以太网中的媒体访问控制协议，用于解决多台设备共享同一物理信道时的冲突问题。",
+      "content_len": 139
+    },
+    {
+      "id": 50,
+      "file": "计算机网络-郑老师-第8章.json",
+      "chunk_index": 3,
+      "titles": [
+        "网络中的坏蛋"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "# 网络中的坏蛋\nQ: “bad guy”可以干什么?\nA: 很多!\n- 窃听: 截获报文\n- 插入: 在连接上插入报文\n- 伪装: 可以在分组的源地址写上伪装的地址\n- 劫持: 将发送方或者接收方踢出，接管连接\n- 拒绝服务: 阻止服务被其他正常用户使用 (e.g.,通过 对资源的过载使用)\n\nmore on this later .....\n\n8: Network Security 7\n\n---",
+      "content_len": 201
+    },
+    {
+      "id": 51,
+      "file": "计算机网络：自顶向下方法（原书第8版） ([美]詹姆斯·F.库罗斯, [美]基思·W.罗斯, 陈鸣) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 127,
+      "titles": [
+        "3.5 面向连接的运输：TCP",
+        "3.6.1 拥塞原因与代价"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "## 3.6.1 拥塞原因与代价\n\n我们通过分析 3 个复杂性越来越高的发生拥塞的情况，开始对拥塞控制的一般性研究。在每种情况下，我们首先将看看出现拥塞的原因以及拥塞的代价（根据资源未被充分利用以及端系统得到的低劣服务性能来评价）。我们暂不关注如何对拥塞做出反应或避免拥塞，而是重点理解一个较为简单的问题，即随着主机增加其发送速率并使网络变得拥塞，这时会发生的情况。\n\n### 1. 情况 1：两个发送方和一台具有无穷大缓存的路由器\n\n我们先考虑也许是最简单的拥塞情况：两台主机（A 和 B）都有一条连接，且这两条连接共享源与目的地之间的单跳路由，如图 3-43 所示。\n\n运 输 层 169\n\n它们都不会看到超过 $R/2$ 的吞吐量。\n\n170 第 3 章\n\n在情况 2 下实现的性能强烈地依赖于重传的方式。首先，考虑一种不真实的情况，即主机 A 能够以某种方式（不可思议地！）确定路由器中的缓存是否空闲，因而仅当缓存空闲时才发送一个分组。在这种情况下，将不会产生丢包，λ<sub>in</sub> 与 λ'<sub>in</sub>相等，并且连接的吞吐量就等于 λ<sub>in</sub>。图 3-46a 中描述了这种情况。从吞吐量的角度看，性能是理想的，即发送的每个分组都被接收到。注意到在这种情况下，平均主机发送速率不能超过 R/2，因为假定不会发生分组丢失。\n\n接下来考虑一种更为真实的情况，发送方仅当在确定了一个分组已经丢失时才重传。（同样，所做的假设有一些弹性。然而，发送主机有可能将超时时间设置得足够长，以无形中使其确信一个还没有被确认的分组已经丢失。）在这种情况下，性能就可能与图 3-46b 所示的情况相似。为了理解这时发生的情况，考虑一下供给载荷 λ'<sub>in</sub>（初始数据传输加上重传的总速率）等于 R/2 的情况。根据图 3-46b，在这一供给载荷值时，数据被交付给接收方应用程序的速率是 R/3。因此，在所发送的 0.5R 单位数据当中，从平均的角度说，0.333R 字节/秒是初始数据，而 0.166R 字节/秒是重传数据。我们在此看到了另一种网络拥塞的代价，即发送方必须执行重传以补偿因为缓存溢出而丢弃（丢失）的分组。\n\n最后，我们考虑下面一种情况：发送方也许会提前发生超时并重传在队列中已被推迟但还未丢失的分组。在这种情况下，初始数据分组和重传分组都可能到达接收方。当然，接收方只需要一份这样的分组副本就行了，重传分组将被丢弃。在这种情况下，路由器转发重传的初始分组副本是在做无用功，因为接收方已收到了该分组的初始版本。而路由器本可以利用链路的传输能力去发送另一个分组。这里，我们又看到了网络拥塞的另一种代价，即发送方在遇到大时延时所进行的不必要重传会引起路由器利用其链路带宽来转发不必要的分组副本。图 3-46c 显示了当假定每个分组被路由器转发（平均）两次时，吞吐量与供给载荷的对比情况。由于每个分组被转发两次，当其供给载荷接近 R/2 时，其吞吐量将渐近 R/4。\n\n运输层 171\n\n接共享路由器 R1，并与 B-D 连接共享路由器 R2。对极小的 λ_in 值，路由器缓存的溢出是很少见的（与拥塞情况 1、拥塞情况 2 中的一样），吞吐量大致接近供给载荷。对稍大的 λ_in 值，对应的吞吐量也更大，因为有更多的初始数据被发送到网络中并交付到目的地，溢出仍然很少。因此，对于较小的 λ_in，λ_in 的增大会导致 λ_out 的增大。\n\n172 第 3 章\n\n时，随着供给载荷的增加而使吞吐量最终减少的原因是明显的。在上面提到的大流量的情况中，每当有一个分组在第二跳路由器上被丢弃时，第一跳路由器所做的将分组转发到第二跳路由器的工作就是“劳而无功”的。如果第一跳路由器只是丢弃该分组并保持空闲，则网络中的情况是幸运的（更准确地说是糟糕的）。需要指出的是，第一跳路由器所使用的将分组转发到第二跳路由器的传输容量用来传送不同的分组可能更有效益。（例如，当选择一个分组发送时，路由器最好优先考虑那些已经历过一定数量的上游路由器的分组。）所以，我们在此又看到了由于拥塞而丢弃分组的另一种代价，即当一个分组沿一条路径被丢弃时，每个上游路由器用于转发该分组到丢弃该分组而使用的传输容量最终被浪费掉了。",
+      "content_len": 1776
+    },
+    {
+      "id": 52,
+      "file": "部分题目中文解析.json",
+      "chunk_index": 13,
+      "titles": [
+        "第三章 运输层"
+      ],
+      "category": "Review-exam-prep",
+      "content": "P54\nP54. 考虑修改 TCP 的拥塞控制算法。不使用加性增，使用乘性增。无论何时某 TCP 收到一个合法的 ACK，就将其窗口长度增加一个小正数 a (0<a<1)。求出丢包率 L 和最大拥塞窗口 W 之间的函数关系。论证：对于这种修正的 TCP，无论 TCP 的平均吞吐量如何，一条 TCP 连接将其拥塞窗口长度从 W/2 增加到 W，总是需要相同的时间。\n\n注意这题估计是假设了在W/2到W的时间内只丢了一个包！！！首先，我们可以找到在 TCP 将其窗口大小从 W/2 更改为包括 W 的间隔内发送的段总数。\n\n这是由下式给出的 $ S = \\frac{W}{2} \\sum_{n=0}^{k} (1+a)^n $ 我们有 $ k = \\log_{a+1} 2 $\n\n然后 $ S = W * (2a + 1)/(2a) $\n\n损失率 L 由下式给出 $ L = 1/S = (2a)/(W*(2a+1)) $。\n\nTCP 将其窗口大小从 W/2 增加到 W 所需的时间由下式给出：$ k * RTT = (\\log_{a+1} 2) * RTT $\n\n这显然与 TCP 的平均吞吐量无关。\n\nP58\nP58. 在这个习题中，我们考虑由 TCP 慢启动阶段引入的时延。考虑一个客户和一个 Web 服务器直接连接到速率 R 的一条链路。假定该客户要取回一个对象，其长度正好等于 15S，其中 S 是最大段长度 (MSS)。客户和服务器之间的往返时间表示为 RTT（假设为常数）。忽略协议首部，确定在下列情况下取回该对象的时间（包括 TCP 连接创建）：\n\na. 4S/R > S/R + RTT > 2S/R\n\nb. S/R + RTT > 4S/R\n\nc. S/R > RTT\n\nlec4,5.md\n2024-11-22",
+      "content_len": 765
+    },
+    {
+      "id": 53,
+      "file": "WNB-ch01b.json",
+      "chunk_index": 3,
+      "titles": [
+        "2.2 计算机网络的体系结构（7）"
+      ],
+      "category": "Other-misc",
+      "content": "# 2.2 计算机网络的体系结构（7）\n\n## 2.2.3 计算机网络的体系结构\n基本术语与分层结构\n\n接口：定义了下层向上层提供的原语操作和服务。\n协议：计算机网络同等层次中，通信双方进行信息交换时必须遵守的规则。\n服务：层间交换信息时必须遵守的规则。\n服务和协议的关系\n服务提供者，服务用户\n\nHost 1\nLayer 5\nLayer 4/5 interface\nLayer 4\nLayer 3/4 interface\nLayer 3\nLayer 2/3 interface\nLayer 2\nLayer 1/2 interface\nLayer 1\nPhysical medium\n\nHost 2\nLayer 5\nLayer 4\nLayer 3\nLayer 2\nLayer 1\n\nLayer 5 protocol\nLayer 4 protocol\nLayer 3 protocol\nLayer 2 protocol\nLayer 1 protocol\n\nFig. 1-9. Layers, protocols, and interfaces.\n\n## 2.2 计算机网络的体系结构（8）\n\n服务访问点 SAP （Service Access Point）\n任何层间服务是在接口的 SAP 上进行的\n每个 SAP 有唯一的识别地址\n每个层间接口可以有多个 SAP 。\n\n接口数据单元 IDU （Interface Data Unit）\nIDU 是通过 SAP 进行传送的层间信息单元\nIDU 由上层的服务数据单元 SDU （Service Data Unit）\n和接口控制信息 ICI （Interface Control Information\n）组成\n\n## 2.2 计算机网络的体系结构（9）\n\n协议数据单元 PDU （Protocol Data Unit）\n第 N 层实体通过网络传送给它的对等实体的信息单元\nPDU 由上层的服务数据单元 SDU 或其分段和协议控制信息 PCI （Protocol Control Information）组成\n分段和重组\n\nFig. 1-12. Relation between layers at an interface.\n\nLayer\n5\n4\n3\n2\n1\n\nSource machine\nDestination machine\n\nFig. 1-11. Example information flow supporting virtual communication in layer 5.\n\n## 2.2 计算机网络的体系结构（10）\n\n服务分类和服务原语（primitives）\n\n基于连接的服务和无连接服务\n\n基于连接的服务\n- 当使用服务传送数据时，首先建立连接，然后使用该连接传送数据。使用完后，关闭连接。\n- 特点：顺序性好。\n\n无连接服务\n- 直接使用服务传送数据，每个包独立进行路由选择。\n- 特点：顺序性差。\n\n注意：连接并不意味可靠，可靠要通过确认、重传等机制来保证。\n\n## 2.2 计算机网络的体系结构（11）\n\n服务原语\n\n服务在形式上是由一组接口原语（或操作）来描述的\n服务原语可分为四种类型\n\n- 请求（Request）: An entity wants the service to do some work\n- 指示（Indication）: An entity is to be informed about an event\n- 响应（Response）: An entity wants to respond to an event\n- 确认（Confirm）: The response to an earlier request has come back\n\nLayer N + 1\nLayer N\n\n1   2   3   4   5   6   7   8   9   10\nTime →\n\nLayer N + 1\nLayer N\n\n1   2   3   4   5   6   7   8   9   10\nTime →\n\nComputer 1\nComputer 2\n\nFig. 1-15. How a computer would invite its Aunt Millie to tea.\nThe numbers near the tail end of each arrow refer to the eight\nservice primitives discussed in this section.",
+      "content_len": 1906
+    },
+    {
+      "id": 54,
+      "file": "计算机网络：自顶向下方法（原书第8版） ([美]詹姆斯·F.库罗斯, [美]基思·W.罗斯, 陈鸣) (z-library.sk, 1lib.sk, z-lib.sk).json",
+      "chunk_index": 218,
+      "titles": [
+        "3. 载波侦听多路访问（CSMA）",
+        "2. 以太网技术"
+      ],
+      "category": "Chinese-course-materials",
+      "content": "## 2. 以太网技术\n\n在以上的讨论中我们已经提到以太网，仿佛它有单一的协议标准似的。但事实上，以太网具有许多不同的特色，还有一些令人困惑的首字母缩写词，如 10BASE-T、10BASE-2、100BASE-T、1000BASE-LX、10GBASE-T 和 40GBASE-T。这些以及许多其他的以太网技术在多年中已经被 IEEE 802.3 CSMA/CD (Ethernet) 工作组标准化了 [IEEE 802.3 2012]。尽管这些首字母缩写词看起来令人困惑，实际上其中非常有规律性。首字母缩写词的第一部分指该标准的速率：10、100、1000、10G 或 40G，分别代表 10Mbps、100Mbps、1Gbps、10Gbps 和 40Gbps 以太网。“BASE” 指基带以太网，这意味着该物理媒介仅承载以太网流量；几乎所有的 802.3 标准都适用于基带以太网。该首字母缩写词的最后一部分指物理媒介本身；以太网是链路层也是物理层的规范，并且能够经各种物理媒介（包括同轴电缆、铜线和光纤）承载。一般而言，“T” 指双绞铜线。\n\n从历史上讲，以太网最初被构想为一段同轴电缆。早期的 10BASE-2 和 10BASE-5 标准规定了在两种类型的同轴电缆之上的 10Mbps 以太网，每种标准都限制在 500 米长度之内。通过使用转发器（repeater）能够得到更长的运行距离，而转发器是一种物理层设备，它能在输入端接收信号并在输出端再生该信号。同轴电缆很好地对应于我们将作为一种广播媒介的以太网视图，即由一个接口传输的所有帧可在其他接口收到，并且以太网的 CSMA/CD 协议很好地解决了多路访问问题。节点直接附着在电缆上，万事大吉，我们有了一个局域网了！\n\n多年来以太网已经经历了一系列演化步骤，今天的以太网非常不同于使用同轴电缆的初始总线拓扑的设计。在今天大多数的安装中，节点经点对点的由双绞铜线或光纤线缆构成的线段与一台交换机相连，如图 6-15 至图 6-17 所示。\n\n鏈路層和局域網 321\n\n在 20 世紀 90 年代中期，以太網被標準化為 100Mbps，比 10Mbps 以太網快 10 倍。初始的以太網 MAC 協議和幀格式保留了下來，但更高速率的物理層被定義為用銅線（100BASE-T）和用光纖（100BASE-FX、100BASE-SX、100BASE-BX）。圖 6-21 顯示了這些不同的標準和共同的以太網 MAC 協議和幀格式。100Mbps 以太網用雙絞線距離限制為 100 米，用光纖距離限制為幾千米，允許把不同建築物中的以太網交換機連接起來。\n\n322 第 6 章",
+      "content_len": 1112
+    },
+    {
+      "id": 55,
+      "file": "rfc6376.txt.json",
+      "chunk_index": 56,
+      "titles": [
+        "7. IANA Considerations",
+        "8.15. Attacks Involving Extra Header Fields"
+      ],
+      "category": "RFC/protocol-specs",
+      "content": "PDAs demonstrate the need for using multiple keys per domain.\nSuppose that John Doe wants to be able to send messages using his\ncorporate email address, jdoe@example.com, and his email device does\nnot have the ability to make a Virtual Private Network (VPN)\nconnection to the corporate network, either because the device is\nlimited or because there are restrictions enforced by his Internet\naccess provider. If the device is equipped with a private key\nregistered for jdoe@example.com by the administrator of the\nexample.com domain and appropriate software to sign messages, John\ncould sign the message on the device itself before transmission\nthrough the outgoing network of the access service provider.\n\nB.1.3. Roaming Users\n\nRoaming users often find themselves in circumstances where it is\nconvenient or necessary to use an SMTP server other than their home\nserver; examples are conferences and many hotels. In such\ncircumstances, a signature that is added by the submission service\nwill use an identity that is different from the user's home system.\n\nIdeally, roaming users would connect back to their home server using\neither a VPN or a SUBMISSION server running with SMTP AUTHentication\non port 587. If the signing can be performed on the roaming user's\nlaptop, then they can sign before submission, although the risk of\nfurther modification is high. If neither of these are possible,\nthese roaming users will not be able to send mail signed using their\nown domain key.\n\nCrocker, et al.\nStandards Track\n[Page 68]\n\nRFC 6376\nDKIM Signatures\nSeptember 2011\n\nB.1.4. Independent (Kiosk) Message Submission\n\nStand-alone services, such as walk-up kiosks and web-based\ninformation services, have no enduring email service relationship\nwith the user, but users occasionally request that mail be sent on\ntheir behalf. For example, a website providing news often allows the\nreader to forward a copy of the article to a friend. This is\ntypically done using the reader's own email address, to indicate who\nthe author is. This is sometimes referred to as the \"Evite\" problem,\nnamed after the website of the same name that allows a user to send\ninvitations to friends.\n\nA common way this is handled is to continue to put the reader's email\naddress in the From header field of the message but put an address\nowned by the email posting site into the Sender header field. The\nposting site can then sign the message, using the domain that is in\nthe Sender field. This provides useful information to the receiving\nemail site, which is able to correlate the signing domain with the\ninitial submission email role.\n\nReceiving sites often wish to provide their end users with\ninformation about mail that is mediated in this fashion. Although\nthe real efficacy of different approaches is a subject for human\nfactors usability research, one technique that is used is for the\nverifying system to rewrite the From header field to indicate the\naddress that was verified, for example: From: John Doe via\nnews@news-site.example <jdoe@example.com>. (Note that such rewriting\nwill break a signature, unless it is done after the verification pass\nis complete.)\n\nB.2. Alternate Delivery Scenarios\n\nEmail is often received at a mailbox that has an address different\nfrom the one used during initial submission. In these cases, an\nintermediary mechanism operates at the address originally used, and\nit then passes the message on to the final destination. This\nmediation process presents some challenges for DKIM signatures.\n\nB.2.1. Affinity Addresses\n\n\"Affinity addresses\" allow a user to have an email address that\nremains stable, even as the user moves among different email\nproviders. They are typically associated with college alumni\nassociations, professional organizations, and recreational\norganizations with which they expect to have a long-term\nrelationship. These domains usually provide forwarding of incoming\nemail, and they often have an associated Web application that\nauthenticates the user and allows the forwarding address to be\n\nCrocker, et al.\nStandards Track\n[Page 69]\n\nRFC 6376 DKIM Signatures September 2011\n\nchanged. However, these services usually depend on users sending outgoing messages through their own service provider's MTAs. Hence, mail that is signed with the domain of the affinity address is not signed by an entity that is administered by the organization owning that domain.\n\nWith DKIM, affinity domains could use the Web application to allow users to register per-user keys to be used to sign messages on behalf of their affinity address. The user would take away the secret half of the key pair for signing, and the affinity domain would publish the public half in DNS for access by Verifiers.\n\nThis is another application that takes advantage of user-level keying, and domains used for affinity addresses would typically have a very large number of user-level keys. Alternatively, the affinity domain could handle outgoing mail, operating a mail submission agent that authenticates users before accepting and signing messages for them. This is, of course, dependent on the user's service provider not blocking the relevant TCP ports used for mail submission.\n\nB.2.2. Simple Address Aliasing (.forward)\n\nIn some cases, a recipient is allowed to configure an email address to cause automatic redirection of email messages from the original address to another, such as through the use of a Unix .forward file. In this case, messages are typically redirected by the mail handling service of the recipient's domain, without modification, except for the addition of a Received header field to the message and a change in the envelope recipient address. In this case, the recipient at the final address' mailbox is likely to be able to verify the original signature since the signed content has not changed, and DKIM is able to validate the message signature.\n\nB.2.3. Mailing Lists and Re-Posters\n\nThere is a wide range of behaviors in services that take delivery of a message and then resubmit it. A primary example is with mailing lists (collectively called \"forwarders\" below), ranging from those that make no modification to the message itself, other than to add a Received header field and change the envelope information, to those that add header fields, change the Subject header field, add content to the body (typically at the end), or reformat the body in some manner. The simple ones produce messages that are quite similar to the automated alias services. More elaborate systems essentially create a new message.\n\nCrocker, et al. Standards Track [Page 70]\n\nRFC 6376 DKIM Signatures September 2011\n\nA Forwarder that does not modify the body or signed header fields of a message is likely to maintain the validity of the existing signature. It also could choose to add its own signature to the message.\n\nForwarders that modify a message in a way that could make an existing signature invalid are particularly good candidates for adding their own signatures (e.g., mailing-list-name@example.net). Since (re-)signing is taking responsibility for the content of the message, these signing forwarders are likely to be selective and forward or re-sign a message only if it is received with a valid signature or if they have some other basis for knowing that the message is not spoofed.\n\nA common practice among systems that are primarily redistributors of mail is to add a Sender header field to the message to identify the address being used to sign the message. This practice will remove any preexisting Sender header field as required by [RFC5322]. The forwarder applies a new DKIM-Signature header field with the signature, public key, and related information of the forwarder.\n\nSee [RFC6377] for additional related topics and discussion.",
+      "content_len": 7749
+    }
+  ]
+}

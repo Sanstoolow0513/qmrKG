@@ -7,40 +7,17 @@ import logging
 import sys
 from pathlib import Path
 
-from .config import load_run_config
+from .config import load_run_config, optional_path
 from .markdown_chunker import MarkdownChunker
 
 
-def _build_parser(run_cfg: dict[str, object]) -> argparse.ArgumentParser:
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Chunk markdown files into JSON documents.")
-    parser.add_argument("--config", type=Path, help="Optional config.yaml path override")
-    parser.add_argument("--markdown", type=Path, help="Process a single markdown file")
     parser.add_argument(
-        "--markdown-dir",
+        "--config",
         type=Path,
-        default=Path(str(run_cfg["markdown_dir"])),
-        help="Directory containing markdown files (default: data/markdown)",
+        help="config.yaml path; all stage settings are read from run.md_chunk",
     )
-    parser.add_argument("--output", type=Path, help="Output JSON path for --markdown mode")
-    parser.add_argument(
-        "--chunk-dir",
-        type=Path,
-        default=Path(str(run_cfg["chunk_dir"])),
-        help="Directory for generated JSON chunks (default: data/chunks)",
-    )
-    parser.add_argument(
-        "--max-tokens",
-        type=int,
-        default=int(run_cfg["max_tokens"]),
-        help="Maximum tokens per chunk (default: 4000)",
-    )
-    parser.add_argument(
-        "--recursive",
-        action="store_true",
-        default=bool(run_cfg["recursive"]),
-        help="Search subdirectories when using --markdown-dir",
-    )
-    parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose logging")
     return parser
 
 
@@ -50,50 +27,53 @@ def _collect_markdown(markdown_dir: Path, recursive: bool) -> list[Path]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    pre_parser = argparse.ArgumentParser(add_help=False)
-    pre_parser.add_argument("--config", type=Path)
-    pre_args, _ = pre_parser.parse_known_args(argv)
-    run_cfg = load_run_config(pre_args.config)["md_chunk"]
-
-    parser = _build_parser(run_cfg)
+    parser = _build_parser()
     args = parser.parse_args(argv)
+    run_cfg = load_run_config(args.config)["md_chunk"]
 
-    logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO)
-    chunker = MarkdownChunker(max_tokens=args.max_tokens)
+    markdown = optional_path(run_cfg.get("input_file"))
+    markdown_dir = Path(str(run_cfg["markdown_dir"]))
+    output = optional_path(run_cfg.get("output"))
+    chunk_dir = Path(str(run_cfg["chunk_dir"]))
+    max_tokens = int(run_cfg["max_tokens"])
+    recursive = bool(run_cfg["recursive"])
 
-    if args.markdown:
-        if not args.markdown.exists():
-            print(f"Error: Markdown file not found: {args.markdown}", file=sys.stderr)
+    logging.basicConfig(level=logging.INFO)
+    chunker = MarkdownChunker(max_tokens=max_tokens)
+
+    if markdown:
+        if not markdown.exists():
+            print(f"Error: Markdown file not found: {markdown}", file=sys.stderr)
             return 1
 
         json_path = chunker.process_and_save(
-            markdown_path=args.markdown,
-            output_path=args.output,
-            chunk_dir=args.chunk_dir,
+            markdown_path=markdown,
+            output_path=output,
+            chunk_dir=chunk_dir,
         )
-        print(f"Chunked: {args.markdown.name}")
+        print(f"Chunked: {markdown.name}")
         print(f"JSON saved to: {json_path}")
         return 0
 
-    if args.output:
-        print("Error: --output can only be used with --markdown", file=sys.stderr)
+    if output:
+        print("Error: run.md_chunk.output requires run.md_chunk.input_file", file=sys.stderr)
         return 1
 
-    if not args.markdown_dir.exists():
-        print(f"Error: Markdown directory not found: {args.markdown_dir}", file=sys.stderr)
+    if not markdown_dir.exists():
+        print(f"Error: Markdown directory not found: {markdown_dir}", file=sys.stderr)
         return 1
 
-    markdown_files = _collect_markdown(args.markdown_dir, args.recursive)
+    markdown_files = _collect_markdown(markdown_dir, recursive)
     if not markdown_files:
-        print(f"No markdown files found in {args.markdown_dir}")
+        print(f"No markdown files found in {markdown_dir}")
         return 0
 
-    args.chunk_dir.mkdir(parents=True, exist_ok=True)
+    chunk_dir.mkdir(parents=True, exist_ok=True)
     success = 0
     failed = 0
     for markdown_path in markdown_files:
         try:
-            chunker.process_and_save(markdown_path=markdown_path, chunk_dir=args.chunk_dir)
+            chunker.process_and_save(markdown_path=markdown_path, chunk_dir=chunk_dir)
             success += 1
         except Exception as exc:
             failed += 1
@@ -103,7 +83,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Success: {success}")
     if failed:
         print(f"Failed: {failed}")
-    print(f"Chunk dir: {args.chunk_dir}")
+    print(f"Chunk dir: {chunk_dir}")
     return 0 if failed == 0 else 1
 
 

@@ -1,0 +1,48 @@
+{
+  "entities": [
+    {
+      "name": "HTTP",
+      "type": "protocol",
+      "description": "超文本传输协议",
+      "frequency": 3
+    },
+    {
+      "name": "TCP",
+      "type": "protocol",
+      "description": "传输控制协议",
+      "frequency": 5
+    },
+    {
+      "name": "UDP",
+      "type": "protocol",
+      "description": "用户数据报协议",
+      "frequency": 1
+    }
+  ],
+  "triples": [
+    {
+      "head": "HTTP",
+      "head_type": "protocol",
+      "relation": "depends_on",
+      "tail": "TCP",
+      "tail_type": "protocol",
+      "frequency": 2,
+      "evidences": [
+        "HTTP 使用 TCP 作为传输层协议"
+      ]
+    },
+    {
+      "head": "HTTP",
+      "head_type": "protocol",
+      "relation": "compared_with",
+      "tail": "UDP",
+      "tail_type": "protocol",
+      "frequency": 1,
+      "evidences": []
+    }
+  ],
+  "stats": {
+    "total_entities": 3,
+    "total_triples": 2
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "name": "qmrkg-minimal-eval-fixture",
+    "schema_version": 1
+  },
+  "entities": [
+    {
+      "name": "HTTP",
+      "type": "protocol"
+    },
+    {
+      "name": "TCP",
+      "type": "protocol"
+    }
+  ],
+  "triples": [
+    {
+      "head": "HTTP",
+      "head_type": "protocol",
+      "relation": "depends_on",
+      "tail": "TCP",
+      "tail_type": "protocol",
+      "evidence": "HTTP 使用 TCP 作为传输层协议"
+    }
+  ]
+}

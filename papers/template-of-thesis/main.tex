@@ -1,0 +1,45 @@
+\documentclass[thesis,biblatex]{template/hust}
+
+\addbibresource{ref.bib}
+\usepackage{macros}
+\usepackage{booktabs}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,fit,backgrounds,calc}
+
+\title{基于大语言模型的课程知识命名实体识别与关系抽取}
+
+\author{瞿明睿}
+\school{计算机科学与技术学院}
+\classnum{计科7班}
+\stunum{U202215561}
+\instructor{姚德中}
+\date{2026年5月}
+
+
+% 毕业论文模板
+\begin{document}
+    \maketitle                              % 封面
+    \hypersetup{pageanchor=false}
+    \thispagestyle{empty}                   % 封面后的空白页
+    \null
+    \clearpage
+    \hypersetup{pageanchor=true}
+    \authorization                          % 原创页（不保密）
+    
+    \pagenumbering{Roman}
+    \include{body/abstract-ch}              % 中文摘要
+    \include{body/abstract-en}              % 英文摘要
+    \tableofcontents                        % 目录
+    \newpage
+    \pagenumbering{arabic}
+    \include{body/introduction}             % 第1章 绪论（研究背景与意义 → 国内外研究现状 → 面临挑战与研究思路 → 论文结构）
+    \include{body/related_works}            % 第2章 相关技术基础（技术总览 → LLM基础 → 命名实体识别 → 关系抽取 → KG构建 → 教育KG）
+    \include{body/method}                   % 第3章 课程知识抽取系统设计（需求分析 → 各模块设计决策与取舍理由）
+    \include{body/implementation}           % 第4章 系统实现（总体架构 → 文档渲染与OCR → 文本分块 → NER → RE → 知识融合 → 图存储与可视化）
+    \include{body/experiments}              % 第5章 实验与结果分析
+    \include{body/conclusion}               % 第6章 总结与展望
+    
+    \include{body/references}               % 参考文献
+    \include{body/acknowledgement}          % 致谢
+
+\end{document}

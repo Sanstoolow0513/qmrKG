@@ -1,0 +1,336 @@
+\documentclass[supercite]{Experimental_Report}
+
+\title{Enriching RDF Data with LLM based Named Entity Recognition and Linking on Embedded Natural Language Annotations}
+\school{计算机科学与技术学院}
+\author{瞿明睿}
+\classnum{计科7班}
+\stunum{U202215561}
+\instructor{姚德中}
+
+\usepackage{algorithm, multirow}
+\usepackage{algpseudocode}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{framed}
+\usepackage{mathtools}
+\usepackage{subcaption}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{tabu}
+\usepackage{xltxtra}
+\usepackage{bm}
+\usepackage{longtable}
+\usepackage{tikz}
+\usepackage{pdfpages}
+\usepackage{tikzscale}
+\usepackage{pgfplots}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{url}
+
+\pgfplotsset{compat=1.16}
+
+\lstset{
+    basicstyle=\small\ttfamily,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!50!black},
+    stringstyle=\color{orange},
+    showstringspaces=false,
+    tabsize=2,
+    captionpos=b
+}
+
+\newcommand{\cfig}[3]{
+  \begin{figure}[htb]
+    \centering
+    \includegraphics[width=#2\textwidth]{images/#1.png}
+    \caption{#3}
+    \label{fig:#1}
+  \end{figure}
+}
+
+\newcommand{\rfig}[1]{\autoref{fig:#1}}
+\newcommand{\rtbl}[1]{\autoref{tbl:#1}}
+\newcommand{\rlst}[1]{\autoref{lst:#1}}
+
+\newtheorem{thm}{定理}[section]
+\newtheorem{lem}{引理}[section]
+
+\colorlet{shadecolor}{black!15}
+
+\theoremstyle{definition}
+\newtheorem{alg}{算法}[section]
+
+\begin{document}
+
+\maketitle
+\clearpage
+
+\pagenumbering{Roman}
+
+\begin{abstract}
+本文提出了一种处理流程，用于将RDF图嵌入的自然语言注释转换为机器可读且可互操作的语义注释。该流程基于基础大语言模型（LLM）的命名实体识别（NER）和实体链接（EL）技术，结合基于知识图谱（KG）的知识注入方法进行实体消歧与自验证。通过论文中的运行示例，我们证明了该流程能够增加RDF图中语义注释的数量，这些信息来源于自然语言注释中包含的内容。对所提出流程的评估表明，基于LLM的NER方法能够产生与微调NER模型相当的结果。此外，我们证明了使用思维链提示风格、通过外部KG链接遍历获取事实信息的流程，在实体消歧和链接方面优于不使用思维链提示的流程以及仅依赖LLM内部信息的方法。
+\end{abstract}
+
+\pagenumbering{arabic}
+
+\section{引言}
+
+资源描述框架（RDF）数据广泛应用于需要以可互操作且机器可读的格式存储语义信息和知识的各个领域。例如，在物联网（IoT）领域，通过万维网联盟（W3C）的Web of Things（WoT）架构\cite{ref4}，RDF被用于描述传感器和执行器的功能与API，以实现语义互操作\cite{ref3}。同样，在考古学领域\cite{ref17}，RDF被用于描述发现的历史文物及其属性，例如文物的发现地点和制作材料，以构建全面且可互操作的知识库。RDF数据通常由两部分组成：主要部分是基于形式化本体的机器可读信息，次要部分包括自然语言注释，例如标签和注释中的自由文本。
+
+当RDF数据由不熟悉相关本体和既定RDF数据建模技术的非专家创建，或者由假设数据仅由人类访问的专家创建时，他们通常出于简便性考虑，仅使用自然语言注释或标签来标注某些相关信息。然而，只有基于本体的信息才是机器可读且可互操作的。嵌入在RDF数据中的自然语言注释所包含的信息仍然可能具有高度相关性和价值。但是，由于自然语言处理的挑战以及注释语言可能不为人类读者所理解，嵌入的信息往往对机器来说基本无法访问。
+
+近年来，自然语言处理（NLP）技术的进步，特别是基础大语言模型（LLM）的发展，显著推动了该领域的发展\cite{ref10}。与传统的命名实体识别（NER）模型不同，传统模型依赖大量针对特定应用领域标注的训练数据，而大型基础LLM无需特定领域的标注数据或微调即可有效执行\cite{ref16}。即使没有微调，基础LLM也已被证明能够优于微调的领域特定模型，例如在医学领域\cite{ref14}。
+
+因此，使用基础LLM进行NER以从RDF数据中的自然语言注释提取相关实体，并结合实体链接（EL）将识别出的实体映射到现有知识图谱（KG）或本体中的概念，这样的流程可能具有灵活性，并能够使自然语言信息变得机器可访问且可互操作。通过这种方法，RDF数据可以在不需要特定领域模型微调的情况下变得更加描述性丰富。
+
+从RDF数据中的文本提取相关信息具有挑战性，因为嵌入的自然语言注释通常较短且多变，通常由单个词标签或注释中的短句组成。自然语言的固有歧义性进一步加剧了这项任务，其中一个概念可以有多种描述方式，术语的含义可能因上下文而改变。与遵循形式化模式的本体信息不同，自然语言注释是非结构化的，使得系统性的解析和解释变得困难。
+
+为了从RDF图中的自然语言注释提取信息，我们提出了这样一个提取流程，该流程使用基于LLM的NER技术来识别嵌入自然语言注释中的相关实体。在实体识别之后，该流程使用检索增强生成（RAG）\cite{ref5}方法将识别出的实体链接到预选KG和本体中的概念，该方法基于向量嵌入的语义相似性搜索来检索已识别概念的URI。通过解引用这些URI，可以检索包含额外事实信息的RDF文档，然后这些信息被用于通过知识注入技术\cite{ref7}进行实体消歧和自验证，从而减轻幻觉风险。最后，该流程基于识别出的实体生成RDF三元组，并将其集成到原始图中，将自然语言信息转换为基于本体的、机器可读的且可互操作的信息。
+
+本文的主要贡献如下：
+\begin{itemize}
+    \item 提出了一个流程，用于使用LLM、NER和EL将嵌入在RDF图中的自然语言注释转换为额外的语义注释。
+    \item 提出了一种基于KG和知识注入的实体消歧与自验证方法。
+    \item 对我们的基于LLM的NER系统与传统NER方法进行了比较评估，并对所提出流程与仅使用LLM的方法进行了性能评估。
+\end{itemize}
+
+\section{运行示例}
+
+为了更好地说明本文的贡献，我们在全文中使用遵循Web of Things推荐的IoT蓝牙低功耗传感器的语义描述作为运行示例。
+
+描述传感器API的Turtle序列化RDF图如\rlst{1.1}所示，主要使用Thing Description本体\cite{ref1}。
+
+\begin{lstlisting}[language={}, caption={RDF图描述运行示例中介绍的传感器，Turtle序列化，其中包含自然语言文本中的相关信息。为简便起见，td:hasForm语句的内容已省略。}, label={lst:1.1}]
+[] a td:Thing;
+td:title "Flower"@en;
+td:description "Xiaomi Flower Care sensor in room 40."@en;
+td:hasPropertyAffordance [td:name "temperature";
+jsonschema:readOnly "True"^^xsd:boolean;
+td:description "In degrees Celsius."
+td:hasForm [...] ;
+td:hasPropertyAffordance [td:name "humidity";
+jsonschema:readOnly "True"^^xsd:boolean;
+td:description "The humidity value in %. ."@en;
+td:hasForm [...] .
+\end{lstlisting}
+
+从语义注释中，我们可以看到该传感器提供两个属性功能（property affordances）：一个名为temperature，另一个名为humidity，并且这两个功能都是只读的。额外的信息通过三个td:description（第3、7、12行）和两个td:name注释（第5、10行）以自然语言形式包含。基于这些注释，我们人类可以推断出该设备是小米（Xiaomi）生产的花草监测仪，部署在40号房间，能够测量相对湿度（百分比）和温度（摄氏度）。但这些信息目前仅包含在自然语言注释中，因此对没有自然语言处理能力的机器来说无法访问，因此不具备互操作性。
+
+在以下各节中，我们将演示如何使用NER提取信息，将检测到的实体与选定的词汇表和KG进行关联和链接，对结果进行消歧和验证，并生成三元组以使信息变得机器可读。
+
+\section{相关工作}
+
+自然语言处理是一项困难的任务，数十年来一直挑战着研究人员\cite{ref12}。NLP领域的一个子任务是命名实体识别，其目标是识别和分类文本中的相关实体，其中实体的含义可能依赖于上下文，需要序列标注技术\cite{ref13}。实体链接通过将识别出的实体与本体或KG中的现有概念进行匹配来补充NER。EL系统生成候选列表，并通过考虑实体在文本中使用的上下文来执行实体消歧。在成功将实体链接到相关概念后，可以在后续处理步骤中使用额外的事实信息\cite{ref20}，并且可以将实体以额外的RDF三元组形式集成到现有的RDF图中。
+
+随着LLM（如GPT系列模型\cite{ref6}）的日益普及及其处理自然语言文本的能力\cite{ref26}，研究人员调查了LLM用于NER任务的可行性。Wang等人\cite{ref23}通过引入一种称为GPT-NER的方法探索了LLM在NER任务中的应用。GPT-NER方法将序列标注任务转换为生成任务以利用LLM的优势。为了解决幻觉问题以及在未检测到实体时的过度预测问题，引入了一个简单的自验证步骤，其中LLM被再次提示并要求验证给定的标签。Monajatipoor等人\cite{ref11}在生物医学领域使用LLM执行专门的NER任务，发现通过输入提示提供相关的上下文内示例是获得良好性能的关键。
+
+我们的工作基于这两种基于LLM的NER方法的见解，并通过额外使用实体链接来细化它们，以识别选定本体和KG中实体对应的概念，从而通过知识注入\cite{ref7}利用事实知识，其中KG中包含的相关信息作为LLM的额外输入，以提高生成输出的质量。所提出的流程在实体消歧和自验证步骤中使用了知识注入。
+
+为了与LLM交互，这两种方法都使用了所谓的提示工程技术，涉及定义LLM应该做什么的自然语言输入。一种常用的基本提示格式由指令、上下文和输入文本组成。指令提供一般任务描述，上下文提供少量示例，输入文本是需要处理的文本\cite{ref15}。提示的质量通常会影响LLM在期望任务中的性能\cite{ref22}。为了解决更复杂的任务，可以使用更高级的思维链提示\cite{ref24}，其中使用多个中间推理步骤来达到最终目标。
+
+前面介绍的两种NER方法使用由指令、上下文和输入文本组成的简单提示。相比之下，我们的流程中使用了思维链提示。
+
+为了对抗LLM生成不相关或虚假输出（称为幻觉）的倾向，一种广泛使用的方法是检索增强生成\cite{ref5}。RAG方法涉及通过密集向量相似性搜索检索相关信息，并将其作为额外输入纳入推理过程中，即注入额外知识。Matsumoto等人\cite{ref8}在名为KRAGEN的框架中实现了RAG与KG的结合。作者将整个KG（包括所有实体和关系）嵌入到向量数据库中，以便在推理期间检索事实信息。
+
+相比之下，我们的方法侧重于仅嵌入KG中实体的对应URI，并使用链接遍历来检索额外信息，从而提供更大的灵活性并实现与已识别实体的精确链接。
+
+\section{基于自然语言注释的RDF数据增强}
+
+我们用于基于嵌入自然语言注释增强RDF数据的处理流程如图\rfig{fig1}所示。用从自然语言注释中提取的额外语义信息来增强RDF数据有助于提高数据的可理解性和互操作性，使其对研究\cite{ref19}和工业\cite{ref2}中的各种应用更有用。所提出的注释流程由四个顺序步骤组成：命名实体识别、实体链接、消歧与自验证、以及三元组生成。以下详细讨论这些步骤。
+
+\cfig{fig1}{0.85}{将嵌入在RDF数据中的自然语言注释转换为语义注释的处理流程。图中展示了关键步骤和数据流。}
+
+\subsection{命名实体识别}
+
+所提出的处理流程的第一步是识别相关的命名实体。我们首先检索初始RDF数据，并使用SPARQL查询提取自然语言注释，例如标签、注释或描述。提取的自然语言注释构成我们的输入集，这意味着不处理重复条目。接下来，我们使用基础大语言模型执行NER任务。使用基于基础LLM的NER方法使我们无需为跨各个领域的实体识别微调传统NER模型，这通常需要手动生成大量用作训练数据的标注示例\cite{ref18}。
+
+为了与LLM交互并指导LLM，我们创建了一个模板，实现了基于思维链提示的提示策略，其中引入有关NER任务和目标领域的信息和定义，然后是包含任务描述、少量示例和待分类自然语言注释的经典提示。此外，我们提供了预期响应格式的明确规范，这提高了LLM输出的一致性并简化了生成输出的整体解析，允许将输出信息集成到处理流程的后续步骤中。
+
+对于处理流程需要识别的每组命名实体，我们手动创建一个模板，为特定领域实现思维链提示。命名实体组包括文本中的测量单位（例如degrees Celsius）或符号形式（°C）、可观测属性（例如temperature）或位置特定实体（例如room 40）。最后，在识别自然语言注释中的命名实体后，我们要求LLM验证发现的实体是否已在自然语言注释的上下文中被分配了正确的标签，类似于GPT-NER\cite{ref23}引入的验证方法。
+
+\textbf{示例1.} 在运行示例的上下文中，包含所有自然语言注释的输入集$I$定义为：
+\begin{equation}
+\begin{split}
+I = \{&\text{``Xiaomi Flower Care sensor in room 40.''}, \text{``temperature''}, \\
+&\text{``In degrees Celsius.''}, \text{``rel. humidity''}, \text{``The rel. humidity value in \%.''}\}
+\end{split}
+\end{equation}
+NER步骤处理输入集并生成输出集$R$，包含相应的识别实体：
+\begin{equation}
+R = \{\text{``Xiaomi''}, \text{``room 40''}, \text{``temperature''}, \text{``degrees Celsius''}, \text{``humidity''}, \text{``\%''}\}
+\end{equation}
+
+\subsection{实体链接}
+
+处理流程的第二步是实体链接。在EL过程中，我们使用NER步骤中识别的命名实体，利用预训练的深度学习模型构建实体嵌入。嵌入是低维密集向量表示，封装了命名实体的语义和句法属性\cite{ref21}。通过计算识别出的命名实体的嵌入与来自KG或本体的预选领域特定概念的嵌入之间的语义相似性得分，我们能够生成命名实体可能相关的候选列表。如果预选KG或本体中不存在相似概念，则候选列表可能为零条目；如果在给定距离内只找到一个相似概念，则只有一个条目。下一个任务是从列表中消歧并选择最合适的候选，同时考虑原始自然语言注释提供的上下文。这种消歧在流程的下一步中进行。
+
+\textbf{示例2.} 实体链接步骤使用集合$R$作为输入，并将其转换为集合$E$，对于每个检测到的命名实体，$E$包含潜在对应本体或KG条目的候选列表。在运行示例中，我们识别了来自Wikidata\cite{ref4}、QUDT\cite{ref15}和本地楼层平面图KG\cite{ref6}的条目。
+
+只有humidity的命名实体产生了包含多个条目的候选列表，因为存在relative humidity和简称为humidity的absolute humidity的条目。注意，如果候选列表只包含一个条目，则该条目直接添加到集合$E$中而不是列表。因此，集合$E$给出为：
+\begin{equation}
+\begin{split}
+E = \{&\text{``wd:Q1636958''}, \text{``ex:room40''}, \text{``wd:Q11466''}, \text{``qudt:DEG\_C''}, \\
+&[\text{``wd:Q2499617''}, \text{``wd:Q180600''}], \text{``qudt:PERCENT''}\}
+\end{split}
+\end{equation}
+
+\subsection{消歧与自验证}
+
+执行链接步骤后，处理流程的下一阶段在发现多个潜在匹配时进行消歧。如果列表中只有一个候选，流程将验证结果以确保链接的实体是有意义的。
+
+如果在实体链接步骤中发现多个可能的候选，流程首先使用从EL步骤中识别的URI开始的链接遍历来检索包含潜在候选的定义和信息的RDF文档。检索到的RDF文档中包含的事实信息可以作为LLM的额外输入。具体而言，我们将RDF数据中的额外事实知识注入到提示中，同时提供识别出的实体和原始自然语言句子。LLM的任务是验证识别的概念是否基于RDF文档中的对应定义对于句子上下文中识别的实体是正确的，并解释导致决策的推理步骤。在第二步中，原始任务和生成的推理输出被反馈给LLM，要求LLM生成关于概念是否正确的最终决定，并输出yes或no。这种方法允许LLM使用可能随时间变化且在训练期间不可用的外部信息，以思维链提示风格消歧候选列表中的条目。
+
+这种消歧方法也可以被视为自验证，其中添加了额外的外部知识作为LLM确定实体是否被正确使用的上下文。因此，当候选列表只包含一个条目时，我们应用与消歧方法相同的步骤来验证候选是否在正确的上下文中使用。
+
+如果结果不符合预期，或者候选列表无法消歧或验证，我们将重新启动整个流程，重复之前的实体识别和链接步骤，并在提示中提供错误信息作为额外输入。
+
+\textbf{示例3.} 消歧与自验证步骤使用集合$E$作为输入，并生成消歧和验证后的集合$E'$。在运行示例中，只发生了一个歧义，即humidity的情况。原始自然语言注释是``The humidity value in \%.''，识别出的实体是humidity。候选列表包含wd:Q180600（humidity）和wd:Q2499617（relative humidity），以及从RDF数据中提取的以下自然语言定义：
+\begin{enumerate}
+    \item humidity: amount of water vapor in the air
+    \item relative humidity: ratio of the partial pressure of water vapor in humid air to the equilibrium vapor pressure of water at a given temperature
+\end{enumerate}
+
+对于每个候选，原始自然语言注释、识别出的实体以及包含上述自然语言定义的RDF数据被输入到LLM中，LLM负责确定该定义是否适用于自然语言注释的上下文。
+
+LLM确定在此上下文中relative humidity是正确的定义，因为relative humidity是一个比率，而比率是以百分比测量的。自验证过程对所有其他实体没有产生任何错误。
+
+因此，结果集合$E'$给出为：
+\begin{equation}
+\begin{split}
+E' = \{&\text{``wd:Q1636958''}, \text{``ex:room40''}, \text{``wd:Q11466''}, \\
+&\text{``qudt:DEG\_C''}, \text{``wd:Q2499617''}, \text{``qudt:PERCENT''}\}
+\end{split}
+\end{equation}
+
+\subsection{三元组生成}
+
+处理流程的最后一步是生成由主语、谓语和宾语组成的RDF三元组，用于插入到现有的RDF图中，从而使从自然语言注释中提取的信息变得机器可读且可互操作。新三元组的宾语位置包含前述NER和EL过程的结果，其中命名实体被识别并链接到现有本体和KG中的对应实体。
+
+为了为识别的宾语找到合适的谓语，我们使用预定义的哈希映射，将不同类型的识别实体映射到其对应的谓语。使用哈希映射确保了实体之间的关系是正确的，并且以可扩展的方式存储。此外，可以修改和调整该映射以包含其他本体术语，而无需重新训练统计模型。对于新三元组的主语位置，我们重用原始自然语言注释中的相同主语，从而保留信息的上下文。
+
+\begin{lstlisting}[language={}, caption={描述传感器的RDF图，其中包含基于嵌入自然语言注释生成的额外三元组。}, label={lst:1.2}]
+@prefix ex: <https://example.com/>.
+[] a td:Thing ; td:title "Flower"@en ;
+td:description "Xiaomi Flower Care sensor in room 40."@en ;
+schema:manufacturer wd:Q1636958 ;
+schema:location ex:room40 ;
+td:hasPropertyAffordance [
+  td:name "temperature" ;
+  jsonschema:readOnly "True"^^xsd:boolean ;
+  sosa:observes wd:Q11466 ;
+  td:description "In degrees Celsius."@en ;
+  qudt:unit qudt:DEG_C ;
+  td:hasForm [..]
+] ;
+td:hasPropertyAffordance [
+  td:name "humidity" ;
+  jsonschema:readOnly "True"^^xsd:boolean ;
+  sosa:observes wd:Q2499617 ;
+  td:description "The humidity value in %."@en ;
+  qudt:unit qudt:PERCENT ;
+  td:hasForm [..]
+] .
+\end{lstlisting}
+
+\textbf{示例4.} 三元组生成步骤使用$E'$作为输入并生成所有输出三元组的集合$T$。例如，考虑$E'$中的第一个条目，其中NER步骤检测到带有manufacturer标签的Xiaomi。链接步骤将实体链接到wd:Q1636958，消歧和自验证步骤确认了正确性。因此，我们知道已识别出一个制造商，并在哈希映射中查找与manufacturer标签关联的谓语，返回属性schema:manufacturer。原始自然语言注释与类型为td:Thing的空白节点关联，因此新三元组也将与同一空白节点关联。生成的三元组$t_1 \in T$因此给出为：
+\begin{equation}
+t_1 = ([\ ], \text{schema:manufacturer}, \text{wd:Q1636958})
+\end{equation}
+
+在所有额外的三元组生成之后，集合$T$的所有元素都被添加到RDF图中，如\rlst{1.2}所示。以前仅包含在自然语言注释中的信息现在可作为机器可读且可互操作的语义注释使用（第6、7、11、13、18、20行），从而使RDF图整体上更具表达力。
+
+\section{实证评估}
+
+我们使用Gemma2 27B语言模型评估了所提出的流程，该模型是Google Gemma语言模型家族的一部分\cite{ref9}，我们将发现的实体与Wikidata KG以及QUDT本体中的类进行链接。
+
+在实证评估中，我们旨在回答以下两个研究问题：
+\begin{itemize}
+    \item R1：与微调领域特定NER模型的经典方法相比，基于基础LLM的NER方法从具有自然语言注释的RDF图中提取实体的准确性如何？
+    \item R2：与不使用思维链提示的流程以及仅使用LLM的方法相比，使用思维链提示的流程在识别和链接正确实体方面的准确性如何？
+\end{itemize}
+
+所有结果和复现评估的脚本可在GitHub\cite{ref7}上找到。
+
+\subsection{R1：基于LLM的NER与现有方法的比较}
+
+在我们的比较分析中，我们侧重于识别文本形式（例如degrees Celsius）和符号形式（例如°C）的计量单位。此外，我们识别可观测属性（例如temperature）。我们将所提出的流程与微调的英语NER模型\cite{ref8}进行了评估。该模型使用spaCy\cite{ref9}框架在针对IoT和WoT领域的合成数据语料库上进行了微调，该语料库使用llama3 70B语言模型基于小型手工制作数据集生成\cite{ref25}。语料库包括三个具有对应观测属性的SI基本单位（时间、长度和质量）和三个具有对应观测属性的SI导出单位（温度、频率和加速度），以及作为无量纲比率（如观测属性相对湿度）伪单位的percent。我们的语料库总共包含5,769个条目。训练脚本和数据语料库可在GitHub\cite{ref10}上获取。
+
+为了与微调的NER模型和流程进行比较，我们使用了来自IoT/WoT领域的数据集。该数据集总共包含69个描述IoT设备API的RDF图。其中，68个RDF图来自W3C WoT TD实现报告\cite{ref11}，基于Siemens AG、Intel和Oracle等贡献组织创建的工作系统API。此外，还手动创建了一个描述运行示例中使用的Xiaomi Flower Care传感器接口的RDF图。这69个RDF图总共包含620个以td:name或td:description形式存在的自然语言注释，其中44个包含对单位或观测属性的引用。
+
+\begin{table}[htbp]
+\centering
+\caption{经典微调方法与基于LLM的NER方法的比较。报告了每个注释的平均运行时间（秒）。}
+\label{tbl:table1}
+\begin{tabular}{lcc}
+\toprule
+& 经典方法 & 基于LLM的方法 \\
+\midrule
+True Positives & 33 & 40 \\
+False Positives & 2 & 9 \\
+False Negatives & 11 & 4 \\
+F1 Score & 0.84 & 0.86 \\
+Avg. Runtime [s] & 0.009 & 27.9 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+表\rtbl{table1}中的评估结果表明，基于基础LLM的NER方法能够正确检测注释中的40个单位和观测属性引用，达到了与微调NER模型经典方法相似的F1分数。然而，结果还表明，基于LLM的NER方法产生的假阳性是经典方法的四倍多，但能够检测到更多的真阳性。真阳性的差异可能归因于经典方法缺乏训练数据。向语料库中添加更多标注训练数据可以使模型更好地泛化，并在复杂场景中识别更多实体，例如涉及不同上下文或罕见实体类型的场景。
+
+总体而言，基于LLM的NER方法取得了与经典微调NER系统相当的结果，但需要对检测到的实体进行额外处理以减少假阳性数量。此外，由于更高的计算需求，基于LLM的方法的运行时间远高于经典方法。
+
+\subsection{R2：流程评估}
+
+为了评估所提出流程的有效性，该流程集成了NER、基于RAG的实体链接以及通过思维链提示进行LLM-based消歧与自验证，我们与两种替代方法进行了比较。第一个比较是与使用类似技术但不使用思维链提示风格的流程实现。第二个比较是与仅依赖LLM内部数据和信息来识别和验证检测实体的提示方法实现。
+
+对于评估，我们使用了一个包含50个手动生成的示例自然语言注释的数据集，重点关注具有歧义的计量单位，灵感来自传感器数据表。任务是根据句子上下文中符号单位表示来识别计量单位实体的名称。该数据集可在GitHub\cite{ref12}上公开获取。
+
+数据集中需要消歧的一个示例是自然语言注释``Time measured in S.''。在这里，单位代表秒，即使字母S是大写的。S不代表也使用字母S描述电导率的单位Siemens，因为该解释在自然语言注释的上下文中没有意义。
+
+另一个需要自验证的示例是自然语言注释``The length l is 10 m.''。NER系统可能检测到l（通常代表升）和m（通常代表米）作为符号单位。然而，在此注释的上下文中，只有单位m是相关的，因为字母l只是某长度的名称，与升单位无关。
+
+\begin{table}[htbp]
+\centering
+\caption{使用思维链（CoT）的流程、不使用CoT的流程以及仅使用LLM方法的比较。报告了每种方法每个注释的平均运行时间（秒）。}
+\label{tbl:table2}
+\begin{tabular}{lccc}
+\toprule
+& 使用CoT的流程 & 不使用CoT的流程 & 仅LLM \\
+\midrule
+True Positives & 39 & 40 & 41 \\
+False Positives & 3 & 12 & 25 \\
+False Negatives & 2 & 1 & 0 \\
+F1 Score & 0.94 & 0.86 & 0.77 \\
+Avg. Runtime [s] & 326.8 & 42.7 & 21.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+表\rtbl{table2}中的结果表明，仅使用LLM的方法达到了0.77的F1分数，并成功检测了所有可能的实体，即41个真阳性。然而，它未能过滤掉不适合句子上下文的实体，导致了大量的假阳性。
+
+不使用思维链提示的流程方法达到了0.86的F1分数，与仅使用LLM的方法相比，假阳性数量大约减少了一半，同时保持了几乎相似的40个真阳性。这些结果表明，以RDF数据形式包含的外部事实信息有助于LLM对是否正确识别实体做出更准确的决策。
+
+最后，使用思维链提示的流程方法达到了最高的0.94 F1分数，比不使用思维链提示的流程方法额外提高了约0.08。这种方法进一步减少了假阳性数量，但检测到的39个真阳性几乎与之前方法的40和41个真阳性相同。这些结果表明，外部知识与LLM思维链推理能力的结合提高了其确定实体是否在句子中正确使用的判断力。
+
+总体而言，基于思维链的处理流程在我们的评估中取得了最佳结果，但也具有最高的平均运行时间，比不使用思维链提示的流程慢约7倍，比仅使用LLM的方法慢约15倍。
+
+\section{结论与未来工作}
+
+在本文中，我们提出了一种处理流程，通过从仅包含在自然语言注释中的相关信息提取来生成语义注释，从而提高RDF数据的机器可读性和互操作性。该流程采用基于LLM的命名实体识别和基于语义相似性的实体链接。为了在EL步骤中发现多个可链接候选时进行消歧，该流程使用上下文，即自然语言注释、候选以及通过链接遍历从本体或KG检索到的候选RDF定义，作为LLM的输入，以使用思维链提示评估实体在给定上下文中是否有意义。如果只发现一个实体，流程使用与消歧相同的方法，通过将检测到的事实信息注入到LLM中进行验证。在我们的评估中，我们发现基于基础LLM的NER方法与针对特定领域微调NER模型的传统方法表现相当。此外，我们展示了使用实体链接以及基于思维链的消歧和自验证步骤的流程的有效性，与没有思维链提示的流程实现以及仅依赖LLM而不使用外部信息的实现相比。
+
+未来的工作将侧重于进一步优化流程，例如探索其他LLM的性能，特别是具有降低计算需求的小型模型，以减少处理时间，并可能在IoT环境中实现流程在网络边缘的部署。
+
+\section*{致谢}
+
+本工作部分由德国联邦经济与气候保护部（BMWK）通过Antrieb 4.0项目（资助号13IK015B）和MANDAT项目（资助号16DTM107A）资助。
+
+\bibliography{translation}
+
+\end{document}
