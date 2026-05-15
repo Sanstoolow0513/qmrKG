@@ -7,7 +7,7 @@
 
 ## OVERVIEW
 
-Core Python pipeline for PDF-to-Knowledge-Graph processing. 25 modules handling document conversion, OCR, chunking, entity extraction, embedding canonicalization, and Neo4j import.
+Core Python pipeline for PDF-to-Knowledge-Graph processing. 28 modules handling document conversion, OCR, chunking, entity extraction, embedding canonicalization, and Neo4j import.
 
 ## STRUCTURE
 
@@ -29,7 +29,7 @@ src/qmrkg/
 ├── rate_limit.py           # RollingRateLimiter
 ├── config.py               # Pipeline run config loader
 ├── tqdm_logging.py         # Progress bar utilities
-└── cli_*.py                # 10 CLI entry points (incl. kgeval via cli_eval.py)
+└── cli_*.py                # 11 CLI entry points (incl. kgeval / kgevalraw)
 ```
 
 ## WHERE TO LOOK
@@ -82,6 +82,10 @@ src/qmrkg/
 - Use `pathlib.Path` for paths
 - Use `Optional[]` and `List[]` from typing
 
+### Import Conventions
+- Mostly relative imports inside the package: `from .module import ...`
+- Absolute `qmrkg.*` used in `evaluation.py` and `eval_raw.py` only
+
 ### Error Handling
 - Custom exceptions where appropriate
 - Validation in `llm_config.py` raises descriptive errors
@@ -106,6 +110,16 @@ async with self.rate_limiter.acquire():
 - ❌ **Don't use deprecated `openai:` top-level key** in config.yaml — raises error
 - ❌ **Don't use `SILICONFLOW_*` env vars** — use `PPIO_*` equivalents
 - ❌ **Don't omit `evidence` field** in extracted triples
+
+## COMPLEXITY HOTSPOTS
+
+| File | Lines | Classes | Functions | Note |
+|------|-------|---------|-----------|------|
+| `kg_merger.py` | ~1,549 | 8 | 54 | Deepest nesting; dedup + embedding canonicalization |
+| `kg_extractor.py` | ~599 | — | — | Concurrency-heavy extraction pipeline |
+| `markdown_chunker.py` | ~624 | 3 | 18 | Token-aware splitting + cleanup |
+| `llm_factory.py` | ~475 | 5 | 39 | Central LLM abstraction hub |
+| `GraphCanvas.tsx` | ~489 | — | ~25 | Frontend force-graph renderer |
 
 ## TESTING
 
@@ -136,3 +150,5 @@ uv run pytest tests/test_llm_factory.py -v
 - **kgmdcombine:** OCR outputs per-page files; kgmdcombine merges them into book-level MD before chunking
 - **Evaluation:** `kgeval` CLI → `evaluation.py` → precision/recall/F1 against gold triples
 - **Rate limiter class:** `RollingRateLimiter` (not `RollingWindowRateLimiter` as stated in older docs)
+- **File size skew:** `kg_merger.py` is ~62 KB; median module is ~4.3 KB
+- **Flat package:** 28 Python files, zero subpackages

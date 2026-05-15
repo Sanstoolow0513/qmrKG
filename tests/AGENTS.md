@@ -104,6 +104,7 @@ uv run pytest tests/ -v -k "eval"
 ## NOTES
 
 - **Flat structure** — no nested test directories (besides fixtures/)
+- **No frontend tests** — jest/vitest/playwright not configured
 - **No pytest plugins** — no pytest-cov, no pytest-xdist
 - **Dependency versions**: `pytest>=9.0.2` (dev group), `pytest>=8.0.0` (optional dev)
 - **`sys.path` hack** in `test_markdown_chunker.py` line 7 — legacy, should be removed
