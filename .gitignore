@@ -43,6 +43,7 @@ tests/_scratch/
 .cursor/
 .vscode/
 .idea/
+.sisyphus/
 *.swp
 *~
 .DS_Store
