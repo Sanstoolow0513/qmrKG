@@ -1,6 +1,6 @@
 \abstracten
 
-Structuring course knowledge supports teaching and research in computer networking, yet such documents are dominated by specialized terms and cross-chapter relations, making manual knowledge graph construction costly and hard to scale. This work automates knowledge graph construction from unstructured course materials with large language models (LLMs).
+Modern course teaching materials are predominantly distributed as unstructured documents such as PDF (Portable Document Format) and PPT (PowerPoint) files, yet such documents are dominated by specialized terms and cross-chapter relations, making manual knowledge graph construction costly and hard to scale. This work automates knowledge graph construction from unstructured course materials with large language models (LLMs).
 
 A six-stage pipeline converts PDFs into Markdown, text chunks, raw triples, a merged knowledge graph, and Neo4j storage. Multimodal vision-language models perform OCR (Optical Character Recognition) and produce structured Markdown; a recursive header-aware chunking algorithm preserves document hierarchy within token limits. Chinese prompts extract four entity types (protocol, concept, mechanism, metric) and four relation types (contains, depends\_on, compared\_with, applied\_to) under zero-shot and few-shot settings, with an evidence verification gate grounding each triple in source text. Entity canonicalization combines FAISS (Facebook AI Similarity Search) with Union-Find to merge duplicates.
 
